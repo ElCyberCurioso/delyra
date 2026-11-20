@@ -47,9 +47,10 @@ export default defineConfig(
     languageOptions: { globals: globals.browser },
   },
 
-  // El logger estructurado es el único punto que escribe en consola.
+  // El logger estructurado es el único punto de la app que escribe en consola;
+  // los scripts de CLI de `scripts/` también, porque su salida es para el terminal o CI.
   {
-    files: ["apps/api/src/lib/logger.ts"],
+    files: ["apps/api/src/lib/logger.ts", "scripts/**"],
     rules: { "no-console": "off" },
   },
 

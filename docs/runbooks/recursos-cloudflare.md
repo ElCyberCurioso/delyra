@@ -54,7 +54,30 @@ pnpm exec wrangler secret put LOG_PSEUDONYM_KEY --env staging     # p. ej. `open
 Repite con `--env production`. Los valores se escriben en el terminal, nunca en el repositorio ni
 en el chat.
 
-## 4. Comprobar
+## 4. Secretos de GitHub
+
+En _Settings → Secrets and variables → Actions → **Secrets**_ (no _Variables_), a nivel de
+repositorio o en cada Environment:
+
+| Secreto                   | Environments            | Origen                             |
+| ------------------------- | ----------------------- | ---------------------------------- |
+| `CLOUDFLARE_API_TOKEN`    | `staging`, `production` | Token de CI (P-05)                 |
+| `CLOUDFLARE_ACCOUNT_ID`   | `staging`, `production` | Account ID (P-05)                  |
+| `CF_ACCESS_CLIENT_ID`     | `staging`               | Token de servicio de Access (P-09) |
+| `CF_ACCESS_CLIENT_SECRET` | `staging`               | Token de servicio de Access (P-09) |
+
+El Environment `production` debe tener **revisores obligatorios** (P-04). Además, el despliegue a
+producción solo se lanza a mano (_Actions → Deploy → Run workflow_).
+
+Cada job del workflow `Deploy` empieza con `scripts/check-deploy-config.mjs`, que falla con la
+lista de lo que falta (secretos o identificadores de relleno) sin imprimir ningún valor. Puedes
+ejecutarlo en local:
+
+```sh
+node scripts/check-deploy-config.mjs staging
+```
+
+## 5. Comprobar
 
 - Panel → D1: la base aparece con _Jurisdiction: EU_ y la tabla `system_backup_runs`.
 - Panel → R2: los tres buckets en _EU_, con sus reglas en _Settings → Object lifecycle rules_.

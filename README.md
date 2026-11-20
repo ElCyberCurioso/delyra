@@ -73,11 +73,11 @@ También puedes arrancar solo una app (`pnpm dev:calendar`, `pnpm dev:work`) o s
 
 ## Entornos
 
-| Entorno    | Calendario               | Trabajo                       | Cómo se despliega                 |
-| ---------- | ------------------------ | ----------------------------- | --------------------------------- |
-| local      | `http://localhost:5173`  | `http://localhost:5174`       | `pnpm dev`                        |
-| staging    | `https://delyra-stg.app` | `https://work.delyra-stg.app` | Automático en cada merge a `main` |
-| producción | `https://delyra.app`     | `https://work.delyra.app`     | Manual, con aprobación en GitHub  |
+| Entorno    | Calendario               | Trabajo                       | Cómo se despliega                                        |
+| ---------- | ------------------------ | ----------------------------- | -------------------------------------------------------- |
+| local      | `http://localhost:5173`  | `http://localhost:5174`       | `pnpm dev`                                               |
+| staging    | `https://delyra-stg.app` | `https://work.delyra-stg.app` | Automático en cada merge a `main`                        |
+| producción | `https://delyra.app`     | `https://work.delyra.app`     | Manual (Actions → Deploy → Run workflow), con aprobación |
 
 Staging vive en un dominio registrable distinto para que la cookie de producción nunca llegue
 allí (ADR-0003) y está protegido con Cloudflare Access.
