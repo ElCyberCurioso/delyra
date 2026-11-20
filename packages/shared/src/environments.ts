@@ -1,4 +1,5 @@
 import { z } from "zod";
+import appOrigins from "./app-origins.json";
 
 export const APP_ENVIRONMENTS = ["development", "staging", "production"] as const;
 export type AppEnvironment = (typeof APP_ENVIRONMENTS)[number];
@@ -12,14 +13,19 @@ export interface AppOrigins {
 }
 
 /**
- * Orígenes de cada app por entorno (§3.6 del plan). Es la lista blanca de `Origin` y de `next`.
- * El dominio de staging es provisional hasta que se registre en P-02.
+ * Orígenes de cada app por entorno (§3.6 del plan y ADR-0003). Es la lista blanca de `Origin`
+ * y de `next`. Vive en `app-origins.json` porque también lo leen el workflow de despliegue y
+ * `scripts/check-deploy-config.mjs`. Staging usa `workers.dev`: sustituye `tu-subdominio` por el
+ * subdominio de la cuenta (Workers & Pages → «Your subdomain»).
  */
 export const APP_ORIGINS: Readonly<Record<AppEnvironment, AppOrigins>> = {
-  production: { calendar: "https://delyra.app", work: "https://work.delyra.app" },
-  staging: { calendar: "https://delyra-stg.app", work: "https://work.delyra-stg.app" },
-  development: { calendar: "http://localhost:5173", work: "http://localhost:5174" },
+  production: appOrigins.production,
+  staging: appOrigins.staging,
+  development: appOrigins.development,
 };
+
+/** Valor de relleno del subdominio `workers.dev` en `app-origins.json`. */
+export const STAGING_SUBDOMAIN_PLACEHOLDER = "tu-subdominio";
 
 export function allowedOrigins(environment: AppEnvironment): readonly string[] {
   const origins = APP_ORIGINS[environment];

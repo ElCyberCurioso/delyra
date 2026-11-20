@@ -1,18 +1,33 @@
 # Runbook · Dominios y acceso (F0-11)
 
-## Dominios personalizados
+## Dominios de producción
 
-Los declara cada `wrangler.jsonc` (`routes` con `custom_domain: true`) y se crean al desplegar.
-Requieren que la zona esté activa en la misma cuenta (P-01, P-02).
+Los declara cada `wrangler.jsonc` (`routes` con `custom_domain: true` en `env.production`) y se
+crean al desplegar. Requieren que la zona `delyra.app` esté activa en la misma cuenta (P-01) y que
+el token de CI tenga _Zone · Workers Routes · Edit_ sobre ella.
 
-| Worker                    | Dominio               |
-| ------------------------- | --------------------- |
-| `delyra-calendar`         | `delyra.app`          |
-| `delyra-work`             | `work.delyra.app`     |
-| `delyra-calendar-staging` | `delyra-stg.app`      |
-| `delyra-work-staging`     | `work.delyra-stg.app` |
+| Worker            | Dominio           |
+| ----------------- | ----------------- |
+| `delyra-calendar` | `delyra.app`      |
+| `delyra-work`     | `work.delyra.app` |
 
 Cloudflare crea los registros DNS y los certificados. El Worker `api` no tiene dominio.
+
+## Staging en workers.dev (ADR-0003)
+
+Staging no tiene dominio propio. Las dos SPA se sirven en el subdominio `workers.dev` de la cuenta
+(`workers_dev: true` en `env.staging`):
+
+| Worker                    | URL                                                        |
+| ------------------------- | ---------------------------------------------------------- |
+| `delyra-calendar-staging` | `https://delyra-calendar-staging.<subdominio>.workers.dev` |
+| `delyra-work-staging`     | `https://delyra-work-staging.<subdominio>.workers.dev`     |
+
+1. Mira tu subdominio en _Workers & Pages_ → **Your subdomain** (por ejemplo `ana-lopez`).
+2. Sustituye `tu-subdominio` en `packages/shared/src/app-origins.json`. Es la lista blanca de
+   orígenes y la fuente de las URL del workflow de despliegue.
+3. Si lo cambias en el panel, cambia también ese fichero. La comprobación previa del deploy
+   consulta el subdominio real por la API y falla si no coinciden (y te dice cuál es).
 
 ## Redirección `www.delyra.app` → `delyra.app` (301)
 
@@ -28,13 +43,22 @@ una **Redirect Rule** de la zona `delyra.app` (no consume invocaciones del Worke
 
 ## Cloudflare Access (P-09)
 
-1. **Staging completo.** _Zero Trust → Access → Applications → Self-hosted_, dominios
-   `delyra-stg.app` y `work.delyra-stg.app`. Política _Allow_ para tu email (o tu grupo).
-2. **Token de servicio para CI.** _Access → Service Auth → Create Service Token_ («delyra-ci»).
-   Añade a la aplicación de staging una política _Service Auth_ que lo incluya. Guarda el
-   _Client ID_ y el _Client Secret_ como secretos del Environment `staging` en GitHub:
-   `CF_ACCESS_CLIENT_ID` y `CF_ACCESS_CLIENT_SECRET`. Playwright los envía en cada petición.
-3. **Admin de producción.** Otra aplicación para la ruta `delyra.app/admin` (llega en F1-17).
+1. **Staging (tras el primer despliegue).** Para cada Worker de staging (`delyra-calendar-staging`
+   y `delyra-work-staging`): _Workers & Pages_ → el Worker → _Settings → Domains & Routes_ →
+   en `workers.dev`, **Enable Cloudflare Access**. Cloudflare crea una aplicación y una política
+   reutilizable `<worker> - Production`; con **Manage Cloudflare Access** deja en ella solo tu
+   email (o tu grupo).
+2. **Token de servicio para CI.** _Zero Trust → Access controls → Service credentials → Service
+   Tokens → Create Service Token_ («delyra-ci»). Copia el _Client ID_ y el _Client Secret_ (solo se
+   muestra una vez) y guárdalos como secretos del Environment `staging` en GitHub:
+   `CF_ACCESS_CLIENT_ID` y `CF_ACCESS_CLIENT_SECRET`.
+3. **Dejar pasar a CI.** En la aplicación de Access de cada Worker de staging, añade una política
+   con _Action: Service Auth_ e _Include: Service Token = delyra-ci_. Playwright envía el token en
+   cada petición.
+4. **Admin de producción.** Otra aplicación para la ruta `delyra.app/admin` (llega en F1-17).
+
+El primer despliegue de staging deja las URL `workers.dev` abiertas unos minutos, hasta que
+actives Access. En ese momento solo sirven la página provisional y `/api/health`.
 
 ## HSTS
 

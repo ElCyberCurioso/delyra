@@ -1,0 +1,14 @@
+{
+  "production": {
+    "calendar": "https://delyra.app",
+    "work": "https://work.delyra.app"
+  },
+  "staging": {
+    "calendar": "https://delyra-calendar-staging.tu-subdominio.workers.dev",
+    "work": "https://delyra-work-staging.tu-subdominio.workers.dev"
+  },
+  "development": {
+    "calendar": "http://localhost:5173",
+    "work": "http://localhost:5174"
+  }
+}

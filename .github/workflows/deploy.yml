@@ -30,7 +30,8 @@ jobs:
     timeout-minutes: 30
     environment:
       name: staging
-      url: https://delyra-stg.app
+      # Staging vive en workers.dev (ADR-0003); la URL sale de packages/shared/src/app-origins.json.
+      url: ${{ steps.preflight.outputs.calendar_url }}
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -46,6 +47,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Comprobar configuración de despliegue (staging)
+        id: preflight
         env:
           CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
           CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
@@ -97,8 +99,8 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - name: E2E de humo contra staging
         env:
-          E2E_CALENDAR_URL: https://delyra-stg.app
-          E2E_WORK_URL: https://work.delyra-stg.app
+          E2E_CALENDAR_URL: ${{ steps.preflight.outputs.calendar_url }}
+          E2E_WORK_URL: ${{ steps.preflight.outputs.work_url }}
           CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
           CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: pnpm e2e --grep @smoke
@@ -128,6 +130,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Comprobar configuración de despliegue (producción)
+        id: preflight
         run: node scripts/check-deploy-config.mjs production
 
       - name: Migraciones D1 (producción)
@@ -176,6 +179,6 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - name: E2E de humo contra producción
         env:
-          E2E_CALENDAR_URL: https://delyra.app
-          E2E_WORK_URL: https://work.delyra.app
+          E2E_CALENDAR_URL: ${{ steps.preflight.outputs.calendar_url }}
+          E2E_WORK_URL: ${{ steps.preflight.outputs.work_url }}
         run: pnpm e2e --grep @smoke

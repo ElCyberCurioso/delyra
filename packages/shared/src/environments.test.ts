@@ -1,11 +1,39 @@
 import { describe, expect, it } from "vitest";
-import { findAppByOrigin, isAllowedOrigin } from "./environments";
+import { APP_ENVIRONMENTS, APP_ORIGINS, findAppByOrigin, isAllowedOrigin } from "./environments";
+
+describe("APP_ORIGINS", () => {
+  it.each(APP_ENVIRONMENTS)("los orígenes de %s son orígenes exactos y distintos", (env) => {
+    const { calendar, work } = APP_ORIGINS[env];
+    for (const origin of [calendar, work]) expect(new URL(origin).origin).toBe(origin);
+    expect(calendar).not.toBe(work);
+  });
+
+  it("producción usa HTTPS y staging vive en workers.dev con los nombres de los Workers", () => {
+    expect(APP_ORIGINS.production).toEqual({
+      calendar: "https://delyra.app",
+      work: "https://work.delyra.app",
+    });
+    expect(APP_ORIGINS.staging.calendar).toMatch(
+      /^https:\/\/delyra-calendar-staging\.[a-z0-9-]+\.workers\.dev$/,
+    );
+    expect(APP_ORIGINS.staging.work).toMatch(
+      /^https:\/\/delyra-work-staging\.[a-z0-9-]+\.workers\.dev$/,
+    );
+  });
+
+  it("staging nunca comparte dominio con producción (ADR-0003)", () => {
+    for (const origin of [APP_ORIGINS.staging.calendar, APP_ORIGINS.staging.work]) {
+      expect(new URL(origin).hostname.endsWith("delyra.app")).toBe(false);
+    }
+  });
+});
 
 describe("isAllowedOrigin", () => {
   it("acepta exactamente los orígenes del entorno", () => {
     expect(isAllowedOrigin("production", "https://delyra.app")).toBe(true);
     expect(isAllowedOrigin("production", "https://work.delyra.app")).toBe(true);
-    expect(isAllowedOrigin("staging", "https://delyra-stg.app")).toBe(true);
+    expect(isAllowedOrigin("staging", APP_ORIGINS.staging.calendar)).toBe(true);
+    expect(isAllowedOrigin("staging", APP_ORIGINS.staging.work)).toBe(true);
   });
 
   it.each([
@@ -23,7 +51,7 @@ describe("isAllowedOrigin", () => {
   });
 
   it("no mezcla entornos", () => {
-    expect(isAllowedOrigin("production", "https://delyra-stg.app")).toBe(false);
+    expect(isAllowedOrigin("production", APP_ORIGINS.staging.calendar)).toBe(false);
     expect(isAllowedOrigin("staging", "https://delyra.app")).toBe(false);
   });
 

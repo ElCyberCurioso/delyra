@@ -81,4 +81,5 @@ node scripts/check-deploy-config.mjs staging
 
 - Panel → D1: la base aparece con _Jurisdiction: EU_ y la tabla `system_backup_runs`.
 - Panel → R2: los tres buckets en _EU_, con sus reglas en _Settings → Object lifecycle rules_.
-- Tras el primer despliegue: `https://delyra-stg.app/api/health` responde `"status": "ok"`.
+- Tras el primer despliegue: `https://delyra-calendar-staging.<subdominio>.workers.dev/api/health`
+  responde `"status": "ok"` (tras iniciar sesión en Access).

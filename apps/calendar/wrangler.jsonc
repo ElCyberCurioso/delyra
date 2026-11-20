@@ -28,7 +28,10 @@
     "staging": {
       "name": "delyra-calendar-staging",
       "services": [{ "binding": "API", "service": "delyra-api-staging" }],
-      "routes": [{ "pattern": "delyra-stg.app", "custom_domain": true }],
+      // Staging no tiene dominio propio (ADR-0003): se sirve en
+      // https://delyra-calendar-staging.<subdominio>.workers.dev, protegido con Cloudflare Access.
+      "workers_dev": true,
+      "preview_urls": false,
     },
     "production": {
       "name": "delyra-calendar",
