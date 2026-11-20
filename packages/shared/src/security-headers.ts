@@ -35,10 +35,14 @@ export const SPA_CSP_ENFORCED = [
   "form-action 'self'",
 ].join("; ");
 
+/** Origen del widget anti-bots (Turnstile): script e iframe del desafío. */
+export const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
+
 /** Política completa en modo informe hasta F7-08, cuando pasa a bloqueo. */
 export const SPA_CSP_REPORT_ONLY = [
   "default-src 'self'",
-  "script-src 'self'",
+  `script-src 'self' ${TURNSTILE_ORIGIN}`,
+  `frame-src ${TURNSTILE_ORIGIN}`,
   "style-src 'self'",
   "img-src 'self' data: blob:",
   "font-src 'self'",

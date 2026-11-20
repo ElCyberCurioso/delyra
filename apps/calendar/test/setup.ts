@@ -18,6 +18,9 @@ if (typeof window.matchMedia !== "function") {
   });
 }
 
+// jsdom no implementa scroll; el router lo usa para restaurar la posición.
+window.scrollTo = vi.fn();
+
 afterEach(() => {
   cleanup();
 });

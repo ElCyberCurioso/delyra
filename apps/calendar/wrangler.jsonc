@@ -1,5 +1,5 @@
 {
-  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "$schema": "./node_modules/wrangler/config-schema.json",
   // Worker `web-calendar`: sirve la SPA del calendario (login, ajustes y admin incluidos)
   // y reenvía `/api/*` al Worker `api` por Service Binding, sin salir a Internet.
   //

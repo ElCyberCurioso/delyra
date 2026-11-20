@@ -22,6 +22,7 @@
     "db:generate": "pnpm --filter @delyra/api db:generate",
     "db:migrate:local": "pnpm --filter @delyra/api db:migrate:local",
     "db:migrate:prod": "pnpm --filter @delyra/api db:migrate:prod",
+    "invite": "node scripts/create-invitation.mjs",
     "prepare": "husky"
   },
   "devDependencies": {

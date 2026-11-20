@@ -1,8 +1,16 @@
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
+import { AppError } from "./lib/errors";
+import { csrfProtection } from "./middleware/csrf";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler";
+import { rateLimit } from "./middleware/rate-limit";
 import { requestContext } from "./middleware/request-context";
 import { requestLogger } from "./middleware/request-logger";
 import { securityHeaders } from "./middleware/security-headers";
+import { loadSession } from "./middleware/session";
+import { accountRoutes } from "./routes/account";
+import { adminRoutes } from "./routes/admin";
+import { authRoutes } from "./routes/auth";
 import { cspReportRoutes } from "./routes/csp-report";
 import { healthRoutes } from "./routes/health";
 import type { AppEnv } from "./types";
@@ -20,8 +28,26 @@ export function createApp() {
   app.use("*", requestLogger());
 
   const api = new Hono<AppEnv>();
+  // Los informes CSP los envía el navegador sin Origin ni JSON estándar: fuera del CSRF.
+  api.use("*", csrfProtection({ exemptPaths: ["/api/csp-report"] }));
+  api.use(
+    "*",
+    bodyLimit({
+      maxSize: 64 * 1024,
+      onError: () => {
+        throw new AppError(413);
+      },
+    }),
+  );
+  api.use("*", loadSession());
+  api.use("/auth/*", rateLimit("AUTH_RATE_LIMITER"));
+  api.use("*", rateLimit("API_RATE_LIMITER"));
+
   api.route("/health", healthRoutes);
   api.route("/csp-report", cspReportRoutes);
+  api.route("/auth", authRoutes);
+  api.route("/me", accountRoutes);
+  api.route("/admin", adminRoutes);
   app.route("/api", api);
 
   app.notFound(notFoundHandler);

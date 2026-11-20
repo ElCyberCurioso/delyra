@@ -4,5 +4,6 @@ export * from "./edge";
 export * from "./environments";
 export * from "./ids";
 export * from "./problem";
+export * from "./schemas/auth";
 export * from "./schemas/health";
 export * from "./security-headers";

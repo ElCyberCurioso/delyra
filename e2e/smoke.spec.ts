@@ -25,10 +25,24 @@ test.describe("humo @smoke", () => {
     expect(response.headers()["content-type"]).toBe("application/problem+json");
   });
 
-  test("la SPA carga y muestra el estado de la plataforma", async ({ page }) => {
+  test("sin sesión, la SPA lleva al login del calendario recordando la vuelta", async ({
+    page,
+    baseURL,
+  }) => {
     await page.goto("/");
-    await expect(page.getByRole("navigation", { name: "Aplicaciones" })).toBeVisible();
-    await expect(page.getByRole("status")).toHaveText(/Operativo/);
+    await expect(page.getByRole("heading", { level: 1, name: "Iniciar sesión" })).toBeVisible();
+    const url = new URL(page.url());
+    expect(url.pathname).toBe("/login");
+    expect(url.searchParams.get("next")).toBe(new URL("/", baseURL).href);
+  });
+
+  test("la API exige sesión y rechaza mutaciones de otro origen", async ({ request }) => {
+    expect((await request.get("/api/auth/me")).status()).toBe(401);
+    const forged = await request.post("/api/auth/logout", {
+      headers: { Origin: "https://evil.example", "Content-Type": "application/json" },
+      data: {},
+    });
+    expect(forged.status()).toBe(403);
   });
 
   test("las rutas profundas usan el fallback de SPA", async ({ page }) => {

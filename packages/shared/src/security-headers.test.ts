@@ -21,6 +21,12 @@ describe("cabeceras de seguridad", () => {
     expect(SPA_CSP_REPORT_ONLY).toContain("report-uri /api/csp-report");
   });
 
+  it("solo abre la CSP al origen de Turnstile, para el script y el iframe del desafío", () => {
+    expect(SPA_CSP_REPORT_ONLY).toContain("script-src 'self' https://challenges.cloudflare.com;");
+    expect(SPA_CSP_REPORT_ONLY).toContain("frame-src https://challenges.cloudflare.com;");
+    expect(SPA_CSP_REPORT_ONLY).toContain("connect-src 'self';");
+  });
+
   it("la API no permite cargar nada", () => {
     const headers = apiSecurityHeaders();
     expect(headers["Content-Security-Policy"]).toContain("default-src 'none'");

@@ -1,5 +1,5 @@
 {
-  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "$schema": "./node_modules/wrangler/config-schema.json",
   // Worker `api` (Hono). Solo es accesible por Service Binding desde los dos frontends:
   // sin workers.dev, sin preview URLs y sin rutas propias.
   //
@@ -25,8 +25,27 @@
     "APP_ENV": "development",
     "CF_ACCOUNT_ID": "",
     "D1_DATABASE_ID": "",
+    // Clave de prueba de Turnstile que siempre pasa (documentación de Cloudflare).
+    "TURNSTILE_SITE_KEY": "1x00000000000000000000AA",
+    // En local la cookie es del host (localhost sirve a las dos SPA en distintos puertos).
+    "SESSION_COOKIE_DOMAIN": "",
+    "MAIL_FROM": "no-reply@delyra.app",
+    "PWNED_PASSWORDS_CHECK": "off",
   },
   "version_metadata": { "binding": "CF_VERSION_METADATA" },
+  // F1-10: límite general de la API y otro más estricto para /api/auth/*.
+  "ratelimits": [
+    {
+      "name": "API_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 300, "period": 60 },
+    },
+    {
+      "name": "AUTH_RATE_LIMITER",
+      "namespace_id": "1002",
+      "simple": { "limit": 30, "period": 60 },
+    },
+  ],
   "d1_databases": [
     {
       "binding": "DB",
@@ -69,8 +88,27 @@
         // No son secretos; los usa el backup diario (docs/runbooks/recursos-cloudflare.md).
         "CF_ACCOUNT_ID": "b87bc1a8f7e74107a115865b54ddc455",
         "D1_DATABASE_ID": "f1a9ef7a-8b4f-4f0b-859d-734c1d68b84c",
+        // Site key del widget de Turnstile de producción (P-08). No es secreta.
+        "TURNSTILE_SITE_KEY": "",
+        "SESSION_COOKIE_DOMAIN": "delyra.app",
+        "MAIL_FROM": "no-reply@delyra.app",
+        "PWNED_PASSWORDS_CHECK": "on",
       },
       "version_metadata": { "binding": "CF_VERSION_METADATA" },
+      "ratelimits": [
+        {
+          "name": "API_RATE_LIMITER",
+          "namespace_id": "1001",
+          "simple": { "limit": 300, "period": 60 },
+        },
+        {
+          "name": "AUTH_RATE_LIMITER",
+          "namespace_id": "1002",
+          "simple": { "limit": 30, "period": 60 },
+        },
+      ],
+      // Email (F1-12): añadir cuando delyra.app esté dado de alta en Email Service (P-07):
+      // "send_email": [{ "name": "EMAIL", "allowed_sender_addresses": ["no-reply@delyra.app"] }],
       "d1_databases": [
         {
           "binding": "DB",

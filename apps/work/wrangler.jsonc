@@ -1,5 +1,5 @@
 {
-  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "$schema": "./node_modules/wrangler/config-schema.json",
   // Worker `web-work`: sirve la SPA del kanban (work.delyra.app)
   // y reenvía `/api/*` al Worker `api` por Service Binding, sin salir a Internet.
   //

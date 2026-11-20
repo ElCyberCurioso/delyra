@@ -10,3 +10,4 @@ minimumReleaseAgeExclude:
   - "@tanstack/react-query@5.108.1"
   - lucide-react@1.77.0
   - tailwind-merge@3.7.1
+  - "@hookform/resolvers@7.0.8"

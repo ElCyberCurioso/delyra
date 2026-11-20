@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Comprobación previa al despliegue en producción (F0-10): falla pronto y con un mensaje claro si
-// faltan secretos de GitHub, si apps/api/wrangler.jsonc aún tiene identificadores de relleno o si
-// los dominios de las SPA no coinciden con packages/shared/src/app-origins.json.
+// faltan secretos de GitHub, si apps/api/wrangler.jsonc aún tiene identificadores de relleno, si
+// los dominios de las SPA no coinciden con packages/shared/src/app-origins.json o si al Worker del
+// api le faltan secretos (solo consulta sus nombres en la API de Cloudflare).
 // Nunca imprime el valor de un secreto.
 //
 // En GitHub Actions escribe en $GITHUB_OUTPUT `calendar_url` y `work_url`.
@@ -16,6 +17,7 @@ const ROOT = path.join(import.meta.dirname, "..");
 const ENVIRONMENT = "production";
 const PLACEHOLDER_DB_ID = "00000000-0000-4000-8000-000000000000";
 const RUNBOOK_RESOURCES = "docs/runbooks/recursos-cloudflare.md";
+const RUNBOOK_ACCESS = "docs/runbooks/dominios-y-acceso.md";
 const ORIGINS_FILE = "packages/shared/src/app-origins.json";
 
 /** @type {{ title: string; detail: string }[]} */
@@ -83,6 +85,55 @@ for (const [name, description] of requiredSecrets) {
       title: `vars.CF_ACCOUNT_ID de env.${ENVIRONMENT} no coincide con el secreto CLOUDFLARE_ACCOUNT_ID`,
       detail: "Los Workers y el backup estarían apuntando a cuentas distintas.",
     });
+  }
+  if (!vars.TURNSTILE_SITE_KEY) {
+    problems.push({
+      title: `Falta vars.TURNSTILE_SITE_KEY en env.${ENVIRONMENT}`,
+      detail: `Sin el widget de Turnstile nadie puede iniciar sesión ni registrarse (P-08, ${RUNBOOK_ACCESS}).`,
+    });
+  }
+}
+
+// ── Secretos del Worker del api ─────────────────────────────────────────────────
+// Se consultan solo los nombres. Si la API no responde se avisa, pero no se bloquea.
+const workerSecrets = [
+  ["LOG_PSEUDONYM_KEY", "clave HMAC para seudonimizar IPs y emails en logs y contadores"],
+  ["FIELD_ENCRYPTION_KEY_V1", "clave AES-256 que cifra las semillas TOTP en D1"],
+  ["TURNSTILE_SECRET_KEY", "secreto del widget de Turnstile (P-08)"],
+  ["D1_EXPORT_API_TOKEN", "token para el export diario de D1 (backup)"],
+];
+{
+  const apiName = readJsonc("apps/api/wrangler.jsonc").env?.[ENVIRONMENT]?.name ?? "delyra-api";
+  const token = process.env.CLOUDFLARE_API_TOKEN?.trim();
+  if (token && accountId) {
+    try {
+      const response = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${apiName}/secrets`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (response.status === 404) {
+        console.warn(`Aviso: ${apiName} aún no existe; no se comprueban sus secretos.`);
+      } else if (!response.ok) {
+        console.warn(
+          `Aviso: no se pudieron listar los secretos de ${apiName} (HTTP ${String(response.status)}).`,
+        );
+      } else {
+        const body = await response.json();
+        const present = new Set((body.result ?? []).map((secret) => secret.name));
+        for (const [name, description] of workerSecrets) {
+          if (!present.has(name)) {
+            problems.push({
+              title: `Falta el secreto ${name} en el Worker ${apiName}`,
+              detail: `${description}. Cárgalo con \`pnpm --filter @delyra/api exec wrangler secret put ${name} --env ${ENVIRONMENT}\` (${RUNBOOK_ACCESS}).`,
+            });
+          }
+        }
+      }
+    } catch {
+      console.warn(
+        `Aviso: no se pudo contactar con la API de Cloudflare para revisar los secretos.`,
+      );
+    }
   }
 }
 

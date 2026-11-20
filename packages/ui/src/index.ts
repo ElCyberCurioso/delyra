@@ -32,3 +32,22 @@ export { type CurrentUser, UserMenu } from "./layout/user-menu";
 export { cn } from "./lib/utils";
 export { THEME_STORAGE_KEY } from "./theme/theme-init-script";
 export { type ResolvedTheme, type Theme, ThemeProvider, useTheme } from "./theme/theme-provider";
+export { ApiError, type ApiRequestOptions, apiFetch, errorMessage } from "./auth/api";
+export { AuthLayout } from "./auth/auth-layout";
+export { type ActiveSession, FullPageSpinner, RequireSession } from "./auth/require-session";
+export {
+  authUrl,
+  currentEnvironment,
+  fetchAuthConfig,
+  fetchMe,
+  goTo,
+  ME_QUERY_KEY,
+  pendingStepUrl,
+  resolveNext,
+  type SessionInfo,
+  useAuthConfig,
+  useLogout,
+  useMe,
+} from "./auth/session";
+export { Turnstile, type TurnstileProps } from "./auth/turnstile";
+export { Field, type FieldProps, FormError } from "./components/field";

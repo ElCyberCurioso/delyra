@@ -3,7 +3,7 @@
   "compilerOptions": {
     // Tipos del runtime de Workers y de los bindings: `pnpm cf-typegen` (wrangler types).
     "lib": ["ES2024"],
-    "types": []
+    "types": ["node"]
   },
   "include": ["src", "worker-configuration.d.ts"]
 }

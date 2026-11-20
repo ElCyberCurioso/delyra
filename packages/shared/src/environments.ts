@@ -45,6 +45,39 @@ export function isAllowedOrigin(environment: AppEnvironment, origin: string | nu
   return normalized === origin && allowedOrigins(environment).includes(normalized);
 }
 
+/**
+ * Valida el destino de `next` tras iniciar sesión (F1-13). Solo admite una ruta relativa
+ * del propio sitio o una URL cuyo origen esté exactamente en la lista blanca del entorno.
+ * Cualquier otra cosa (otros dominios, `//evil.com`, `javascript:`, prefijos engañosos como
+ * `https://delyra.app.evil.com`) devuelve `fallback`.
+ */
+export function safeNext(
+  environment: AppEnvironment,
+  next: string | null | undefined,
+  fallback = "/",
+): string {
+  if (!next || next.length > 2048) return fallback;
+  if (next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\")) {
+    try {
+      const url = new URL(next, "https://placeholder.invalid");
+      return url.origin === "https://placeholder.invalid"
+        ? `${url.pathname}${url.search}${url.hash}`
+        : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+  try {
+    const url = new URL(next);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return fallback;
+    return allowedOrigins(environment).includes(url.origin) && !url.username && !url.password
+      ? url.href
+      : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 /** Localiza el entorno y la app a partir del origen en el que se ejecuta la SPA. */
 export function findAppByOrigin(
   origin: string,

@@ -20,13 +20,20 @@ const server = setupServer(
       },
     }),
   ),
+  http.get("/api/auth/me", () =>
+    HttpResponse.json({
+      state: "active",
+      user: { id: "u1", email: "ana@example.com", name: "Ana López", role: "member" },
+      settings: { timeZone: "Europe/Madrid", locale: "es", weekStart: 1 },
+    }),
+  ),
 );
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe("App (trabajo)", () => {
-  it("muestra la página provisional con el estado de /api/health", async () => {
+  it("con sesión completa muestra la página provisional, el usuario y /api/health", async () => {
     render(
       <ThemeProvider>
         <QueryClientProvider client={new QueryClient()}>
@@ -34,7 +41,8 @@ describe("App (trabajo)", () => {
         </QueryClientProvider>
       </ThemeProvider>,
     );
-    expect(screen.getByRole("heading", { level: 1, name: "Trabajo" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Trabajo" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Menú de usuario" })).toHaveTextContent("Ana López");
     expect(screen.getByRole("link", { name: /Trabajo/ })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: /Calendario/ })).toHaveAttribute(
       "href",

@@ -43,8 +43,13 @@ corepack enable pnpm
 pnpm install
 cp apps/api/.dev.vars.example apps/api/.dev.vars   # opcional en F0
 pnpm db:migrate:local                              # D1 local en .wrangler/state
+pnpm invite --email tu@correo.com --role admin --local   # enlace de registro local
 pnpm dev                                           # calendario :5173 y trabajo :5174
 ```
+
+Abre el enlace que imprime `pnpm invite`, crea la cuenta y configura el TOTP: después ya puedes
+entrar en las dos apps. El primer administrador de producción se crea igual, sin `--local`
+(`docs/runbooks/dominios-y-acceso.md`).
 
 `pnpm dev` arranca las dos SPA con Vite y `@cloudflare/vite-plugin`. Cada una ejecuta el Worker
 `api` como auxiliar, con D1, R2 y Queues locales (Miniflare) compartidos en `.wrangler/state`.
@@ -69,6 +74,7 @@ También puedes arrancar solo una app (`pnpm dev:calendar`, `pnpm dev:work`) o s
 | `pnpm db:generate`      | Genera una migración SQL desde `apps/api/src/db/schema.ts`         |
 | `pnpm db:migrate:local` | Aplica las migraciones a la D1 local                               |
 | `pnpm db:migrate:prod`  | Aplica las migraciones a la D1 de producción                       |
+| `pnpm invite`           | Crea una invitación en D1 (`--local` para la local)                |
 
 ## Entornos
 

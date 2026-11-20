@@ -74,6 +74,9 @@ pnpm exec wrangler secret put D1_EXPORT_API_TOKEN --env production   # token de 
 node -e "process.stdout.write(require('crypto').randomBytes(32).toString('base64'))" | pnpm exec wrangler secret put LOG_PSEUDONYM_KEY --env production
 ```
 
+La Fase 1 añade `FIELD_ENCRYPTION_KEY_V1` y `TURNSTILE_SECRET_KEY` (ver
+`docs/runbooks/dominios-y-acceso.md`). La comprobación previa del despliegue lista los que falten.
+
 Los valores se escriben en el terminal (o se generan y se envían directamente), nunca en el
 repositorio ni en el chat. Hasta que estén cargados, el backup diario falla y lo registra.
 
