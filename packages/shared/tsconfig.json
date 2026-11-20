@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Se usa tanto en el navegador como en Workers: solo APIs web comunes.
+    "lib": ["ES2024", "DOM"]
+  },
+  "include": ["src", "vitest.config.ts"]
+}

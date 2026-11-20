@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+.wrangler/
+.turbo/
+playwright-report/
+test-results/
+pnpm-lock.yaml
+**/worker-configuration.d.ts
+**/migrations/meta/

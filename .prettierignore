@@ -1,0 +1,9 @@
+pnpm-lock.yaml
+**/dist/**
+**/coverage/**
+**/.wrangler/**
+**/.turbo/**
+**/worker-configuration.d.ts
+**/migrations/meta/**
+playwright-report/
+test-results/

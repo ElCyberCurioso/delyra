@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "calendar",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@delyra/calendar", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "work",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@delyra/work", "dev"],
+      "port": 5174
+    }
+  ]
+}

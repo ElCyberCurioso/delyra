@@ -1,0 +1,32 @@
+# Dependencias
+node_modules/
+
+# Builds y cachés
+dist/
+.turbo/
+coverage/
+*.tsbuildinfo
+node_modules/.tmp/
+
+# Cloudflare / Wrangler (estado local de D1, R2, Queues)
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.env
+.env.*
+!.env.example
+!.env.development
+
+# Playwright
+playwright-report/
+test-results/
+blob-report/
+
+# Editor y sistema
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log

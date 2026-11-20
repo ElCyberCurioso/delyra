@@ -1,0 +1,33 @@
+{
+  "name": "@delyra/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8787 --persist-to ../../.wrangler/state",
+    "build": "wrangler deploy --dry-run --outdir dist --env staging",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production",
+    "typecheck": "tsc -p tsconfig.json && tsc -p test/tsconfig.json",
+    "test": "vitest run",
+    "cf-typegen": "wrangler types",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local --persist-to ../../.wrangler/state",
+    "db:migrate:staging": "wrangler d1 migrations apply DB --env staging --remote",
+    "db:migrate:prod": "wrangler d1 migrations apply DB --env production --remote"
+  },
+  "dependencies": {
+    "@delyra/shared": "workspace:*",
+    "@hono/zod-validator": "0.9.1",
+    "drizzle-orm": "0.45.4",
+    "hono": "4.13.19",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.8.5",
+    "drizzle-kit": "0.31.11",
+    "typescript": "6.0.3",
+    "vitest": "5.1.1",
+    "wrangler": "4.165.0"
+  }
+}

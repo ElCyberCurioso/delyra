@@ -1,0 +1,45 @@
+{
+  "name": "delyra",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev --filter=@delyra/calendar --filter=@delyra/work",
+    "dev:calendar": "pnpm --filter @delyra/calendar dev",
+    "dev:work": "pnpm --filter @delyra/work dev",
+    "build": "turbo run build",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "turbo run typecheck && tsc -p e2e/tsconfig.json",
+    "test": "turbo run test",
+    "e2e": "playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "cf-typegen": "turbo run cf-typegen",
+    "db:generate": "pnpm --filter @delyra/api db:generate",
+    "db:migrate:local": "pnpm --filter @delyra/api db:migrate:local",
+    "db:migrate:staging": "pnpm --filter @delyra/api db:migrate:staging",
+    "db:migrate:prod": "pnpm --filter @delyra/api db:migrate:prod",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.65.1",
+    "@types/node": "26.6.6",
+    "eslint": "10.15.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.14.0",
+    "husky": "9.1.7",
+    "lint-staged": "17.6.1",
+    "prettier": "3.10.1",
+    "turbo": "2.11.13",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.73.0"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.worker.tsbuildinfo",
+    // Tipos del runtime de Workers y de los bindings: `pnpm cf-typegen` (wrangler types).
+    "lib": ["ES2024"],
+    "types": []
+  },
+  "include": ["worker", "worker-configuration.d.ts"]
+}

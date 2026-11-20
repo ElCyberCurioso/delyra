@@ -1,0 +1,39 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  // Worker `web-work`: sirve la SPA del kanban (work.delyra.app)
+  // y reenvía `/api/*` al Worker `api` por Service Binding, sin salir a Internet.
+  "name": "delyra-work",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "upload_source_maps": true,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": { "enabled": true, "invocation_logs": true },
+    "traces": { "enabled": true, "head_sampling_rate": 1 },
+  },
+  "assets": {
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"],
+  },
+
+  // Desarrollo local: el Worker `api` corre como auxiliar en el mismo proceso de Vite.
+  "services": [{ "binding": "API", "service": "delyra-api" }],
+
+  "env": {
+    "staging": {
+      "name": "delyra-work-staging",
+      "services": [{ "binding": "API", "service": "delyra-api-staging" }],
+      "routes": [{ "pattern": "work.delyra-stg.app", "custom_domain": true }],
+    },
+    "production": {
+      "name": "delyra-work",
+      "services": [{ "binding": "API", "service": "delyra-api" }],
+      "routes": [{ "pattern": "work.delyra.app", "custom_domain": true }],
+    },
+  },
+}
