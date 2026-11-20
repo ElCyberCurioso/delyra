@@ -5,15 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --port 8787 --persist-to ../../.wrangler/state",
-    "build": "wrangler deploy --dry-run --outdir dist --env staging",
-    "deploy:staging": "wrangler deploy --env staging",
+    "build": "wrangler deploy --dry-run --outdir dist --env production",
     "deploy:production": "wrangler deploy --env production",
     "typecheck": "tsc -p tsconfig.json && tsc -p test/tsconfig.json",
     "test": "vitest run",
     "cf-typegen": "wrangler types",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply DB --local --persist-to ../../.wrangler/state",
-    "db:migrate:staging": "wrangler d1 migrations apply DB --env staging --remote",
     "db:migrate:prod": "wrangler d1 migrations apply DB --env production --remote"
   },
   "dependencies": {

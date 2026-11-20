@@ -6,7 +6,7 @@
 
 ## Cómo probarlo
 
-<!-- Pasos para validarlo en local y en staging. -->
+<!-- Pasos para validarlo en local y qué comprobar en producción tras desplegar. -->
 
 ## Definition of Done (§3.4)
 
@@ -15,5 +15,5 @@
 - [ ] `pnpm lint`, `pnpm typecheck` y `pnpm test` en verde
 - [ ] Sin secretos en código ni en logs; gitleaks y Semgrep sin hallazgos nuevos
 - [ ] Migraciones (si las hay) aplicadas desde cero y sobre la versión anterior
-- [ ] Desplegado en staging y probado manualmente
+- [ ] Probado en local (`pnpm dev`, `pnpm e2e`); qué comprobar en producción tras desplegar
 - [ ] Documentación actualizada (README, ADR o runbook)

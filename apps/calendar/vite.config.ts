@@ -8,7 +8,7 @@ import { defineConfig } from "vite";
 // Estado local (D1, R2, Queues) compartido por las dos SPA y por `wrangler dev` del api.
 const sharedState = path.resolve(import.meta.dirname, "../../.wrangler/state");
 
-// El entorno de Cloudflare (staging/production) se elige con CLOUDFLARE_ENV al hacer build.
+// Producción se construye con CLOUDFLARE_ENV=production; sin él, se usa la configuración local.
 export default defineConfig(({ command }) => ({
   plugins: [
     react(),

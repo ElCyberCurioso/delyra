@@ -1,36 +1,32 @@
-# F0-10 · Despliegue continuo.
-# - Cada merge en main: migraciones de D1, despliegue de los tres Workers en staging y e2e de humo.
-# - Producción: solo al lanzar el workflow a mano (Actions → Deploy → Run workflow). Primero se
-#   vuelve a desplegar y probar staging; después, producción espera la aprobación del Environment
-#   `production` (revisores obligatorios, P-04). Lanzarlo a mano es la salvaguarda aunque ese
-#   Environment aún no tenga revisores.
-# - Cada job empieza con una comprobación de secretos e identificadores
-#   (scripts/check-deploy-config.mjs) que falla con un mensaje claro si falta algo.
-#
-# Orden: migraciones → api → SPA. Las SPA enlazan el api por Service Binding y las migraciones
-# deben ser compatibles con la versión anterior del código (expand/contract).
+# F0-10 · Despliegue a producción. No hay staging (ADR-0003).
+# - Solo se lanza a mano: Actions → Deploy → Run workflow. Despliega el commit elegido (por
+#   defecto, el último de main); comprueba antes que CI esté en verde para ese commit.
+# - El Environment `production` puede exigir además aprobación (revisores obligatorios, P-04).
+# - Empieza con scripts/check-deploy-config.mjs, que falla con un mensaje claro si falta algo.
+# - Orden: migraciones → api → SPA (las SPA enlazan el api por Service Binding). Las migraciones
+#   deben ser compatibles con la versión anterior del código (expand/contract).
+# - Termina con los e2e de humo (@smoke, solo lectura) contra producción. Si fallan, revierte con
+#   `wrangler rollback` (docs/runbooks/despliegue.md).
 name: Deploy
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
-  group: deploy
+  group: deploy-production
   cancel-in-progress: false
 
 jobs:
-  staging:
-    name: Staging
+  production:
+    name: Producción
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:
-      name: staging
-      # Staging vive en workers.dev (ADR-0003); la URL sale de packages/shared/src/app-origins.json.
+      name: production
       url: ${{ steps.preflight.outputs.calendar_url }}
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -39,89 +35,21 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
 
-      - name: Comprobar configuración de despliegue (staging)
-        id: preflight
+      - name: Exigir CI en verde para este commit
         env:
-          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
-          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
-        run: node scripts/check-deploy-config.mjs staging
-
-      - name: Migraciones D1 (staging)
-        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: pnpm
-          workingDirectory: apps/api
-          command: d1 migrations apply DB --env staging --remote
-
-      - name: Desplegar api (staging)
-        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: pnpm
-          workingDirectory: apps/api
-          command: deploy --env staging
-
-      - name: Build de las SPA (staging)
-        env:
-          CLOUDFLARE_ENV: staging
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
         run: |
-          pnpm --filter @delyra/calendar build
-          pnpm --filter @delyra/work build
+          conclusion=$(gh api "repos/${REPO}/actions/workflows/ci.yml/runs?head_sha=${SHA}&event=push&per_page=1" \
+            --jq '.workflow_runs[0].conclusion // "sin ejecución"')
+          echo "CI para ${SHA}: ${conclusion}"
+          if [ "${conclusion}" != "success" ]; then
+            echo "::error title=CI no está en verde::El último CI de ${SHA} terminó en «${conclusion}». Despliega un commit con CI en verde."
+            exit 1
+          fi
 
-      - name: Desplegar calendar (staging)
-        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: pnpm
-          workingDirectory: apps/calendar
-          command: deploy
-
-      - name: Desplegar work (staging)
-        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: pnpm
-          workingDirectory: apps/work
-          command: deploy
-
-      - run: pnpm exec playwright install --with-deps chromium
-      - name: E2E de humo contra staging
-        env:
-          E2E_CALENDAR_URL: ${{ steps.preflight.outputs.calendar_url }}
-          E2E_WORK_URL: ${{ steps.preflight.outputs.work_url }}
-          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
-          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
-        run: pnpm e2e --grep @smoke
-
-  production:
-    name: Producción
-    needs: staging
-    # Nunca en un push: solo cuando alguien lanza el workflow a mano.
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    environment:
-      name: production
-      url: https://delyra.app
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -129,11 +57,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      - name: Comprobar configuración de despliegue (producción)
+      - name: Comprobar configuración de despliegue
         id: preflight
-        run: node scripts/check-deploy-config.mjs production
+        run: node scripts/check-deploy-config.mjs
 
-      - name: Migraciones D1 (producción)
+      - name: Migraciones D1
         uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -142,7 +70,7 @@ jobs:
           workingDirectory: apps/api
           command: d1 migrations apply DB --env production --remote
 
-      - name: Desplegar api (producción)
+      - name: Desplegar api
         uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -151,14 +79,14 @@ jobs:
           workingDirectory: apps/api
           command: deploy --env production
 
-      - name: Build de las SPA (producción)
+      - name: Build de las SPA
         env:
           CLOUDFLARE_ENV: production
         run: |
           pnpm --filter @delyra/calendar build
           pnpm --filter @delyra/work build
 
-      - name: Desplegar calendar (producción)
+      - name: Desplegar calendar
         uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -167,7 +95,7 @@ jobs:
           workingDirectory: apps/calendar
           command: deploy
 
-      - name: Desplegar work (producción)
+      - name: Desplegar work
         uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

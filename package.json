@@ -21,7 +21,6 @@
     "cf-typegen": "turbo run cf-typegen",
     "db:generate": "pnpm --filter @delyra/api db:generate",
     "db:migrate:local": "pnpm --filter @delyra/api db:migrate:local",
-    "db:migrate:staging": "pnpm --filter @delyra/api db:migrate:staging",
     "db:migrate:prod": "pnpm --filter @delyra/api db:migrate:prod",
     "prepare": "husky"
   },

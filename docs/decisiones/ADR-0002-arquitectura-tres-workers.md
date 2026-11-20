@@ -23,7 +23,7 @@ Tres Workers por entorno:
    (`assets.run_worker_first: ["/api/*"]`). La petición conserva URL, método, cabeceras y cookie,
    así que la API es _same-origin_ para el navegador: sin CORS y con cookie `SameSite=Lax`.
 2. **El `api` no tiene ninguna entrada pública**: `workers_dev: false`, `preview_urls: false` y sin
-   rutas. Solo se llega a él a través de las SPA (y, en staging, tras Cloudflare Access).
+   rutas. Solo se llega a él a través de las SPA.
 3. **El resto de rutas no ejecuta código**: Static Assets sirve la SPA con
    `not_found_handling: "single-page-application"` y las cabeceras de `_headers`, generadas desde
    `@delyra/shared` para que coincidan con las de la API.
@@ -32,8 +32,10 @@ Tres Workers por entorno:
 5. **Las colas solo transportan identificadores.** Los mensajes de `delyra-notifications` llevarán
    ids (alerta, usuario) y una clave de idempotencia; el consumidor lee el resto de D1. Así no hay
    contenido de usuario fuera de D1/R2 y la cola no necesita jurisdicción propia.
-6. **Entornos de Wrangler.** El entorno por defecto de cada `wrangler.jsonc` es el local; `staging`
-   y `production` declaran sus propios nombres y bindings (no se heredan).
+6. **Entornos de Wrangler.** El entorno por defecto de cada `wrangler.jsonc` es el local, con
+   nombres terminados en `-local`; `production` declara sus propios nombres y bindings (no se
+   heredan). Así, un despliegue sin `--env production` nunca sobrescribe producción. No hay
+   staging (ADR-0003).
 
 ## Alternativas descartadas
 

@@ -8,7 +8,7 @@ import { HealthStatus } from "./health-status";
 
 const healthy: HealthResponse = {
   status: "ok",
-  environment: "staging",
+  environment: "production",
   version: "0123456789abcdef",
   time: "2026-11-20T10:00:00.000Z",
   checks: {
@@ -39,7 +39,7 @@ describe("HealthStatus", () => {
     expect(await screen.findByText("Operativo")).toBeInTheDocument();
     expect(screen.getByText("Base de datos (D1)")).toBeInTheDocument();
     expect(screen.getByText("12 ms")).toBeInTheDocument();
-    expect(screen.getByText("Staging")).toBeInTheDocument();
+    expect(screen.getByText("Producción")).toBeInTheDocument();
     expect(screen.getByText("01234567")).toBeInTheDocument();
   });
 

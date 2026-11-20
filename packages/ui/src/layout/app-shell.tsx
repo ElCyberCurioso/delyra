@@ -5,7 +5,7 @@ import { AppSwitcher } from "./app-switcher";
 import { Brand } from "./brand";
 import { type CurrentUser, UserMenu } from "./user-menu";
 
-/** Orígenes de las dos apps según dónde se ejecuta la SPA (producción, staging o local). */
+/** Orígenes de las dos apps según dónde se ejecuta la SPA (producción o local). */
 export function currentAppOrigins(): AppOrigins {
   return findAppByOrigin(window.location.origin)?.origins ?? APP_ORIGINS.development;
 }

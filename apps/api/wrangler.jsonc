@@ -2,7 +2,11 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   // Worker `api` (Hono). Solo es accesible por Service Binding desde los dos frontends:
   // sin workers.dev, sin preview URLs y sin rutas propias.
-  "name": "delyra-api",
+  //
+  // Dos entornos (ADR-0003): el de nivel superior es el desarrollo local y `production` el único
+  // remoto. El nombre local termina en `-local` para que un `wrangler deploy` sin `--env
+  // production` nunca sobrescriba el Worker de producción.
+  "name": "delyra-api-local",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-17",
   "compatibility_flags": ["nodejs_compat"],
@@ -57,70 +61,21 @@
   ],
 
   "env": {
-    // ── Staging ───────────────────────────────────────────────────────────────────
-    "staging": {
-      "name": "delyra-api-staging",
-      "vars": {
-        "APP_ENV": "staging",
-        // Se rellenan tras crear los recursos (docs/runbooks/recursos-cloudflare.md).
-        "CF_ACCOUNT_ID": "",
-        "D1_DATABASE_ID": "",
-      },
-      "version_metadata": { "binding": "CF_VERSION_METADATA" },
-      "d1_databases": [
-        {
-          "binding": "DB",
-          "database_name": "delyra-staging",
-          "database_id": "00000000-0000-4000-8000-000000000000",
-          "migrations_dir": "migrations",
-        },
-      ],
-      "r2_buckets": [
-        { "binding": "BACKUPS", "bucket_name": "delyra-backups-staging", "jurisdiction": "eu" },
-        {
-          "binding": "ATTACHMENTS",
-          "bucket_name": "delyra-attachments-staging",
-          "jurisdiction": "eu",
-        },
-        { "binding": "IMPORTS", "bucket_name": "delyra-imports-staging", "jurisdiction": "eu" },
-      ],
-      "queues": {
-        "producers": [{ "binding": "NOTIFICATIONS", "queue": "delyra-notifications-staging" }],
-        "consumers": [
-          {
-            "queue": "delyra-notifications-staging",
-            "max_batch_size": 10,
-            "max_batch_timeout": 5,
-            "max_retries": 5,
-            "dead_letter_queue": "delyra-notifications-dlq-staging",
-          },
-        ],
-      },
-      "workflows": [
-        {
-          "name": "delyra-system-backup-staging",
-          "binding": "SYSTEM_BACKUP",
-          "class_name": "SystemBackupWorkflow",
-          // 02:30 UTC todos los días.
-          "schedules": ["30 2 * * *"],
-        },
-      ],
-    },
-
     // ── Producción ────────────────────────────────────────────────────────────────
     "production": {
       "name": "delyra-api",
       "vars": {
         "APP_ENV": "production",
-        "CF_ACCOUNT_ID": "",
-        "D1_DATABASE_ID": "",
+        // No son secretos; los usa el backup diario (docs/runbooks/recursos-cloudflare.md).
+        "CF_ACCOUNT_ID": "b87bc1a8f7e74107a115865b54ddc455",
+        "D1_DATABASE_ID": "f1a9ef7a-8b4f-4f0b-859d-734c1d68b84c",
       },
       "version_metadata": { "binding": "CF_VERSION_METADATA" },
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "delyra-prod",
-          "database_id": "00000000-0000-4000-8000-000000000000",
+          "database_id": "f1a9ef7a-8b4f-4f0b-859d-734c1d68b84c",
           "migrations_dir": "migrations",
         },
       ],
@@ -146,6 +101,7 @@
           "name": "delyra-system-backup",
           "binding": "SYSTEM_BACKUP",
           "class_name": "SystemBackupWorkflow",
+          // 02:00 UTC todos los días.
           "schedules": ["0 2 * * *"],
         },
       ],

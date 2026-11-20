@@ -8,23 +8,15 @@ describe("APP_ORIGINS", () => {
     expect(calendar).not.toBe(work);
   });
 
-  it("producción usa HTTPS y staging vive en workers.dev con los nombres de los Workers", () => {
+  it("producción usa los dominios definitivos por HTTPS", () => {
     expect(APP_ORIGINS.production).toEqual({
       calendar: "https://delyra.app",
       work: "https://work.delyra.app",
     });
-    expect(APP_ORIGINS.staging.calendar).toMatch(
-      /^https:\/\/delyra-calendar-staging\.[a-z0-9-]+\.workers\.dev$/,
-    );
-    expect(APP_ORIGINS.staging.work).toMatch(
-      /^https:\/\/delyra-work-staging\.[a-z0-9-]+\.workers\.dev$/,
-    );
   });
 
-  it("staging nunca comparte dominio con producción (ADR-0003)", () => {
-    for (const origin of [APP_ORIGINS.staging.calendar, APP_ORIGINS.staging.work]) {
-      expect(new URL(origin).hostname.endsWith("delyra.app")).toBe(false);
-    }
+  it("solo hay desarrollo local y producción (ADR-0003)", () => {
+    expect([...APP_ENVIRONMENTS].sort()).toEqual(["development", "production"]);
   });
 });
 
@@ -32,8 +24,7 @@ describe("isAllowedOrigin", () => {
   it("acepta exactamente los orígenes del entorno", () => {
     expect(isAllowedOrigin("production", "https://delyra.app")).toBe(true);
     expect(isAllowedOrigin("production", "https://work.delyra.app")).toBe(true);
-    expect(isAllowedOrigin("staging", APP_ORIGINS.staging.calendar)).toBe(true);
-    expect(isAllowedOrigin("staging", APP_ORIGINS.staging.work)).toBe(true);
+    expect(isAllowedOrigin("development", "http://localhost:5173")).toBe(true);
   });
 
   it.each([
@@ -51,8 +42,8 @@ describe("isAllowedOrigin", () => {
   });
 
   it("no mezcla entornos", () => {
-    expect(isAllowedOrigin("production", APP_ORIGINS.staging.calendar)).toBe(false);
-    expect(isAllowedOrigin("staging", "https://delyra.app")).toBe(false);
+    expect(isAllowedOrigin("production", "http://localhost:5173")).toBe(false);
+    expect(isAllowedOrigin("development", "https://delyra.app")).toBe(false);
   });
 
   it("rechaza valores ausentes", () => {

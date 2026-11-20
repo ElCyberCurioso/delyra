@@ -1,5 +1,5 @@
 # Copia este fichero a .dev.vars para desarrollo local. .dev.vars nunca se sube al repositorio.
-# En staging y producción los secretos se cargan con `wrangler secret put <NOMBRE> --env <entorno>`.
+# En producción los secretos se cargan con `wrangler secret put <NOMBRE> --env production`.
 
 # Token con permiso D1:Edit solo sobre la base de datos del entorno (P-06). Opcional en local:
 # sin él, el Workflow de backup termina con un error no reintentable y lo registra.

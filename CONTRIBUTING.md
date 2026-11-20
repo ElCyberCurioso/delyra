@@ -4,7 +4,8 @@ Resumen operativo del §3 del plan de trabajo.
 
 ## Ramas y PR
 
-- _Trunk-based_: `main` siempre desplegable y protegida; un merge a `main` despliega en staging.
+- _Trunk-based_: `main` siempre desplegable y protegida. No hay staging (ADR-0003): producción se
+  despliega a mano desde `main` con CI en verde (docs/runbooks/despliegue.md).
 - Una rama y un PR por tarea, con el identificador del plan: `feat/F1-08-login-2fa`,
   `fix/F2-04-dst-semana`.
 - El PR enlaza la tarea y explica cómo probarla (la plantilla incluye la Definition of Done).
@@ -28,7 +29,7 @@ El hook `pre-commit` ejecuta ESLint y Prettier sobre los ficheros preparados (`l
 3. `pnpm lint`, `pnpm typecheck` y `pnpm test` pasan en CI.
 4. Sin secretos en el código ni en los logs; gitleaks y Semgrep sin hallazgos nuevos.
 5. Las migraciones de D1 se aplican desde cero y sobre la versión anterior.
-6. Desplegada en staging y probada manualmente.
+6. Probada en local (`pnpm dev` y `pnpm e2e`) y, tras desplegar, comprobada en producción.
 7. Documentación actualizada (README, ADR o runbook).
 
 ## Reglas de seguridad permanentes
@@ -57,12 +58,12 @@ El hook `pre-commit` ejecuta ESLint y Prettier sobre los ficheros preparados (`l
 ### Cambiar `wrangler.jsonc`
 
 Tras añadir o cambiar bindings, ejecuta `pnpm cf-typegen` y sube el `worker-configuration.d.ts`
-regenerado. Los bindings no se heredan entre entornos: decláralos en local, `staging` y
+regenerado. Los bindings no se heredan entre entornos: decláralos en local y en
 `production`.
 
 ### Añadir un secreto
 
 1. Decláralo en `apps/api/src/env.d.ts` (Wrangler no conoce los secretos).
 2. Añádelo vacío a `apps/api/.dev.vars.example`.
-3. Cárgalo en cada entorno: `pnpm exec wrangler secret put NOMBRE --env staging`.
+3. Cárgalo en producción: `pnpm exec wrangler secret put NOMBRE --env production`.
    Nunca lo pegues en el chat, en un issue ni en el repositorio.

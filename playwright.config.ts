@@ -2,20 +2,13 @@ import { defineConfig, devices } from "@playwright/test";
 
 /**
  * Tests e2e. Sin variables de entorno arrancan las dos SPA en local (con el Worker `api`
- * como auxiliar). Con E2E_CALENDAR_URL/E2E_WORK_URL se ejecutan contra un entorno desplegado.
+ * como auxiliar). Con E2E_CALENDAR_URL/E2E_WORK_URL se ejecutan contra producción: solo los
+ * marcados con @smoke, que no escriben datos.
  */
 const calendarURL = process.env.E2E_CALENDAR_URL ?? "http://localhost:5173";
 const workURL = process.env.E2E_WORK_URL ?? "http://localhost:5174";
 const remote = Boolean(process.env.E2E_CALENDAR_URL);
 const ci = Boolean(process.env.CI);
-
-// Staging está detrás de Cloudflare Access: CI se identifica con un token de servicio (P-09).
-const accessId = process.env.CF_ACCESS_CLIENT_ID;
-const accessSecret = process.env.CF_ACCESS_CLIENT_SECRET;
-const extraHTTPHeaders =
-  accessId && accessSecret
-    ? { "CF-Access-Client-Id": accessId, "CF-Access-Client-Secret": accessSecret }
-    : undefined;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -25,7 +18,6 @@ export default defineConfig({
   reporter: ci ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
     trace: "retain-on-failure",
-    extraHTTPHeaders,
   },
   projects: [
     { name: "calendar", use: { ...devices["Desktop Chrome"], baseURL: calendarURL } },

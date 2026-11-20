@@ -1,7 +1,8 @@
 import { z } from "zod";
 import appOrigins from "./app-origins.json";
 
-export const APP_ENVIRONMENTS = ["development", "staging", "production"] as const;
+/** Sin staging (ADR-0003): solo desarrollo local y producción. */
+export const APP_ENVIRONMENTS = ["development", "production"] as const;
 export type AppEnvironment = (typeof APP_ENVIRONMENTS)[number];
 export const appEnvironmentSchema = z.enum(APP_ENVIRONMENTS);
 
@@ -13,19 +14,14 @@ export interface AppOrigins {
 }
 
 /**
- * Orígenes de cada app por entorno (§3.6 del plan y ADR-0003). Es la lista blanca de `Origin`
- * y de `next`. Vive en `app-origins.json` porque también lo leen el workflow de despliegue y
- * `scripts/check-deploy-config.mjs`. Staging usa `workers.dev`: sustituye `tu-subdominio` por el
- * subdominio de la cuenta (Workers & Pages → «Your subdomain»).
+ * Orígenes de cada app por entorno (§3.6 del plan). Es la lista blanca de `Origin` y de `next`.
+ * Vive en `app-origins.json` porque también lo leen el workflow de despliegue y
+ * `scripts/check-deploy-config.mjs`.
  */
 export const APP_ORIGINS: Readonly<Record<AppEnvironment, AppOrigins>> = {
   production: appOrigins.production,
-  staging: appOrigins.staging,
   development: appOrigins.development,
 };
-
-/** Valor de relleno del subdominio `workers.dev` en `app-origins.json`. */
-export const STAGING_SUBDOMAIN_PLACEHOLDER = "tu-subdominio";
 
 export function allowedOrigins(environment: AppEnvironment): readonly string[] {
   const origins = APP_ORIGINS[environment];

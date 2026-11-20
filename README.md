@@ -56,39 +56,38 @@ También puedes arrancar solo una app (`pnpm dev:calendar`, `pnpm dev:work`) o s
 
 ## Scripts
 
-| Script                    | Qué hace                                                           |
-| ------------------------- | ------------------------------------------------------------------ |
-| `pnpm dev`                | Las dos SPA con la API local                                       |
-| `pnpm build`              | Build de las SPA y bundle de la API (`wrangler --dry-run`)         |
-| `pnpm lint`               | ESLint (con tipos) en todo el repositorio                          |
-| `pnpm typecheck`          | TypeScript en todos los paquetes y en `e2e/`                       |
-| `pnpm test`               | Vitest: API en el runtime real de Workers, UI con jsdom + MSW      |
-| `pnpm e2e`                | Playwright (arranca las dos SPA si no hay URL de entorno)          |
-| `pnpm format`             | Prettier                                                           |
-| `pnpm cf-typegen`         | Regenera `worker-configuration.d.ts` tras cambiar `wrangler.jsonc` |
-| `pnpm db:generate`        | Genera una migración SQL desde `apps/api/src/db/schema.ts`         |
-| `pnpm db:migrate:local`   | Aplica las migraciones a la D1 local                               |
-| `pnpm db:migrate:staging` | Aplica las migraciones a la D1 de staging                          |
-| `pnpm db:migrate:prod`    | Aplica las migraciones a la D1 de producción                       |
+| Script                  | Qué hace                                                           |
+| ----------------------- | ------------------------------------------------------------------ |
+| `pnpm dev`              | Las dos SPA con la API local                                       |
+| `pnpm build`            | Build de las SPA y bundle de la API (`wrangler --dry-run`)         |
+| `pnpm lint`             | ESLint (con tipos) en todo el repositorio                          |
+| `pnpm typecheck`        | TypeScript en todos los paquetes y en `e2e/`                       |
+| `pnpm test`             | Vitest: API en el runtime real de Workers, UI con jsdom + MSW      |
+| `pnpm e2e`              | Playwright (arranca las dos SPA si no hay URL de entorno)          |
+| `pnpm format`           | Prettier                                                           |
+| `pnpm cf-typegen`       | Regenera `worker-configuration.d.ts` tras cambiar `wrangler.jsonc` |
+| `pnpm db:generate`      | Genera una migración SQL desde `apps/api/src/db/schema.ts`         |
+| `pnpm db:migrate:local` | Aplica las migraciones a la D1 local                               |
+| `pnpm db:migrate:prod`  | Aplica las migraciones a la D1 de producción                       |
 
 ## Entornos
 
-| Entorno    | Calendario                                                 | Trabajo                                                | Cómo se despliega                                        |
-| ---------- | ---------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------- |
-| local      | `http://localhost:5173`                                    | `http://localhost:5174`                                | `pnpm dev`                                               |
-| staging    | `https://delyra-calendar-staging.<subdominio>.workers.dev` | `https://delyra-work-staging.<subdominio>.workers.dev` | Automático en cada merge a `main`                        |
-| producción | `https://delyra.app`                                       | `https://work.delyra.app`                              | Manual (Actions → Deploy → Run workflow), con aprobación |
+| Entorno    | Calendario              | Trabajo                   | Cómo se despliega                                         |
+| ---------- | ----------------------- | ------------------------- | --------------------------------------------------------- |
+| local      | `http://localhost:5173` | `http://localhost:5174`   | `pnpm dev`                                                |
+| producción | `https://delyra.app`    | `https://work.delyra.app` | Manual (Actions → Deploy → Run workflow), con CI en verde |
 
-Staging vive en el subdominio `workers.dev` de la cuenta, fuera de `delyra.app`, para que la
-cookie de producción nunca llegue allí (ADR-0003), y está protegido con Cloudflare Access. Las URL
-exactas de cada entorno están en `packages/shared/src/app-origins.json`.
+No hay entorno de staging (ADR-0003): lo que se valida en local y en CI se despliega directamente
+en producción, a mano y con CI en verde (docs/runbooks/despliegue.md). Las URL exactas de cada
+entorno están en `packages/shared/src/app-origins.json`.
 
 ## Documentación
 
 - [Contribuir](CONTRIBUTING.md): ramas, commits, Definition of Done y reglas de seguridad.
 - [ADR-0001 · Stack y versiones](docs/decisiones/ADR-0001-stack-y-versiones.md)
 - [ADR-0002 · Arquitectura de tres Workers](docs/decisiones/ADR-0002-arquitectura-tres-workers.md)
-- [ADR-0003 · Dominio separado para staging](docs/decisiones/ADR-0003-dominio-staging.md)
+- [ADR-0003 · Sin entorno de staging](docs/decisiones/ADR-0003-sin-staging.md)
+- [Runbook · Despliegue y vuelta atrás](docs/runbooks/despliegue.md)
 - [Runbook · Recursos de Cloudflare](docs/runbooks/recursos-cloudflare.md)
 - [Runbook · Dominios y acceso](docs/runbooks/dominios-y-acceso.md)
 - [Runbook · Backup diario del sistema](docs/runbooks/backup-sistema.md)

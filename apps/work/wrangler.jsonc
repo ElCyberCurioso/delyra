@@ -2,7 +2,10 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   // Worker `web-work`: sirve la SPA del kanban (work.delyra.app)
   // y reenvía `/api/*` al Worker `api` por Service Binding, sin salir a Internet.
-  "name": "delyra-work",
+  //
+  // Nivel superior = desarrollo local (nombre `-local`, para que un build o deploy sin
+  // CLOUDFLARE_ENV=production nunca sobrescriba producción). `production` es el único entorno remoto.
+  "name": "delyra-work-local",
   "main": "worker/index.ts",
   "compatibility_date": "2026-11-17",
   "compatibility_flags": ["nodejs_compat"],
@@ -22,17 +25,9 @@
   },
 
   // Desarrollo local: el Worker `api` corre como auxiliar en el mismo proceso de Vite.
-  "services": [{ "binding": "API", "service": "delyra-api" }],
+  "services": [{ "binding": "API", "service": "delyra-api-local" }],
 
   "env": {
-    "staging": {
-      "name": "delyra-work-staging",
-      "services": [{ "binding": "API", "service": "delyra-api-staging" }],
-      // Staging no tiene dominio propio (ADR-0003): se sirve en
-      // https://delyra-work-staging.<subdominio>.workers.dev, protegido con Cloudflare Access.
-      "workers_dev": true,
-      "preview_urls": false,
-    },
     "production": {
       "name": "delyra-work",
       "services": [{ "binding": "API", "service": "delyra-api" }],

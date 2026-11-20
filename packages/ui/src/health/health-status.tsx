@@ -36,7 +36,6 @@ const COMPONENT_LABELS: Record<HealthComponentName, string> = {
 
 const ENVIRONMENT_LABELS: Record<HealthResponse["environment"], string> = {
   development: "Local",
-  staging: "Staging",
   production: "Producción",
 };
 
