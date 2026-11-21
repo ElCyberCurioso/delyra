@@ -7,7 +7,7 @@ import {
   meResponseSchema,
   safeNext,
 } from "@delyra/shared";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { currentAppOrigins } from "../layout/app-shell";
 import { ApiError, apiFetch } from "./api";
 
@@ -86,12 +86,15 @@ export function goTo(href: string, navigate?: (path: string) => void) {
   }
 }
 
+/**
+ * Cierra la sesión y lleva al login con una carga completa de página, que ya descarta la caché.
+ * No se vacía la caché antes: `RequireSession` volvería a pedir `/me` y redirigiría por su cuenta
+ * (con `?next=`), en carrera con esta navegación.
+ */
 export function useLogout() {
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => apiFetch("/api/auth/logout", { method: "POST" }),
     onSettled: () => {
-      queryClient.clear();
       window.location.assign(new URL("/login", currentAppOrigins().calendar).href);
     },
   });

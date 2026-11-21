@@ -40,7 +40,9 @@ export function createApp() {
     }),
   );
   api.use("*", loadSession());
-  api.use("/auth/*", rateLimit("AUTH_RATE_LIMITER"));
+  // El límite estricto es para los intentos (login, registro, códigos…), no para las lecturas
+  // (`/auth/me`, `/auth/config`) que cada página hace al cargar: esas van con el general.
+  api.use("/auth/*", rateLimit("AUTH_RATE_LIMITER", { onlyMutations: true }));
   api.use("*", rateLimit("API_RATE_LIMITER"));
 
   api.route("/health", healthRoutes);

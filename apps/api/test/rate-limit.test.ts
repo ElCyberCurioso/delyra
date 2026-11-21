@@ -4,7 +4,7 @@ import { AppError } from "../src/lib/errors";
 import { rateLimit } from "../src/middleware/rate-limit";
 import type { AppEnv } from "../src/types";
 
-function appWith(limit: RateLimit["limit"]) {
+function appWith(limit: RateLimit["limit"], options?: { onlyMutations?: boolean }) {
   const warn = vi.fn();
   const app = new Hono<AppEnv>();
   app.use(async (c, next) => {
@@ -13,11 +13,16 @@ function appWith(limit: RateLimit["limit"]) {
     c.set("auth", null);
     await next();
   });
-  app.use(rateLimit("API_RATE_LIMITER"));
+  app.use(rateLimit("API_RATE_LIMITER", options));
   app.get("/", (c) => c.text("ok"));
+  app.post("/", (c) => c.text("ok"));
   app.onError((error, c) => c.text("error", error instanceof AppError ? error.status : 500));
   const env = { API_RATE_LIMITER: { limit } } as unknown as Env;
-  return { request: () => app.request("/", {}, env), warn };
+  return {
+    request: (method = "GET") =>
+      app.request("/", { method, headers: { "Content-Type": "application/json" } }, env),
+    warn,
+  };
 }
 
 describe("límite de peticiones", () => {
@@ -34,5 +39,13 @@ describe("límite de peticiones", () => {
     const response = await request();
     expect(response.status).toBe(200);
     expect(warn).toHaveBeenCalledWith("rate_limiter_unavailable", expect.anything());
+  });
+
+  it("con onlyMutations no cuenta las lecturas, pero sí el resto", async () => {
+    const limit = vi.fn<RateLimit["limit"]>(() => Promise.resolve({ success: false }));
+    const { request } = appWith(limit, { onlyMutations: true });
+    expect((await request("GET")).status).toBe(200);
+    expect(limit).not.toHaveBeenCalled();
+    expect((await request("POST")).status).toBe(429);
   });
 });

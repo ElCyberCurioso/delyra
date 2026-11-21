@@ -12,10 +12,13 @@ import type { AppEnv } from "../types";
  */
 export function rateLimit(
   binding: "API_RATE_LIMITER" | "AUTH_RATE_LIMITER",
+  options: { onlyMutations?: boolean } = {},
 ): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
     const limiter = c.env[binding] as RateLimit | undefined;
-    if (limiter) {
+    const skip =
+      options.onlyMutations === true && (c.req.method === "GET" || c.req.method === "HEAD");
+    if (limiter && !skip) {
       const auth = c.get("auth");
       const key = auth ? `user:${auth.user.id}` : `ip:${c.get("meta").ip}`;
       let success = true;
