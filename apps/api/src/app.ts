@@ -11,7 +11,9 @@ import { loadSession } from "./middleware/session";
 import { accountRoutes } from "./routes/account";
 import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
+import { calendarRoutes } from "./routes/calendars";
 import { cspReportRoutes } from "./routes/csp-report";
+import { eventRoutes } from "./routes/events";
 import { healthRoutes } from "./routes/health";
 import type { AppEnv } from "./types";
 
@@ -50,6 +52,8 @@ export function createApp() {
   api.route("/auth", authRoutes);
   api.route("/me", accountRoutes);
   api.route("/admin", adminRoutes);
+  api.route("/calendars", calendarRoutes);
+  api.route("/events", eventRoutes);
   app.route("/api", api);
 
   app.notFound(notFoundHandler);

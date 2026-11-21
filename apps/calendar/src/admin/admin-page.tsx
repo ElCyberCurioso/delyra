@@ -22,6 +22,7 @@ import {
   errorMessage,
   Field,
   FormError,
+  HealthStatus,
   RequireSession,
   SelectField,
   toast,
@@ -416,6 +417,7 @@ function AdminContent({ session }: { session: ActiveSession }) {
       <Section id="usuarios" title="Usuarios">
         <UsersList currentUserId={session.user.id} timeZone={timeZone} />
       </Section>
+      <HealthStatus />
     </div>
   );
 }

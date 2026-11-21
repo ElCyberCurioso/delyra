@@ -34,6 +34,9 @@ import {
   rotateSession,
 } from "../services/sessions";
 import { getUserSettings, publicUser, updateUserName, updateUserSettings } from "../services/users";
+import { calendarRepository } from "../repositories/calendars";
+import { eventRepository } from "../repositories/events";
+import { onTimeZoneChanged } from "../services/events";
 import type { AppEnv } from "../types";
 
 /**
@@ -87,7 +90,15 @@ export const accountRoutes = new Hono<AppEnv>()
     const settings = await readBody(c, updateSettingsRequestSchema);
     const { user } = currentAuth(c);
     const db = createDb(c.env.DB);
+    const previous = await getUserSettings(db, user.id);
     await updateUserSettings(db, user.id, settings);
+    if (previous?.timeZone !== settings.timeZone) {
+      // Las alertas de día completo se calculan en la zona del usuario.
+      await onTimeZoneChanged(
+        { events: eventRepository(db, user.id), calendars: calendarRepository(db, user.id) },
+        settings.timeZone,
+      );
+    }
     await audit(db, c.get("meta"), "settings.updated", { userId: user.id });
     return c.json({ settings: await getUserSettings(db, user.id) });
   })

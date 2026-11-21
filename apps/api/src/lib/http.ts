@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+import { PROBLEM_TYPES } from "@delyra/shared";
 import type { ZodType } from "zod";
 import { AppError, parseInput } from "./errors";
 
@@ -14,4 +15,17 @@ export async function readBody<T extends ZodType>(
     throw new AppError(400, { detail: "JSON mal formado" });
   }
   return parseInput(schema, data);
+}
+
+/** Valida los parámetros de la query string con Zod; 422 si no cumplen el esquema. */
+export function readQuery<T extends ZodType>(c: Context, schema: T): ReturnType<T["parse"]> {
+  return parseInput(schema, c.req.query());
+}
+
+/** Error 422 de un solo campo, con el mismo formato que los de Zod. */
+export function invalidField(path: string, message: string): AppError {
+  return new AppError(422, {
+    type: PROBLEM_TYPES.validation,
+    errors: [{ path, message }],
+  });
 }

@@ -42,6 +42,8 @@ function meResponse() {
 }
 
 const requests: { path: string; body: unknown }[] = [];
+const eventRanges: { from: string; to: string }[] = [];
+const CALENDAR_ID = "01a1fa43-8aed-7103-b1ae-9ca51d83586b";
 
 const server = setupServer(
   http.get("/api/health", () =>
@@ -58,6 +60,50 @@ const server = setupServer(
     }),
   ),
   http.get("/api/auth/me", meResponse),
+  http.get("/api/calendars", () =>
+    HttpResponse.json({
+      calendars: [
+        {
+          id: CALENDAR_ID,
+          name: "Personal",
+          color: "#7c5cff",
+          kind: "personal",
+          visible: true,
+          position: 0,
+        },
+      ],
+    }),
+  ),
+  http.get("/api/events", ({ request }) => {
+    const url = new URL(request.url);
+    const from = url.searchParams.get("from") ?? "";
+    const to = url.searchParams.get("to") ?? "";
+    eventRanges.push({ from, to });
+    // Un evento a mitad del rango visible, sea cual sea la fecha de hoy.
+    const start = new Date((Date.parse(from) + Date.parse(to)) / 2);
+    start.setUTCHours(9, 0, 0, 0);
+    return HttpResponse.json({
+      events: [
+        {
+          id: "e1",
+          eventId: "e1",
+          calendarId: CALENDAR_ID,
+          type: "event",
+          title: "Dentista",
+          notes: null,
+          location: null,
+          url: null,
+          allDay: false,
+          start: start.toISOString(),
+          end: new Date(start.getTime() + 3_600_000).toISOString(),
+          tz: "Europe/Madrid",
+          recurring: false,
+          originalStart: null,
+          age: null,
+        },
+      ],
+    });
+  }),
   http.get("/api/auth/config", () =>
     HttpResponse.json({ turnstileSiteKey: "1x00000000000000000000AA" }),
   ),
@@ -85,6 +131,7 @@ beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 beforeEach(() => {
   sessionState = "anonymous";
   requests.length = 0;
+  eventRanges.length = 0;
 });
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
@@ -104,18 +151,19 @@ function renderAt(path: string) {
 }
 
 describe("App (calendario)", () => {
-  it("con sesión completa muestra la página provisional y el estado de /api/health", async () => {
+  it("con sesión completa muestra el calendario con los eventos del rango visible", async () => {
     sessionState = "active";
     renderAt("/");
-    expect(
-      await screen.findByRole("heading", { level: 1, name: "Calendario" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Hola, Ana/)).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Nuevo evento" })).toBeInTheDocument();
+    expect(await screen.findByText("Dentista")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Personal" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Semana" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("link", { name: /Calendario/ })).toHaveAttribute(
       "aria-current",
       "page",
     );
-    expect(await screen.findByText("Operativo")).toBeInTheDocument();
+    const [range] = eventRanges;
+    expect(range && Date.parse(range.to) - Date.parse(range.from)).toBe(7 * 86_400_000);
   });
 
   it("sin sesión lleva al login recordando a dónde volver", async () => {
@@ -148,9 +196,7 @@ describe("App (calendario)", () => {
     await userEvents.clear(screen.getByLabelText("Código"));
     await userEvents.type(screen.getByLabelText("Código"), "123456");
     await userEvents.click(screen.getByRole("button", { name: "Verificar" }));
-    expect(
-      await screen.findByRole("heading", { level: 1, name: "Calendario" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Nuevo evento" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/");
   });
 

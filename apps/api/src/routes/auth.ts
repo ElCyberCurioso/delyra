@@ -63,6 +63,7 @@ import {
   hasConfirmedTotp,
   publicUser,
 } from "../services/users";
+import { calendarRepository } from "../repositories/calendars";
 import type { AppEnv } from "../types";
 
 /** Rutas de autenticación (F1-07, F1-08, F1-09, F1-11, F1-13). */
@@ -129,6 +130,8 @@ export const authRoutes = new Hono<AppEnv>()
       c.get("logger").warn("register_failed", { error });
       throw new AppError(400, { detail: INVALID_INVITATION });
     }
+    // Calendarios Personal, Trabajo y Cumpleaños (F2-03).
+    await calendarRepository(db, user.id).ensureDefaults();
 
     await linkInvitationUser(db, invitation.id, user.id);
     await audit(db, meta, "user.registered", {

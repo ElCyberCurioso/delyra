@@ -45,3 +45,4 @@ export const systemBackupRuns = sqliteTable(
 export type SystemBackupRun = typeof systemBackupRuns.$inferSelect;
 
 export * from "./identity";
+export * from "./calendar";

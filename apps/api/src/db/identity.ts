@@ -5,7 +5,7 @@ import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-o
  * Identidad, sesiones y auditoría (F1-01). Mismas convenciones que `schema.ts`: UUIDv7 en
  * texto, instantes en milisegundos UTC y snake_case.
  *
- * Nunca se guardan secretos en claro: contraseñas con Argon2id, tokens (sesión, invitación,
+ * Nunca se guardan secretos en claro: contraseñas con scrypt (ADR-0004), tokens (sesión, invitación,
  * recuperación) como SHA-256 y la semilla TOTP cifrada con AES-256-GCM.
  */
 

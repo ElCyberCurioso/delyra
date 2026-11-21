@@ -1,1 +1,54 @@
 @import "@delyra/ui/styles.css";
+
+/* FullCalendar con los colores del tema (claro y oscuro). */
+.fc {
+  --fc-border-color: var(--border);
+  --fc-page-bg-color: var(--background);
+  --fc-neutral-bg-color: var(--muted);
+  --fc-neutral-text-color: var(--muted-foreground);
+  --fc-list-event-hover-bg-color: var(--accent);
+  --fc-today-bg-color: color-mix(in oklch, var(--primary) 8%, transparent);
+  --fc-now-indicator-color: var(--destructive);
+  --fc-highlight-color: color-mix(in oklch, var(--primary) 15%, transparent);
+  --fc-event-border-color: transparent;
+  --fc-small-font-size: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+}
+
+.fc .fc-col-header-cell-cushion,
+.fc .fc-daygrid-day-number,
+.fc .fc-list-day-text,
+.fc .fc-list-day-side-text {
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.fc .fc-timegrid-slot-label,
+.fc .fc-daygrid-week-number,
+.fc .fc-timegrid-axis-cushion {
+  color: var(--muted-foreground);
+}
+
+.fc .fc-daygrid-week-number {
+  background: transparent;
+  font-size: 0.7rem;
+}
+
+.fc .fc-event {
+  border-radius: calc(var(--radius) - 4px);
+  cursor: pointer;
+}
+
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.fc .fc-list-empty {
+  background: transparent;
+}
+
+.fc-theme-standard .fc-list-day-cushion {
+  background: var(--muted);
+}

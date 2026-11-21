@@ -36,6 +36,10 @@ momento de F0-01, documentándola aquí. Todas las dependencias se fijan con ver
 |                  | lucide-react                             | 1.77.0                  |
 |                  | sonner                                   | 2.0.8                   |
 |                  | TanStack Query                           | 5.108.1                 |
+| Calendario (F2)  | FullCalendar (core, react y plugins)     | 6.1.22                  |
+|                  | chrono-node (solo `chrono-node/es`)      | 2.10.3                  |
+|                  | rrule                                    | 2.8.1                   |
+|                  | date-fns / `@date-fns/tz`                | 4.4.0 / 1.5.0           |
 | Calidad          | Vitest                                   | 5.1.1                   |
 |                  | Testing Library (react / dom / jest-dom) | 16.3.3 / 10.4.2 / 8.0.0 |
 |                  | MSW                                      | 3.0.7                   |
@@ -46,10 +50,14 @@ momento de F0-01, documentándola aquí. Todas las dependencias se fijan con ver
 |                  | Husky / lint-staged / commitlint         | 9.1.7 / 17.6.1 / 21.2.4 |
 | CI               | gitleaks / Semgrep                       | 8.30.1 / 1.186.0        |
 
-Las librerías de fases posteriores (FullCalendar, dnd-kit, rrule, ical.js, hash-wasm…) se fijan
-en la tarea que las introduce, con el mismo criterio.
+Las librerías de fases posteriores (dnd-kit, ical.js…) se fijan en la tarea que las introduce,
+con el mismo criterio.
 
 ### Desviaciones respecto a «la última versión»
+
+- **FullCalendar 6.1 y no 7.1.** La 7 se publicó el 12 de noviembre de 2026 con otra arquitectura
+  (paquete `@full-ui/headless-calendar` y `temporal-polyfill` como dependencias). La 6.1 es estable
+  y admite React 19. La zona horaria se resuelve sin su plugin (ADR-0005).
 
 - **TypeScript 6.0 y no 7.0.** TypeScript 7 (compilador nativo) ya es estable, pero
   typescript-eslint 8.73 solo admite `>=4.8.4 <6.1.0`. Se revisará cuando typescript-eslint lo
