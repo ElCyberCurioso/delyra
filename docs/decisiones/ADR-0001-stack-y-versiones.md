@@ -39,7 +39,6 @@ momento de F0-01, documentándola aquí. Todas las dependencias se fijan con ver
 | Calendario (F2)  | FullCalendar (core, react y plugins)     | 6.1.22                  |
 |                  | chrono-node (solo `chrono-node/es`)      | 2.10.3                  |
 |                  | rrule                                    | 2.8.1                   |
-|                  | date-fns / `@date-fns/tz`                | 4.4.0 / 1.5.0           |
 | Calidad          | Vitest                                   | 5.1.1                   |
 |                  | Testing Library (react / dom / jest-dom) | 16.3.3 / 10.4.2 / 8.0.0 |
 |                  | MSW                                      | 3.0.7                   |
@@ -55,6 +54,10 @@ con el mismo criterio.
 
 ### Desviaciones respecto a «la última versión»
 
+- **Sin date-fns ni `@date-fns/tz`.** El plan los preveía para las zonas horarias, pero al
+  construir una fecha desde la hora local `@date-fns/tz` desempata las horas duplicadas según la
+  zona del sistema (UTC en los Workers, la del usuario en el navegador). La conversión está en
+  `packages/shared/src/time.ts` solo con `Intl`, con el mismo resultado en todas partes (ADR-0005).
 - **FullCalendar 6.1 y no 7.1.** La 7 se publicó el 12 de noviembre de 2026 con otra arquitectura
   (paquete `@full-ui/headless-calendar` y `temporal-polyfill` como dependencias). La 6.1 es estable
   y admite React 19. La zona horaria se resuelve sin su plugin (ADR-0005).

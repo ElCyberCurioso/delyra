@@ -40,6 +40,23 @@ describe("hora local ↔ instante", () => {
     expect(new Date(overlap).toISOString()).toBe("2026-10-25T00:30:00.000Z");
   });
 
+  it("resuelve igual en otras zonas, sea cual sea la zona del sistema", () => {
+    const NY = "America/New_York";
+    // 1 de noviembre de 2026, 01:30 ocurre dos veces: la primera es EDT (UTC−4).
+    const overlap = wallToInstant(
+      { year: 2026, month: 11, day: 1, hour: 1, minute: 30, second: 0 },
+      NY,
+    );
+    expect(new Date(overlap).toISOString()).toBe("2026-11-01T05:30:00.000Z");
+    // 14 de marzo de 2027, 02:30 no existe: pasa a las 03:30 EDT.
+    const gap = wallToInstant(
+      { year: 2027, month: 3, day: 14, hour: 2, minute: 30, second: 0 },
+      NY,
+    );
+    expect(new Date(gap).toISOString()).toBe("2027-03-14T07:30:00.000Z");
+    expect(instantToWall(gap, NY)).toMatchObject({ hour: 3, minute: 30 });
+  });
+
   it("flotante: ida y vuelta conserva el instante", () => {
     const ms = Date.parse("2026-10-25T09:15:00Z");
     expect(new Date(toFloating(ms, MADRID)).toISOString()).toBe("2026-10-25T10:15:00.000Z");

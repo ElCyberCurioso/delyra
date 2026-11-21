@@ -12,7 +12,7 @@ import {
 /**
  * FullCalendar trabaja aquí en «UTC» y recibe horas de pared de la zona del usuario: un evento a
  * las 10:00 en Madrid se le pasa como `…T10:00:00Z`. Así no hace falta su plugin de zonas, y los
- * cambios de horario los resuelve `@date-fns/tz` al convertir a instantes reales.
+ * cambios de horario los resuelve `@delyra/shared` (`time.ts`) al convertir a instantes reales.
  */
 
 const pad = (n: number) => String(n).padStart(2, "0");

@@ -223,18 +223,12 @@ importers:
 
   apps/api:
     dependencies:
-      '@date-fns/tz':
-        specifier: 1.5.0
-        version: 1.5.0
       '@delyra/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@hono/zod-validator':
         specifier: 0.9.1
         version: 0.9.1(hono@4.13.19)(zod@4.6.7)
-      date-fns:
-        specifier: 4.4.0
-        version: 4.4.0
       drizzle-orm:
         specifier: 0.45.4
         version: 0.45.4
@@ -448,12 +442,6 @@ importers:
 
   packages/shared:
     dependencies:
-      '@date-fns/tz':
-        specifier: 1.5.0
-        version: 1.5.0
-      date-fns:
-        specifier: 4.4.0
-        version: 4.4.0
       uuidv7:
         specifier: 1.2.1
         version: 1.2.1
@@ -806,9 +794,6 @@ packages:
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
-
-  '@date-fns/tz@1.5.0':
-    resolution: {integrity: sha512-lwYN/vDPeNRULcepoE/LO2Pgx+7/RV+S9ARfbc9lr2DtGkOD7pAiruHvbR1RX3Qyf6ja47EWJDMsNK5vK08DJg==}
 
   '@drizzle-team/brocli@0.10.2':
     resolution: {integrity: sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w==}
@@ -3104,9 +3089,6 @@ packages:
     resolution: {integrity: sha512-JQUCCK+/CAGbGGx618PlFZMXH81Jtj7t73CHv9dd/zVWvxgGT2zLFRjnKb+Ng46GIwcy+f7f88qd4duqllK+WQ==}
     engines: {node: ^22.14.0 || >=24.0.0}
 
-  date-fns@4.4.0:
-    resolution: {integrity: sha512-+1UMbeh68lH1SegH83CGWwpb6OHHbpSgr3+s5Eww5M4CAgswBpoWS0AjTOfEJ33HiYKz1hdj/KTFprzXHmq/6w==}
-
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
     engines: {node: '>=6.0'}
@@ -4900,8 +4882,6 @@ snapshots:
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
-
-  '@date-fns/tz@1.5.0': {}
 
   '@drizzle-team/brocli@0.10.2': {}
 
@@ -6828,8 +6808,6 @@ snapshots:
       whatwg-url: 17.3.0
     transitivePeerDependencies:
       - '@noble/hashes'
-
-  date-fns@4.4.0: {}
 
   debug@4.4.3(supports-color@10.2.2):
     dependencies:

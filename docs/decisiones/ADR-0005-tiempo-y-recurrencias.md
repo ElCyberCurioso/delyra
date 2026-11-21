@@ -25,7 +25,7 @@ usuario, también al cruzar los cambios de horario (último domingo de marzo y d
   diaria, semanal, mensual o anual, sin `BYHOUR`/`BYMINUTE`, `COUNT` ≤ 1000.
 - Se expande **en el servidor** y en **hora local flotante** de la zona del evento: la regla se
   aplica a la hora de pared (sin cambios de horario) y cada ocurrencia se convierte a instante con
-  `@date-fns/tz`. «Los lunes a las 10:00» sigue a las 10:00 todo el año; la duración real se
+  `packages/shared/src/time.ts` (solo `Intl`, sin depender de la zona del sistema). «Los lunes a las 10:00» sigue a las 10:00 todo el año; la duración real se
   conserva. Hora inexistente (marzo): se adelanta; hora duplicada (octubre): la primera.
 - `GET /api/events?from&to` devuelve ocurrencias de un rango de 400 días como máximo.
   `series_end_at` permite descartar en SQL las series ya terminadas.
@@ -66,7 +66,7 @@ el cuerpo → 422, igual que uno inexistente.
 
 - FullCalendar trabaja en `timeZone: "UTC"` y recibe la hora de pared de la zona del usuario
   (10:00 en Madrid se le pasa como `…T10:00:00Z`); al arrastrar o seleccionar, la fecha vuelve a
-  instante real con `@date-fns/tz`. Así no hace falta el plugin de zonas con nombre, y la línea de
+  instante real con las mismas funciones. Así no hace falta el plugin de zonas con nombre, y la línea de
   «ahora» usa la misma conversión.
 - Cada vista pide su rango visible a la API (TanStack Query, con los datos anteriores mientras
   carga); visibilidad de calendarios y filtro de tipo se aplican en el cliente.

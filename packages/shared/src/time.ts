@@ -1,5 +1,3 @@
-import { TZDate } from "@date-fns/tz";
-
 /**
  * Conversión entre instantes (UTC) y hora local de una zona IANA (F2). Las recurrencias y las
  * alertas se calculan en hora local («todos los lunes a las 10:00») y se convierten a instantes
@@ -7,6 +5,10 @@ import { TZDate } from "@date-fns/tz";
  *
  * - Hora inexistente (último domingo de marzo, 02:30 en Madrid): se adelanta a la primera válida.
  * - Hora duplicada (último domingo de octubre): se toma la primera de las dos.
+ *
+ * Solo usa `Intl` (instante → hora local, que es determinista) y resuelve a mano el paso inverso:
+ * el resultado no depende de la zona horaria del sistema (los Workers corren en UTC y el
+ * navegador en la del usuario, y ambos deben llegar al mismo instante).
  */
 
 export interface WallTime {
@@ -20,29 +22,52 @@ export interface WallTime {
 }
 
 const DAY_MS = 86_400_000;
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+function formatter(timeZone: string): Intl.DateTimeFormat {
+  let format = formatters.get(timeZone);
+  if (!format) {
+    format = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+    });
+    formatters.set(timeZone, format);
+  }
+  return format;
+}
 
 export function instantToWall(ms: number, timeZone: string): WallTime {
-  const date = new TZDate(ms, timeZone);
-  return {
-    year: date.getFullYear(),
-    month: date.getMonth() + 1,
-    day: date.getDate(),
-    hour: date.getHours(),
-    minute: date.getMinutes(),
-    second: date.getSeconds(),
-  };
+  const wall: WallTime = { year: 0, month: 0, day: 0, hour: 0, minute: 0, second: 0 };
+  for (const part of formatter(timeZone).formatToParts(new Date(ms))) {
+    if (part.type in wall) wall[part.type as keyof WallTime] = Number(part.value);
+  }
+  return wall;
+}
+
+const wallAsUtc = (w: WallTime) => Date.UTC(w.year, w.month - 1, w.day, w.hour, w.minute, w.second);
+
+/** Desfase de la zona en un instante (ms que hay que sumar al UTC para obtener la hora local). */
+function offsetAt(ms: number, timeZone: string): number {
+  const whole = Math.floor(ms / 1000) * 1000;
+  return wallAsUtc(instantToWall(whole, timeZone)) - whole;
 }
 
 export function wallToInstant(wall: WallTime, timeZone: string): number {
-  return new TZDate(
-    wall.year,
-    wall.month - 1,
-    wall.day,
-    wall.hour,
-    wall.minute,
-    wall.second,
-    timeZone,
-  ).getTime();
+  const local = wallAsUtc(wall);
+  // Los desfases posibles son el de antes y el de después de un cambio de horario cercano.
+  const before = offsetAt(local - DAY_MS, timeZone);
+  const after = offsetAt(local + DAY_MS, timeZone);
+  const valid = [local - before, local - after].filter(
+    (instant) => instant + offsetAt(instant, timeZone) === local,
+  );
+  // Hora duplicada: la primera. Hora inexistente: con el desfase anterior cae justo después.
+  return valid.length > 0 ? Math.min(...valid) : local - before;
 }
 
 /**
