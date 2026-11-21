@@ -7,6 +7,7 @@ import { createInvitation } from "../src/services/invitations";
 
 export const ORIGIN = "http://localhost:5173";
 export const TURNSTILE = TURNSTILE_DUMMY_TOKEN;
+// nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_password -- contraseña ficticia de prueba
 export const PASSWORD = "una contraseña muy segura 2026";
 
 let ipCounter = 0;

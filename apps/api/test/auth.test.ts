@@ -265,6 +265,7 @@ describe("recuperación de contraseña", () => {
     const token = /#token=([\w-]+)/.exec(mail?.text ?? "")?.[1] ?? "";
     expect(token).not.toBe("");
 
+    // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_password -- contraseña ficticia de prueba
     const newPassword = "otra contraseña distinta 2026";
     expect(
       (await requester.post("/api/auth/password/reset", { token, password: newPassword })).status,

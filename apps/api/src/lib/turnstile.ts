@@ -1,17 +1,19 @@
 import { allowedOrigins } from "@delyra/shared";
 import { z } from "zod";
+import { constantTimeEqual } from "./crypto";
 import { AppError } from "./errors";
 
 /**
  * Verificación de Turnstile en el servidor (F1-07). Falla cerrada: sin secreto configurado en
  * producción, login, registro y recuperación responden 503.
  *
- * En desarrollo y tests se usan las claves de prueba documentadas por Cloudflare. Con ellas la
- * verificación se resuelve en local, sin red: solo vale el token ficticio de prueba.
+ * En desarrollo y tests (sin `TURNSTILE_SECRET_KEY`) la SPA usa la site key de prueba de
+ * Cloudflare, que siempre entrega el token ficticio de abajo: se acepta ese token y solo ese, sin
+ * llamar a la red. Si se configura un secreto en local, se verifica contra Cloudflare como en
+ * producción.
  */
 
-export const TURNSTILE_TEST_SITE_KEY = "1x00000000000000000000AA";
-export const TURNSTILE_TEST_SECRET = "1x0000000000000000000000000000000AA";
+/** Token que emite el widget con la site key de prueba `1x00000000000000000000AA`. */
 export const TURNSTILE_DUMMY_TOKEN = "XXXX.DUMMY.TOKEN.XXXX";
 
 const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
@@ -29,13 +31,10 @@ export async function verifyTurnstile(
   ip: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<boolean> {
-  const secret =
-    env.TURNSTILE_SECRET_KEY ?? (env.APP_ENV === "development" ? TURNSTILE_TEST_SECRET : undefined);
+  const secret = env.TURNSTILE_SECRET_KEY;
   if (!secret) {
+    if (env.APP_ENV === "development") return constantTimeEqual(token, TURNSTILE_DUMMY_TOKEN);
     throw new AppError(503, { detail: "La verificación antibots no está configurada" });
-  }
-  if (env.APP_ENV !== "production" && secret === TURNSTILE_TEST_SECRET) {
-    return token === TURNSTILE_DUMMY_TOKEN;
   }
 
   try {

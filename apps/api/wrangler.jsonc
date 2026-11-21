@@ -89,7 +89,7 @@
         "CF_ACCOUNT_ID": "b87bc1a8f7e74107a115865b54ddc455",
         "D1_DATABASE_ID": "f1a9ef7a-8b4f-4f0b-859d-734c1d68b84c",
         // Site key del widget de Turnstile de producción (P-08). No es secreta.
-        "TURNSTILE_SITE_KEY": "",
+        "TURNSTILE_SITE_KEY": "0x4AAAAAAGL8dLU9DrKaDU9f",
         "SESSION_COOKIE_DOMAIN": "delyra.app",
         "MAIL_FROM": "no-reply@delyra.app",
         "PWNED_PASSWORDS_CHECK": "on",
