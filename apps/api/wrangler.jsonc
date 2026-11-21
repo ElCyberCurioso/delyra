@@ -32,7 +32,7 @@
     "MAIL_FROM": "no-reply@delyra.app",
     "PWNED_PASSWORDS_CHECK": "off",
     // Sin bot en local: la vinculación aparece como no disponible (los tests simulan Telegram).
-    "TELEGRAM_BOT_USERNAME": "",
+    "TELEGRAM_BOT_USERNAME": "delyra_app_bot",
   },
   // F3-05: planificador de alertas y resumen diario, cada minuto.
   "triggers": { "crons": ["* * * * *"] },
