@@ -13,6 +13,10 @@ const ci = Boolean(process.env.CI);
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
+  // En local, las dos SPA (cada una con su Worker api en Miniflare) comparten la D1 de
+  // .wrangler/state, y con varios workers SQLite responde «database is locked». Contra
+  // producción no hay ese problema.
+  workers: remote ? undefined : 1,
   forbidOnly: ci,
   retries: ci ? 2 : 0,
   reporter: ci ? [["github"], ["html", { open: "never" }]] : "list",

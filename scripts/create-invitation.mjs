@@ -3,7 +3,10 @@
  * Crea una invitación directamente en D1. Sirve para dar de alta al primer administrador
  * (después, las invitaciones se crean desde la propia aplicación).
  *
- *   node scripts/create-invitation.mjs --email tu@correo.com --role admin [--days 7] [--local]
+ *   pnpm invite --email tu@correo.com --role admin [--days 7] [--local]
+ *
+ * Funciona desde la raíz del repositorio y desde apps/api (o con `pnpm -w invite` desde
+ * cualquier carpeta del monorepo).
  *
  * Sin `--local` escribe en la base de datos de PRODUCCIÓN (usa tu sesión de `wrangler login`
  * o CLOUDFLARE_API_TOKEN). Imprime el enlace de registro: el token va en el fragmento (#), no
@@ -38,7 +41,7 @@ const { values } = parseArgs({
 
 if (values.help || !values.email) {
   console.log(
-    "Uso: node scripts/create-invitation.mjs --email <email> [--role admin|member] [--days 1-30] [--local]",
+    "Uso: pnpm invite --email tu@correo.com [--role admin|member] [--days 1-30] [--local]",
   );
   process.exit(values.help ? 0 : 1);
 }

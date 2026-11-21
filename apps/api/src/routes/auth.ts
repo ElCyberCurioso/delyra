@@ -3,22 +3,25 @@ import {
   forgotPasswordRequestSchema,
   invitationTokenRequestSchema,
   loginRequestSchema,
-  PROBLEM_TYPES,
   registerRequestSchema,
   resetPasswordRequestSchema,
   secondFactorRequestSchema,
   totpConfirmRequestSchema,
 } from "@delyra/shared";
 import { eq } from "drizzle-orm";
-import { type Context, Hono } from "hono";
+import { Hono } from "hono";
 import { createDb } from "../db/client";
 import { users } from "../db/schema";
+import {
+  enforcePasswordPolicy,
+  rejectPwned,
+  requireTurnstile,
+  tooManyAttempts,
+} from "../lib/auth-guards";
 import { AppError } from "../lib/errors";
 import { keyringFromEnv } from "../lib/field-crypto";
 import { readBody } from "../lib/http";
 import { equalizeTiming, hashPassword, needsRehash, verifyPassword } from "../lib/password";
-import { isPwnedPassword } from "../lib/pwned";
-import { verifyTurnstile } from "../lib/turnstile";
 import {
   currentAuth,
   clearSessionCookie,
@@ -67,32 +70,6 @@ import type { AppEnv } from "../types";
 const GENERIC_LOGIN_ERROR = "Email o contraseña incorrectos";
 const INVALID_INVITATION = "La invitación no es válida o ha caducado";
 
-function tooManyAttempts(c: Context<AppEnv>, retryAfterSeconds: number): never {
-  c.header("Retry-After", String(Math.max(retryAfterSeconds, 1)));
-  throw new AppError(429, { detail: "Demasiados intentos. Vuelve a intentarlo más tarde." });
-}
-
-async function requireTurnstile(c: Context<AppEnv>, token: string) {
-  if (!(await verifyTurnstile(c.env, token, c.get("meta").ip))) {
-    throw new AppError(400, { detail: "No se ha superado la verificación antibots" });
-  }
-}
-
-async function rejectPwned(c: Context<AppEnv>, password: string) {
-  if (c.env.PWNED_PASSWORDS_CHECK !== "on") return;
-  if ((await isPwnedPassword(password)) === true) {
-    throw new AppError(422, {
-      type: PROBLEM_TYPES.validation,
-      errors: [
-        {
-          path: "password",
-          message: "Esta contraseña aparece en filtraciones conocidas. Elige otra.",
-        },
-      ],
-    });
-  }
-}
-
 export const authRoutes = new Hono<AppEnv>()
   .get("/config", (c) => c.json({ turnstileSiteKey: c.env.TURNSTILE_SITE_KEY || null }))
 
@@ -130,14 +107,7 @@ export const authRoutes = new Hono<AppEnv>()
 
     const invitation = await findValidInvitation(db, body.token);
     if (!invitation) throw new AppError(400, { detail: INVALID_INVITATION });
-    const localPart = invitation.email.split("@")[0] ?? "";
-    if (localPart.length >= 4 && body.password.toLowerCase().includes(localPart)) {
-      throw new AppError(422, {
-        type: PROBLEM_TYPES.validation,
-        errors: [{ path: "password", message: "La contraseña no puede contener tu email" }],
-      });
-    }
-    await rejectPwned(c, body.password);
+    await enforcePasswordPolicy(c, body.password, invitation.email);
 
     // Se reserva la invitación antes de crear el usuario: dos registros simultáneos con el mismo
     // enlace no pueden prosperar los dos.

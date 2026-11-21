@@ -1,0 +1,71 @@
+import { newId } from "@delyra/shared";
+import { describe, expect, it } from "vitest";
+import { invite, PASSWORD, registerUser, TestClient, TURNSTILE, uniqueEmail } from "./helpers";
+
+/**
+ * Criterio de aceptación de la Fase 1: ninguna ruta de cuenta ni de administración responde
+ * sin una sesión completa (contraseña + segundo factor), y las de admin no existen para un
+ * miembro.
+ */
+
+const PROTECTED: readonly [method: string, path: string][] = [
+  ["GET", "/api/me/security"],
+  ["GET", "/api/me/sessions"],
+  ["GET", "/api/me/audit"],
+  ["PATCH", "/api/me/profile"],
+  ["PATCH", "/api/me/settings"],
+  ["POST", "/api/me/password"],
+  ["POST", "/api/me/recovery-codes"],
+  ["POST", "/api/me/totp/reconfigure"],
+  ["POST", "/api/me/totp/reconfigure/confirm"],
+  ["POST", "/api/me/sessions/revoke-others"],
+  ["DELETE", `/api/me/sessions/${newId()}`],
+  ["GET", "/api/admin/users"],
+  ["GET", "/api/admin/invitations"],
+  ["POST", "/api/admin/invitations"],
+  ["POST", `/api/admin/users/${newId()}/disable`],
+  ["POST", `/api/admin/users/${newId()}/reset-2fa`],
+];
+
+async function statuses(client: TestClient) {
+  const result: string[] = [];
+  for (const [method, path] of PROTECTED) {
+    const response = await client.request(method, path, {});
+    result.push(`${String(response.status)} ${method} ${path.split("/").slice(0, 4).join("/")}`);
+  }
+  return result;
+}
+
+describe("rutas protegidas", () => {
+  it("sin sesión responden 401", async () => {
+    for (const line of await statuses(new TestClient())) expect(line).toMatch(/^401 /);
+  });
+
+  it("con la contraseña pero sin el segundo factor responden 401", async () => {
+    const { email } = await registerUser();
+    const client = new TestClient();
+    await client.post("/api/auth/login", { email, password: PASSWORD, turnstileToken: TURNSTILE });
+    expect((await client.get("/api/auth/me")).status).toBe(200);
+    for (const line of await statuses(client)) expect(line).toMatch(/^401 /);
+  });
+
+  it("recién registrado y sin TOTP configurado responden 401", async () => {
+    const email = uniqueEmail();
+    const { token } = await invite(email, "admin");
+    const client = new TestClient();
+    await client.post("/api/auth/register", {
+      token,
+      name: "Sin TOTP",
+      password: PASSWORD,
+      turnstileToken: TURNSTILE,
+    });
+    for (const line of await statuses(client)) expect(line).toMatch(/^401 /);
+  });
+
+  it("un miembro con sesión completa no ve las rutas de admin (404)", async () => {
+    const { client } = await registerUser("member");
+    const admin = (await statuses(client)).filter((line) => line.includes("/api/admin"));
+    expect(admin.length).toBeGreaterThan(0);
+    for (const line of admin) expect(line).toMatch(/^404 /);
+  });
+});

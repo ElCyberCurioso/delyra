@@ -165,6 +165,15 @@ describe("App (calendario)", () => {
     expect(requests).toHaveLength(0);
   });
 
+  it("tras el segundo factor vuelve a la ruta propia de ?next=", async () => {
+    sessionState = "pending_2fa";
+    const userEvents = userEvent.setup();
+    const router = renderAt("/login/verificar?next=%2Fajustes");
+    await userEvents.type(await screen.findByLabelText("Código"), "123456");
+    await userEvents.click(screen.getByRole("button", { name: "Verificar" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/ajustes"));
+  });
+
   it("no acepta destinos externos en ?next=", async () => {
     sessionState = "pending_2fa";
     const userEvents = userEvent.setup();

@@ -50,3 +50,58 @@ export function FormError({ children }: { children?: ReactNode }) {
     </p>
   );
 }
+
+export interface SelectFieldProps extends Omit<ComponentProps<"select">, "id"> {
+  label: string;
+  options: readonly { value: string; label: string }[];
+  error?: string;
+  hint?: ReactNode;
+}
+
+/** Selector nativo con etiqueta: accesible y cómodo en móvil sin librerías extra. */
+export function SelectField({
+  label,
+  options,
+  error,
+  hint,
+  className,
+  ...props
+}: SelectFieldProps) {
+  const id = useId();
+  const hintId = hint ? `${id}-hint` : undefined;
+  const errorId = error ? `${id}-error` : undefined;
+  return (
+    <div className={cn("grid gap-1.5", className)}>
+      <label htmlFor={id} className="text-sm font-medium">
+        {label}
+      </label>
+      <select
+        id={id}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={[hintId, errorId].filter(Boolean).join(" ") || undefined}
+        className={cn(
+          "h-9 w-full rounded-md border border-input bg-background px-3 text-base shadow-xs outline-none md:text-sm",
+          "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+          "aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-50",
+        )}
+        {...props}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      {hint ? (
+        <p id={hintId} className="text-xs text-muted-foreground">
+          {hint}
+        </p>
+      ) : null}
+      {error ? (
+        <p id={errorId} className="text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}

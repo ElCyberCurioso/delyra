@@ -2,7 +2,7 @@
 
 - **Estado:** aceptada (2026-11-20)
 - **Fecha:** 2026-11-20
-- **Tareas afectadas:** F1-01 a F1-14 (Fase 1)
+- **Tareas afectadas:** F1-01 a F1-18 (Fase 1)
 
 ## Contexto
 
@@ -40,6 +40,17 @@ quede en claro en D1 ni en los logs.
   reutilizar un código (anti-replay con `UPDATE` condicional).
 - 10 códigos de recuperación de un solo uso (`xxxxx-xxxxx`, base32), guardados como SHA-256.
 - Sin TOTP confirmado no hay sesión `active`: el alta es obligatoria tras el registro.
+
+### Acciones sensibles en Ajustes
+
+- Cambiar la contraseña pide la actual; regenerar los códigos de recuperación y cambiar de app
+  autenticadora piden contraseña **y** código (TOTP o de recuperación). Tienen su propio contador
+  de intentos (`reauth`, 5 por cuenta en 15 min) y cada fallo queda en el historial.
+- Cambiar la contraseña o el TOTP cierra las demás sesiones; la actual sigue con un token nuevo.
+- La reconfiguración del TOTP guarda la semilla nueva aparte (`pending_secret_enc`, 10 min): la
+  anterior sigue valiendo hasta confirmar la nueva con un código, así que abandonar a medias no
+  deja la cuenta sin segundo factor.
+- Un administrador no puede resetear su propio 2FA desde el panel (debe usar Ajustes).
 
 ### Alta de usuarios
 

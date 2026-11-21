@@ -150,6 +150,9 @@ export const adminRoutes = new Hono<AppEnv>()
   .post("/users/:id/reset-2fa", async (c) => {
     const { user: admin } = currentAuth(c);
     const id = idParam(c);
+    if (id === admin.id) {
+      throw new AppError(409, { detail: "Tu propio 2FA se cambia en Ajustes → Seguridad" });
+    }
     const db = createDb(c.env.DB);
     if (!(await findUserById(db, id))) throw new AppError(404);
     await resetSecondFactor(db, id);

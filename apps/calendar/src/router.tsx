@@ -8,12 +8,14 @@ import {
   Outlet,
   type RouterHistory,
 } from "@tanstack/react-router";
+import { AdminPage } from "./admin/admin-page";
 import { App } from "./app";
 import { LoginPage } from "./auth/login-page";
 import { ForgotPasswordPage, ResetPasswordPage } from "./auth/password-pages";
 import { RegisterPage } from "./auth/register-page";
 import { TotpSetupPage } from "./auth/totp-setup-page";
 import { VerifyPage } from "./auth/verify-page";
+import { SettingsPage } from "./settings/settings-page";
 
 /** `?next=` solo se acepta como texto; `resolveNext` decide luego si es un destino seguro. */
 function nextSearch(search: Record<string, unknown>): { next?: string } {
@@ -53,6 +55,8 @@ const routeTree = rootRoute.addChildren([
     component: TotpSetupPage,
   }),
   createRoute({ getParentRoute: () => rootRoute, path: "/registro", component: RegisterPage }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/ajustes", component: SettingsPage }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/admin", component: AdminPage }),
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/recuperar",

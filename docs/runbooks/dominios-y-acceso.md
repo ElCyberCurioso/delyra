@@ -72,6 +72,9 @@ El alta es solo por invitación. La primera se crea desde tu equipo, con tu sesi
 pnpm invite --email tu@correo.com --role admin
 ```
 
+Ejecútalo desde la raíz del repositorio o desde `apps/api`; en cualquier otra carpeta del monorepo,
+usa `pnpm -w invite …`. Escribe el email tal cual, sin `<` `>` (en PowerShell son operadores).
+
 1. El script imprime `https://delyra.app/registro#token=…` (caduca en 7 días; `--days` lo cambia).
    Es de un solo uso: no lo compartas ni lo pegues en ningún chat.
 2. Ábrelo en el navegador: nombre, contraseña (mínimo 12 caracteres) y verificación anti-bots.

@@ -1,4 +1,12 @@
-import { LogOutIcon, MonitorIcon, MoonIcon, SunIcon, UserIcon } from "lucide-react";
+import {
+  LogOutIcon,
+  MonitorIcon,
+  MoonIcon,
+  SettingsIcon,
+  ShieldIcon,
+  SunIcon,
+  UserIcon,
+} from "lucide-react";
 import { Button } from "../components/button";
 import {
   DropdownMenu,
@@ -15,11 +23,16 @@ import { type Theme, useTheme } from "../theme/theme-provider";
 export interface CurrentUser {
   name: string;
   email?: string;
+  role?: "admin" | "member";
 }
 
 export interface UserMenuProps {
   user: CurrentUser | null;
   onSignOut?: () => void;
+  /** Ajustes de cuenta (en el calendario, también desde trabajo). */
+  settingsHref?: string;
+  /** Solo se muestra a administradores. */
+  adminHref?: string;
 }
 
 const THEMES: { value: Theme; label: string; Icon: typeof SunIcon }[] = [
@@ -33,7 +46,7 @@ function initials(name: string): string {
   return parts.map((part) => part.charAt(0).toUpperCase()).join("") || "?";
 }
 
-export function UserMenu({ user, onSignOut }: UserMenuProps) {
+export function UserMenu({ user, onSignOut, settingsHref, adminHref }: UserMenuProps) {
   const { theme, setTheme } = useTheme();
 
   return (
@@ -58,6 +71,25 @@ export function UserMenu({ user, onSignOut }: UserMenuProps) {
             </span>
           ) : null}
         </DropdownMenuLabel>
+        {user && settingsHref ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <a href={settingsHref}>
+                <SettingsIcon aria-hidden="true" />
+                Ajustes
+              </a>
+            </DropdownMenuItem>
+            {user.role === "admin" && adminHref ? (
+              <DropdownMenuItem asChild>
+                <a href={adminHref}>
+                  <ShieldIcon aria-hidden="true" />
+                  Administración
+                </a>
+              </DropdownMenuItem>
+            ) : null}
+          </>
+        ) : null}
         <DropdownMenuSeparator />
         <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
           Tema

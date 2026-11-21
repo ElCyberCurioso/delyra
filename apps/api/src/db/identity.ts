@@ -57,6 +57,12 @@ export const userTotp = sqliteTable("user_totp", {
   /** Último paso de 30 s aceptado: impide reutilizar un código (anti-replay). */
   lastUsedCounter: integer("last_used_counter").notNull().default(0),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  /**
+   * Semilla nueva durante una reconfiguración (F1-15). La actual sigue valiendo hasta que la
+   * nueva se confirma con un código; caduca a los 10 minutos.
+   */
+  pendingSecretEnc: text("pending_secret_enc"),
+  pendingCreatedAt: integer("pending_created_at", { mode: "timestamp_ms" }),
 });
 
 export const recoveryCodes = sqliteTable(
@@ -145,7 +151,8 @@ export const passwordResets = sqliteTable(
   ],
 );
 
-export const AUTH_ATTEMPT_KINDS = ["login", "second_factor", "password_reset"] as const;
+/** `reauth`: contraseña y código que piden las acciones sensibles de los ajustes. */
+export const AUTH_ATTEMPT_KINDS = ["login", "second_factor", "password_reset", "reauth"] as const;
 export type AuthAttemptKind = (typeof AUTH_ATTEMPT_KINDS)[number];
 
 /** Intentos de autenticación para limitar la fuerza bruta por cuenta y por IP (F1-10). */

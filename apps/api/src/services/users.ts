@@ -5,7 +5,7 @@ import {
   newId,
   type Role,
 } from "@delyra/shared";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import type { Database } from "../db/client";
 import { type User, users, userSettings, userTotp } from "../db/schema";
 
@@ -90,11 +90,28 @@ export async function listUsers(db: Database) {
       name: users.name,
       role: users.role,
       status: users.status,
+      hasTotp: sql`${userTotp.confirmedAt} IS NOT NULL`.mapWith(Boolean),
       createdAt: users.createdAt,
       lastLoginAt: users.lastLoginAt,
     })
     .from(users)
+    .leftJoin(userTotp, eq(userTotp.userId, users.id))
     .orderBy(asc(users.createdAt));
+}
+
+export async function updateUserName(db: Database, userId: string, name: string) {
+  await db.update(users).set({ name, updatedAt: new Date() }).where(eq(users.id, userId));
+}
+
+export async function updateUserSettings(
+  db: Database,
+  userId: string,
+  settings: { timeZone: string; locale: string; weekStart: number },
+) {
+  await db
+    .update(userSettings)
+    .set({ ...settings, updatedAt: new Date() })
+    .where(eq(userSettings.userId, userId));
 }
 
 export function publicUser(user: User) {

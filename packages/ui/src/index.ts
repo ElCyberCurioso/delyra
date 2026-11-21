@@ -50,4 +50,10 @@ export {
   useMe,
 } from "./auth/session";
 export { Turnstile, type TurnstileProps } from "./auth/turnstile";
-export { Field, type FieldProps, FormError } from "./components/field";
+export {
+  Field,
+  type FieldProps,
+  FormError,
+  SelectField,
+  type SelectFieldProps,
+} from "./components/field";

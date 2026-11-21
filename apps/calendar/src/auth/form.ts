@@ -61,8 +61,13 @@ export function useFragmentToken(): string | null {
   return token;
 }
 
-/** `?next=` de la URL actual (sin validar: eso lo hace `resolveNext` al usarlo). */
+/**
+ * `?next=` con el que se abrió la página (sin validar: eso lo hace `resolveNext` al usarlo).
+ * Se lee una sola vez: al navegar al destino, la página aún se repinta con la URL nueva (sin
+ * `next`) y, si se leyera de nuevo, sus efectos redirigirían a `/`.
+ */
 export function useNextParam(): string | undefined {
   const { searchStr } = useLocation();
-  return new URLSearchParams(searchStr).get("next") ?? undefined;
+  const [next] = useState(() => new URLSearchParams(searchStr).get("next") ?? undefined);
+  return next;
 }

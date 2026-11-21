@@ -1,5 +1,5 @@
 import { newId } from "@delyra/shared";
-import { and, eq, isNull, lt } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, lt } from "drizzle-orm";
 import type { Database } from "../db/client";
 import { recoveryCodes, userTotp } from "../db/schema";
 import { randomBytes, sha256Hex } from "../lib/crypto";
@@ -41,7 +41,14 @@ export async function startTotpEnrollment(
     })
     .onConflictDoUpdate({
       target: userTotp.userId,
-      set: { secretEnc, confirmedAt: null, lastUsedCounter: 0, createdAt: new Date(now) },
+      set: {
+        secretEnc,
+        confirmedAt: null,
+        lastUsedCounter: 0,
+        createdAt: new Date(now),
+        pendingSecretEnc: null,
+        pendingCreatedAt: null,
+      },
     });
   return { secret, otpauthUri: otpauthUri(secret, user.email) };
 }
@@ -150,6 +157,67 @@ export async function remainingRecoveryCodes(db: Database, userId: string): Prom
     .from(recoveryCodes)
     .where(and(eq(recoveryCodes.userId, userId), isNull(recoveryCodes.usedAt)));
   return rows.length;
+}
+
+/** Tiempo para escanear el QR nuevo y confirmarlo durante una reconfiguración. */
+export const TOTP_RECONFIGURE_TTL_MS = 10 * 60_000;
+
+/**
+ * Prepara una semilla nueva para un TOTP ya confirmado (F1-15). La actual sigue valiendo hasta
+ * confirmar la nueva, así que abandonar a medias no deja la cuenta sin segundo factor.
+ */
+export async function startTotpReconfiguration(
+  db: Database,
+  keyring: Keyring,
+  user: { id: string; email: string },
+  now = Date.now(),
+): Promise<{ secret: string; otpauthUri: string } | null> {
+  const secret = generateTotpSecret();
+  const pendingSecretEnc = await encryptField(secret, keyring, `totp:${user.id}`);
+  const updated = await db
+    .update(userTotp)
+    .set({ pendingSecretEnc, pendingCreatedAt: new Date(now) })
+    .where(and(eq(userTotp.userId, user.id), isNotNull(userTotp.confirmedAt)))
+    .returning({ userId: userTotp.userId });
+  return updated.length === 1 ? { secret, otpauthUri: otpauthUri(secret, user.email) } : null;
+}
+
+/** Sustituye la semilla por la nueva si el código es válido y no ha caducado. */
+export async function confirmTotpReconfiguration(
+  db: Database,
+  keyring: Keyring,
+  userId: string,
+  code: string,
+  now = Date.now(),
+): Promise<boolean> {
+  const [row] = await db.select().from(userTotp).where(eq(userTotp.userId, userId)).limit(1);
+  const pending = row?.pendingSecretEnc;
+  const startedAt = row?.pendingCreatedAt?.getTime() ?? 0;
+  if (!pending || now - startedAt > TOTP_RECONFIGURE_TTL_MS) return false;
+  const secret = await decryptField(pending, keyring, `totp:${userId}`);
+  const check = await verifyTotp(secret, code, 0, now);
+  if (!check.valid || check.counter === undefined) return false;
+  const updated = await db
+    .update(userTotp)
+    .set({
+      secretEnc: pending,
+      lastUsedCounter: check.counter,
+      confirmedAt: new Date(now),
+      pendingSecretEnc: null,
+      pendingCreatedAt: null,
+    })
+    .where(and(eq(userTotp.userId, userId), eq(userTotp.pendingSecretEnc, pending)))
+    .returning({ userId: userTotp.userId });
+  return updated.length === 1;
+}
+
+export async function totpConfirmedAt(db: Database, userId: string): Promise<Date | null> {
+  const [row] = await db
+    .select({ confirmedAt: userTotp.confirmedAt })
+    .from(userTotp)
+    .where(eq(userTotp.userId, userId))
+    .limit(1);
+  return row?.confirmedAt ?? null;
 }
 
 /** Borra el TOTP y los códigos (reseteo de 2FA por un administrador, F1-17). */

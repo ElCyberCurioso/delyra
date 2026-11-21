@@ -34,7 +34,12 @@ export function AppShell({ app, user, onSignOut, origins, children }: AppShellPr
           <Brand href={`${resolvedOrigins[app]}/`} />
           <AppSwitcher current={app} origins={resolvedOrigins} />
           <div className="ml-auto">
-            <UserMenu user={user} onSignOut={onSignOut} />
+            <UserMenu
+              user={user}
+              onSignOut={onSignOut}
+              settingsHref={`${resolvedOrigins.calendar}/ajustes`}
+              adminHref={`${resolvedOrigins.calendar}/admin`}
+            />
           </div>
         </div>
       </header>
