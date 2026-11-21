@@ -61,6 +61,8 @@ export const AUDIT_LABELS: Readonly<Record<string, string>> = {
   "profile.updated": "Perfil actualizado",
   "settings.updated": "Preferencias actualizadas",
   "reauth.failure": "Confirmación de identidad fallida en Ajustes",
+  "telegram.linked": "Telegram vinculado",
+  "telegram.unlinked": "Telegram desvinculado",
   "session.logout": "Cierre de sesión",
   "session.revoked": "Sesión cerrada desde Ajustes",
   "admin.user_disabled": "Cuenta desactivada por un administrador",

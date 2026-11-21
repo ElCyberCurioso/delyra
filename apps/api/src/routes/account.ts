@@ -37,7 +37,9 @@ import { getUserSettings, publicUser, updateUserName, updateUserSettings } from 
 import { calendarRepository } from "../repositories/calendars";
 import { eventRepository } from "../repositories/events";
 import { onTimeZoneChanged } from "../services/events";
+import { notifySecurity } from "../services/security-notify";
 import type { AppEnv } from "../types";
+import { telegramSettingsRoutes } from "./telegram";
 
 /**
  * Cuenta del usuario (F1-15, F1-16): perfil, preferencias, seguridad, sesiones e historial.
@@ -76,6 +78,7 @@ async function reauthenticate(
 
 export const accountRoutes = new Hono<AppEnv>()
   .use("*", requireActiveSession())
+  .route("/telegram", telegramSettingsRoutes)
 
   .patch("/profile", async (c) => {
     const { name } = await readBody(c, updateProfileRequestSchema);
@@ -142,6 +145,7 @@ export const accountRoutes = new Hono<AppEnv>()
     // Las demás sesiones se cierran; esta sigue, pero con un token nuevo.
     const revokedSessions = await revokeUserSessions(db, user.id, "password_changed", session.id);
     setSessionCookie(c, await rotateSession(db, session.id, "active"), "active");
+    notifySecurity(c, user.id, "password_changed");
     await audit(db, c.get("meta"), "password.changed", {
       userId: user.id,
       metadata: { revokedSessions },
@@ -156,6 +160,7 @@ export const accountRoutes = new Hono<AppEnv>()
     const db = createDb(c.env.DB);
     const codes = await regenerateRecoveryCodes(db, user.id);
     await audit(db, c.get("meta"), "recovery_codes.regenerated", { userId: user.id });
+    notifySecurity(c, user.id, "recovery_codes");
     c.header("Cache-Control", "no-store");
     return c.json({ recoveryCodes: codes });
   })
@@ -191,6 +196,7 @@ export const accountRoutes = new Hono<AppEnv>()
     }
     // Con el segundo factor cambiado, el resto de sesiones dejan de valer.
     const revokedSessions = await revokeUserSessions(db, user.id, "totp_changed", session.id);
+    notifySecurity(c, user.id, "totp_changed");
     await audit(db, c.get("meta"), "totp.reconfigured", {
       userId: user.id,
       metadata: { revokedSessions },
@@ -216,6 +222,7 @@ export const accountRoutes = new Hono<AppEnv>()
     if (!owned) throw new AppError(404);
     await revokeSession(db, id.data, "revoked_by_user");
     await audit(db, c.get("meta"), "session.revoked", { userId: user.id });
+    notifySecurity(c, user.id, "sessions_revoked");
     return c.body(null, 204);
   })
 
@@ -224,6 +231,7 @@ export const accountRoutes = new Hono<AppEnv>()
     const db = createDb(c.env.DB);
     const count = await revokeUserSessions(db, user.id, "revoked_by_user", session.id);
     await audit(db, c.get("meta"), "session.revoked", { userId: user.id, metadata: { count } });
+    if (count > 0) notifySecurity(c, user.id, "sessions_revoked");
     return c.json({ revoked: count });
   })
 

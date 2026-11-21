@@ -25,18 +25,27 @@ function fireTime(start: number, allDay: boolean, tz: string, offsetMinutes: num
   return base - offsetMinutes * 60_000;
 }
 
-export function nextFireAt(
+export interface NextFire {
+  fireAt: number;
+  /** Inicio de la ocurrencia que se avisa (el de la excepción si se movió). */
+  occurrenceStart: number;
+}
+
+/** Próxima alerta posterior a `now` y la ocurrencia a la que corresponde. */
+export function nextFire(
   series: Series,
   overrides: readonly ScheduleOverride[],
   offsetMinutes: number,
   now: number,
-): number | null {
+): NextFire | null {
   const overridden = new Set(overrides.map((o) => o.originalStart));
-  let best: number | null = null;
+  let best: NextFire | null = null;
 
   for (const override of overrides) {
-    const fire = fireTime(override.startAt, override.allDay, series.tz, offsetMinutes);
-    if (fire > now && (best === null || fire < best)) best = fire;
+    const fireAt = fireTime(override.startAt, override.allDay, series.tz, offsetMinutes);
+    if (fireAt > now && (best === null || fireAt < best.fireAt)) {
+      best = { fireAt, occurrenceStart: override.startAt };
+    }
   }
 
   // Las ocurrencias salen en orden, así que la primera alerta futura es la menor.
@@ -45,10 +54,19 @@ export function nextFireAt(
   for (const occurrence of occurrencesAfter(series, from)) {
     if (++scanned > MAX_SCAN) break;
     if (overridden.has(occurrence.originalStart)) continue;
-    const fire = fireTime(occurrence.start, series.allDay, series.tz, offsetMinutes);
-    if (fire <= now) continue;
-    if (best === null || fire < best) best = fire;
+    const fireAt = fireTime(occurrence.start, series.allDay, series.tz, offsetMinutes);
+    if (fireAt <= now) continue;
+    if (best === null || fireAt < best.fireAt) best = { fireAt, occurrenceStart: occurrence.start };
     break;
   }
   return best;
+}
+
+export function nextFireAt(
+  series: Series,
+  overrides: readonly ScheduleOverride[],
+  offsetMinutes: number,
+  now: number,
+): number | null {
+  return nextFire(series, overrides, offsetMinutes, now)?.fireAt ?? null;
 }

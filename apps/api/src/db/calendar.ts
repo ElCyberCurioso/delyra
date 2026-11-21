@@ -113,12 +113,23 @@ export const reminders = sqliteTable(
     offsetMinutes: integer("offset_minutes").notNull(),
     channel: text("channel", { enum: REMINDER_CHANNELS }).notNull().default("telegram"),
     nextFireAt: integer("next_fire_at"),
+    /** Inicio de la ocurrencia a la que corresponde `next_fire_at`. */
+    nextOccurrenceStart: integer("next_occurrence_start"),
     status: text("status", { enum: REMINDER_STATUSES }).notNull().default("scheduled"),
     lastFiredAt: integer("last_fired_at"),
+    /**
+     * Reclamada por el planificador (F3-05). Si sigue puesta pasados unos minutos, el envío se
+     * interrumpió y se vuelve a reclamar (la clave de idempotencia evita duplicados).
+     */
+    enqueuedAt: integer("enqueued_at"),
+    /** «Posponer» (F3-07): un aviso extra de la misma ocurrencia. */
+    snoozeUntil: integer("snooze_until"),
+    snoozeOccurrenceStart: integer("snooze_occurrence_start"),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   },
   (t) => [
     index("reminders_due_idx").on(t.status, t.nextFireAt),
+    index("reminders_snooze_idx").on(t.snoozeUntil),
     index("reminders_target_idx").on(t.targetType, t.targetId),
     check("reminders_status_check", sql`"status" IN (${quoted(REMINDER_STATUSES)})`),
   ],

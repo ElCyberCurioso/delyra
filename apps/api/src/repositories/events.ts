@@ -237,7 +237,10 @@ export function eventRepository(db: Database, ownerId: string) {
 
     async replaceReminders(
       eventId: string,
-      rows: readonly Pick<Reminder, "offsetMinutes" | "channel" | "nextFireAt">[],
+      rows: readonly Pick<
+        Reminder,
+        "offsetMinutes" | "channel" | "nextFireAt" | "nextOccurrenceStart"
+      >[],
     ): Promise<void> {
       const now = new Date();
       await db.batch([
@@ -259,6 +262,7 @@ export function eventRepository(db: Database, ownerId: string) {
             offsetMinutes: row.offsetMinutes,
             channel: row.channel,
             nextFireAt: row.nextFireAt,
+            nextOccurrenceStart: row.nextOccurrenceStart,
             status: row.nextFireAt === null ? "done" : "scheduled",
             createdAt: now,
           }),
@@ -266,10 +270,37 @@ export function eventRepository(db: Database, ownerId: string) {
       ]);
     },
 
-    async setNextFire(reminderId: string, nextFireAt: number | null): Promise<void> {
+    async setNextFire(
+      reminderId: string,
+      next: { fireAt: number; occurrenceStart: number } | null,
+    ): Promise<void> {
       await db
         .update(reminders)
-        .set({ nextFireAt, status: nextFireAt === null ? "done" : "scheduled" })
+        .set({
+          nextFireAt: next?.fireAt ?? null,
+          nextOccurrenceStart: next?.occurrenceStart ?? null,
+          status: next === null ? "done" : "scheduled",
+          enqueuedAt: null,
+        })
+        .where(and(eq(reminders.ownerId, ownerId), eq(reminders.id, reminderId)));
+    },
+
+    async getReminder(reminderId: string): Promise<Reminder | null> {
+      const [row] = await db
+        .select()
+        .from(reminders)
+        .where(and(eq(reminders.ownerId, ownerId), eq(reminders.id, reminderId)))
+        .limit(1);
+      return row ?? null;
+    },
+
+    async updateReminder(
+      reminderId: string,
+      patch: Partial<Pick<Reminder, "snoozeUntil" | "snoozeOccurrenceStart" | "lastFiredAt">>,
+    ): Promise<void> {
+      await db
+        .update(reminders)
+        .set(patch)
         .where(and(eq(reminders.ownerId, ownerId), eq(reminders.id, reminderId)));
     },
   };

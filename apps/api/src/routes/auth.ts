@@ -64,6 +64,7 @@ import {
   publicUser,
 } from "../services/users";
 import { calendarRepository } from "../repositories/calendars";
+import { notifySecurity } from "../services/security-notify";
 import type { AppEnv } from "../types";
 
 /** Rutas de autenticación (F1-07, F1-08, F1-09, F1-11, F1-13). */
@@ -213,6 +214,7 @@ export const authRoutes = new Hono<AppEnv>()
     const token = await rotateSession(db, session.id, "active");
     await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, user.id));
     await audit(db, meta, "login.success", { userId: user.id, metadata: { method } });
+    notifySecurity(c, user.id, "login");
     let remaining: number | undefined;
     if (method === "recovery_code") {
       remaining = await remainingRecoveryCodes(db, user.id);
@@ -327,6 +329,7 @@ export const authRoutes = new Hono<AppEnv>()
       .where(eq(users.id, userId));
     await revokeUserSessions(db, userId, "password_reset");
     await audit(db, c.get("meta"), "password.reset", { userId });
+    notifySecurity(c, userId, "password_reset");
     clearSessionCookie(c);
     return c.body(null, 204);
   });

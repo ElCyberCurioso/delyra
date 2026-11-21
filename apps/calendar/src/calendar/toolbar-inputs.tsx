@@ -5,7 +5,7 @@ import { SearchIcon, SparklesIcon } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { createEvent, searchEvents, useInvalidateEvents } from "./api";
 import type { EditorTarget } from "./event-editor";
-import { parseQuickAdd, type QuickDraft } from "./quick-add";
+import { parseQuickAdd, type QuickDraft } from "@delyra/shared";
 import { describeWhen, joinInstant } from "./time";
 
 const DAY_MS = 86_400_000;

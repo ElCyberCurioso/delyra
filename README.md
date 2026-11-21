@@ -75,6 +75,7 @@ También puedes arrancar solo una app (`pnpm dev:calendar`, `pnpm dev:work`) o s
 | `pnpm db:migrate:local` | Aplica las migraciones a la D1 local                               |
 | `pnpm db:migrate:prod`  | Aplica las migraciones a la D1 de producción                       |
 | `pnpm invite`           | Crea una invitación en D1 (`--local` para la local)                |
+| `pnpm telegram:setup`   | Configura el bot de Telegram de producción (secretos y webhook)    |
 
 ## Entornos
 

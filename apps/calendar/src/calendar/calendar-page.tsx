@@ -31,9 +31,9 @@ import multiMonthPlugin from "@fullcalendar/multimonth";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
+import { useLocation, useRouter } from "@tanstack/react-router";
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchEvent,
   occurrencesKey,
@@ -103,6 +103,39 @@ function Workspace({ session }: { session: ActiveSession }) {
   const { ask, dialog: scopeDialog } = useScopeDialog();
 
   const calendarList = useMemo(() => calendars.data ?? [], [calendars.data]);
+  const router = useRouter();
+  const { searchStr } = useLocation();
+
+  // «Abrir» desde una alerta de Telegram: /?evento=<id> abre el evento en su fecha (F3-06).
+  useEffect(() => {
+    const eventId = new URLSearchParams(searchStr).get("evento");
+    if (!eventId) return;
+    router.history.replace("/");
+    fetchEvent(eventId)
+      .then((detail) => {
+        const occurrence: Occurrence = {
+          id: detail.id,
+          eventId: detail.recurringEventId ?? detail.id,
+          calendarId: detail.calendarId,
+          type: detail.type,
+          title: detail.title,
+          notes: detail.notes,
+          location: detail.location,
+          url: detail.url,
+          allDay: detail.allDay,
+          start: detail.start,
+          end: detail.end,
+          tz: detail.tz,
+          recurring: false,
+          originalStart: null,
+          age: null,
+        };
+        const date = detail.allDay ? detail.start : todayFrom(detail.start, timeZone);
+        calendarRef.current?.getApi().gotoDate(date);
+        setEditor({ kind: "edit", occurrence });
+      })
+      .catch(() => toast.error("No se ha encontrado el evento"));
+  }, [searchStr, router, timeZone]);
   const events = useMemo<EventInput[]>(() => {
     const byId = new Map(calendarList.map((c) => [c.id, c]));
     return (occurrences.data ?? [])

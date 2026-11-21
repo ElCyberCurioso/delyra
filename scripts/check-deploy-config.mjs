@@ -52,6 +52,8 @@ for (const [name, description] of requiredSecrets) {
   }
 }
 
+let telegramEnabled = false;
+
 // ── Identificadores en apps/api/wrangler.jsonc ──────────────────────────────────
 {
   const envConfig = readJsonc("apps/api/wrangler.jsonc").env?.[ENVIRONMENT] ?? {};
@@ -86,6 +88,7 @@ for (const [name, description] of requiredSecrets) {
       detail: "Los Workers y el backup estarían apuntando a cuentas distintas.",
     });
   }
+  if (vars.TELEGRAM_BOT_USERNAME) telegramEnabled = true;
   if (!vars.TURNSTILE_SITE_KEY) {
     problems.push({
       title: `Falta vars.TURNSTILE_SITE_KEY en env.${ENVIRONMENT}`,
@@ -101,6 +104,13 @@ const workerSecrets = [
   ["FIELD_ENCRYPTION_KEY_V1", "clave AES-256 que cifra las semillas TOTP en D1"],
   ["TURNSTILE_SECRET_KEY", "secreto del widget de Turnstile (P-08)"],
   ["D1_EXPORT_API_TOKEN", "token para el export diario de D1 (backup)"],
+  // Con TELEGRAM_BOT_USERNAME puesto, el bot tiene que estar configurado (P-10).
+  ...(telegramEnabled
+    ? [
+        ["TELEGRAM_BOT_TOKEN", "token del bot de @BotFather (pnpm telegram:setup)"],
+        ["TELEGRAM_WEBHOOK_SECRET", "secreto del webhook de Telegram (pnpm telegram:setup)"],
+      ]
+    : []),
 ];
 {
   const apiName = readJsonc("apps/api/wrangler.jsonc").env?.[ENVIRONMENT]?.name ?? "delyra-api";

@@ -24,7 +24,7 @@ import {
 } from "../lib/recurrence";
 import type { CalendarRepository } from "../repositories/calendars";
 import type { EventRepository, NewEvent, RangeFilter } from "../repositories/events";
-import { nextFireAt, type ScheduleOverride } from "./reminder-schedule";
+import { nextFire, type ScheduleOverride } from "./reminder-schedule";
 
 /**
  * Lógica de eventos (F2-04, F2-05, F2-06): validación, series con excepciones, cumpleaños y
@@ -259,17 +259,21 @@ export async function saveReminders(
         allDay: o.allDay,
       }))
     : [];
-  const fire = (offsetMinutes: number) => nextFireAt(series, overrides, offsetMinutes, now);
+  const fire = (offsetMinutes: number) => nextFire(series, overrides, offsetMinutes, now);
 
   if (inputs) {
     const unique = new Map(inputs.map((i) => [`${String(i.offsetMinutes)}:${i.channel}`, i]));
     await ctx.events.replaceReminders(
       row.id,
-      [...unique.values()].map((i) => ({
-        offsetMinutes: i.offsetMinutes,
-        channel: i.channel,
-        nextFireAt: fire(i.offsetMinutes),
-      })),
+      [...unique.values()].map((i) => {
+        const next = fire(i.offsetMinutes);
+        return {
+          offsetMinutes: i.offsetMinutes,
+          channel: i.channel,
+          nextFireAt: next?.fireAt ?? null,
+          nextOccurrenceStart: next?.occurrenceStart ?? null,
+        };
+      }),
     );
     return;
   }

@@ -13,6 +13,10 @@ interface Env {
   TURNSTILE_SECRET_KEY?: string;
   /** Binding de Email Service (P-07); ausente hasta dar de alta el dominio. */
   EMAIL?: SendEmail;
+  /** Token del bot de Telegram de @BotFather (P-10). */
+  TELEGRAM_BOT_TOKEN?: string;
+  /** Secreto que Telegram envía en `X-Telegram-Bot-Api-Secret-Token` (F3-03). */
+  TELEGRAM_WEBHOOK_SECRET?: string;
 }
 
 declare namespace Cloudflare {
@@ -22,5 +26,7 @@ declare namespace Cloudflare {
     FIELD_ENCRYPTION_KEY_V1?: string;
     TURNSTILE_SECRET_KEY?: string;
     EMAIL?: SendEmail;
+    TELEGRAM_BOT_TOKEN?: string;
+    TELEGRAM_WEBHOOK_SECRET?: string;
   }
 }

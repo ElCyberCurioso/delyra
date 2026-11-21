@@ -15,6 +15,7 @@ import { calendarRoutes } from "./routes/calendars";
 import { cspReportRoutes } from "./routes/csp-report";
 import { eventRoutes } from "./routes/events";
 import { healthRoutes } from "./routes/health";
+import { telegramWebhookRoutes } from "./routes/telegram";
 import type { AppEnv } from "./types";
 
 /**
@@ -31,7 +32,8 @@ export function createApp() {
 
   const api = new Hono<AppEnv>();
   // Los informes CSP los envía el navegador sin Origin ni JSON estándar: fuera del CSRF.
-  api.use("*", csrfProtection({ exemptPaths: ["/api/csp-report"] }));
+  // El webhook de Telegram se autentica con su propio secreto (F3-03).
+  api.use("*", csrfProtection({ exemptPaths: ["/api/csp-report", "/api/telegram/webhook"] }));
   api.use(
     "*",
     bodyLimit({
@@ -54,6 +56,7 @@ export function createApp() {
   api.route("/admin", adminRoutes);
   api.route("/calendars", calendarRoutes);
   api.route("/events", eventRoutes);
+  api.route("/telegram", telegramWebhookRoutes);
   app.route("/api", api);
 
   app.notFound(notFoundHandler);

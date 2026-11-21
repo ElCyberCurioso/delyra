@@ -2,7 +2,7 @@ import { newId } from "@delyra/shared";
 import { and, eq, gt, max, min, sql } from "drizzle-orm";
 import type { Database } from "../db/client";
 import { type AuthAttemptKind, authAttempts } from "../db/schema";
-import { hmacSha256Hex } from "../lib/crypto";
+import { pseudonym, type PseudonymEnv } from "../lib/pseudonym";
 
 /**
  * Protección contra fuerza bruta (F1-10): contadores por cuenta y por IP. Se cuentan los fallos
@@ -13,8 +13,6 @@ import { hmacSha256Hex } from "../lib/crypto";
 export const ATTEMPT_WINDOW_MS = 15 * 60_000;
 export const ATTEMPT_LIMITS = { account: 5, ip: 30 } as const;
 
-const DEV_PSEUDONYM_KEY = "delyra-dev-pseudonym-key";
-
 export interface AttemptKeys {
   account?: string;
   ip: string;
@@ -22,20 +20,10 @@ export interface AttemptKeys {
 
 type Scope = keyof typeof ATTEMPT_LIMITS;
 
-function pseudonymKey(env: Pick<Env, "APP_ENV" | "LOG_PSEUDONYM_KEY">): string {
-  if (env.LOG_PSEUDONYM_KEY) return env.LOG_PSEUDONYM_KEY;
-  if (env.APP_ENV === "production") throw new Error("Falta el secreto LOG_PSEUDONYM_KEY");
-  return DEV_PSEUDONYM_KEY;
-}
-
-async function hashedKeys(
-  env: Pick<Env, "APP_ENV" | "LOG_PSEUDONYM_KEY">,
-  keys: AttemptKeys,
-): Promise<[Scope, string][]> {
-  const key = pseudonymKey(env);
-  const entries: [Scope, string][] = [["ip", await hmacSha256Hex(key, `attempt:ip:${keys.ip}`)]];
+async function hashedKeys(env: PseudonymEnv, keys: AttemptKeys): Promise<[Scope, string][]> {
+  const entries: [Scope, string][] = [["ip", await pseudonym(env, "attempt:ip", keys.ip)]];
   if (keys.account) {
-    entries.push(["account", await hmacSha256Hex(key, `attempt:account:${keys.account}`)]);
+    entries.push(["account", await pseudonym(env, "attempt:account", keys.account)]);
   }
   return entries;
 }
@@ -47,7 +35,7 @@ export interface LockStatus {
 
 export async function checkLock(
   db: Database,
-  env: Pick<Env, "APP_ENV" | "LOG_PSEUDONYM_KEY">,
+  env: PseudonymEnv,
   kind: AuthAttemptKind,
   keys: AttemptKeys,
   now = Date.now(),
@@ -80,7 +68,7 @@ export async function checkLock(
 
 export async function recordAttempt(
   db: Database,
-  env: Pick<Env, "APP_ENV" | "LOG_PSEUDONYM_KEY">,
+  env: PseudonymEnv,
   kind: AuthAttemptKind,
   keys: AttemptKeys,
   success: boolean,

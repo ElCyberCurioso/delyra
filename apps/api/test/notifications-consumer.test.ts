@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
 import { handleNotificationBatch } from "../src/jobs/notifications-consumer";
 
@@ -13,7 +14,7 @@ function fakeMessage(body: unknown) {
 }
 
 describe("handleNotificationBatch", () => {
-  it("confirma los mensajes válidos y reintenta los desconocidos (acaban en la DLQ)", () => {
+  it("confirma los mensajes válidos y reintenta los desconocidos (acaban en la DLQ)", async () => {
     const valid = fakeMessage({ type: "noop", idempotencyKey: "k1" });
     const unknown = fakeMessage({ type: "borrar-todo" });
     const batch = {
@@ -23,7 +24,7 @@ describe("handleNotificationBatch", () => {
       retryAll: vi.fn(),
     } as unknown as MessageBatch;
 
-    handleNotificationBatch(batch);
+    await handleNotificationBatch(batch, env);
 
     expect(valid.ack).toHaveBeenCalledOnce();
     expect(valid.retry).not.toHaveBeenCalled();

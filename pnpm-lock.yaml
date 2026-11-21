@@ -299,9 +299,6 @@ importers:
       '@tanstack/react-router':
         specifier: 1.170.46
         version: 1.170.46(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      chrono-node:
-        specifier: 2.10.3
-        version: 2.10.3
       lucide-react:
         specifier: 1.77.0
         version: 1.77.0(@types/react@19.3.0)(react@19.3.1)
@@ -442,6 +439,9 @@ importers:
 
   packages/shared:
     dependencies:
+      chrono-node:
+        specifier: 2.10.3
+        version: 2.10.3
       uuidv7:
         specifier: 1.2.1
         version: 1.2.1
