@@ -32,7 +32,7 @@
     "MAIL_FROM": "no-reply@delyra.app",
     "PWNED_PASSWORDS_CHECK": "off",
     // Sin bot en local: la vinculación aparece como no disponible (los tests simulan Telegram).
-    "TELEGRAM_BOT_USERNAME": "delyra_app_bot",
+    "TELEGRAM_BOT_USERNAME": "",
   },
   // F3-05: planificador de alertas y resumen diario, cada minuto.
   "triggers": { "crons": ["* * * * *"] },
@@ -98,7 +98,7 @@
         "MAIL_FROM": "no-reply@delyra.app",
         "PWNED_PASSWORDS_CHECK": "on",
         // Nombre del bot de @BotFather sin @ (P-10). Vacío = Telegram desactivado.
-        "TELEGRAM_BOT_USERNAME": "",
+        "TELEGRAM_BOT_USERNAME": "delyra_app_bot",
       },
       "triggers": { "crons": ["* * * * *"] },
       "version_metadata": { "binding": "CF_VERSION_METADATA" },
