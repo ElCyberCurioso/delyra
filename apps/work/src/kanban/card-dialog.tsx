@@ -66,7 +66,7 @@ export function CardDialog({ cardId, board, timeZone, now, onClose }: CardDialog
   const card = useCard(cardId);
   return (
     <Dialog open={cardId !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl">
+      <DialogContent className="sm:max-w-[min(48rem,calc(100%-2rem))]">
         {card.data?.boardId === board.board.id ? (
           <CardBody
             card={card.data}
@@ -250,9 +250,10 @@ function CardBody({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_14rem]">
+      {/* Móvil: propiedades, contenido y acciones. Escritorio: contenido a la izquierda. */}
+      <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_14rem] md:grid-rows-[auto_1fr]">
         <aside
-          className="grid content-start gap-4 md:order-last"
+          className="grid content-start gap-4 md:col-start-2 md:row-start-1"
           aria-label="Propiedades de la tarjeta"
         >
           <div className="grid gap-1.5">
@@ -264,7 +265,7 @@ function CardBody({
               value={card.columnId}
               disabled={Boolean(card.archivedAt) || move.isPending}
               onChange={(e) => move.mutate(e.target.value)}
-              className="h-9 rounded-md border bg-background px-2 text-sm"
+              className="h-10 rounded-md border bg-background px-2 text-base sm:h-9 sm:text-sm"
             >
               {columns.map((column) => (
                 <option key={column.id} value={column.id}>
@@ -281,7 +282,7 @@ function CardBody({
               id={ids.priority}
               value={card.priority}
               onChange={(e) => save.mutate({ priority: e.target.value })}
-              className="h-9 rounded-md border bg-background px-2 text-sm"
+              className="h-10 rounded-md border bg-background px-2 text-base sm:h-9 sm:text-sm"
             >
               {CARD_PRIORITIES.map((p) => (
                 <option key={p} value={p}>
@@ -299,6 +300,7 @@ function CardBody({
                 <label key={label.id} className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
+                    className="pointer-coarse:size-5"
                     checked={card.labelIds.includes(label.id)}
                     onChange={(e) =>
                       save.mutate({
@@ -323,6 +325,7 @@ function CardBody({
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
+                className="pointer-coarse:size-5"
                 checked={allDay}
                 onChange={(e) => {
                   if (!card.due) {
@@ -381,7 +384,7 @@ function CardBody({
                           : [{ offsetMinutes: Number(e.target.value), channel: "telegram" }],
                     })
                   }
-                  className="h-9 rounded-md border bg-background px-2 text-sm"
+                  className="h-10 rounded-md border bg-background px-2 text-base sm:h-9 sm:text-sm"
                 >
                   {reminderOptions.some((o) => o.value === currentReminder) ? null : (
                     <option value={currentReminder}>Personalizado</option>
@@ -404,41 +407,8 @@ function CardBody({
               </>
             ) : null}
           </fieldset>
-          <div className="grid gap-2 border-t pt-4">
-            {card.archivedAt ? (
-              <Button
-                variant="outline"
-                onClick={() => archive.mutate(false)}
-                disabled={archive.isPending}
-              >
-                <ArchiveRestoreIcon aria-hidden="true" />
-                Restaurar
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                onClick={() => archive.mutate(true)}
-                disabled={archive.isPending}
-              >
-                <ArchiveIcon aria-hidden="true" />
-                Archivar
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              className="text-destructive hover:text-destructive"
-              disabled={remove.isPending}
-              onClick={() => {
-                if (window.confirm(`¿Borrar «${card.title}»? No se puede deshacer.`))
-                  remove.mutate();
-              }}
-            >
-              <Trash2Icon aria-hidden="true" />
-              Borrar tarjeta
-            </Button>
-          </div>
         </aside>
-        <div className="grid min-w-0 content-start gap-5">
+        <div className="grid min-w-0 content-start gap-5 md:col-start-1 md:row-span-2 md:row-start-1">
           <Description card={card} onSave={(description) => save.mutate({ description })} />
           <Checklist card={card} run={(action) => run.mutate(action)} />
           <Attachments card={card} timeZone={timeZone} run={(action) => run.mutate(action)} />
@@ -455,6 +425,38 @@ function CardBody({
               ))}
             </ol>
           </Section>
+        </div>
+        <div className="grid content-start gap-2 border-t pt-4 md:col-start-2 md:row-start-2">
+          {card.archivedAt ? (
+            <Button
+              variant="outline"
+              onClick={() => archive.mutate(false)}
+              disabled={archive.isPending}
+            >
+              <ArchiveRestoreIcon aria-hidden="true" />
+              Restaurar
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => archive.mutate(true)}
+              disabled={archive.isPending}
+            >
+              <ArchiveIcon aria-hidden="true" />
+              Archivar
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            className="text-destructive hover:text-destructive"
+            disabled={remove.isPending}
+            onClick={() => {
+              if (window.confirm(`¿Borrar «${card.title}»? No se puede deshacer.`)) remove.mutate();
+            }}
+          >
+            <Trash2Icon aria-hidden="true" />
+            Borrar tarjeta
+          </Button>
         </div>
       </div>
     </div>
@@ -504,7 +506,7 @@ function Description({ card, onSave }: { card: CardDetail; onSave: (text: string
               onChange={(e) => setText(e.target.value)}
               maxLength={KANBAN_LIMITS.description}
               rows={8}
-              className="w-full rounded-md border bg-background p-2 font-mono text-sm"
+              className="w-full rounded-md border bg-background p-2 font-mono text-base sm:text-sm"
               autoFocus
             />
           ) : (
@@ -583,6 +585,7 @@ function Checklist({ card, run }: { card: CardDetail; run: Run }) {
           <li key={item.id} className="group flex items-center gap-2 text-sm">
             <input
               type="checkbox"
+              className="pointer-coarse:size-5"
               id={`check-${item.id}`}
               checked={item.done}
               onChange={(e) => run(() => updateChecklistItem(item.id, { done: e.target.checked }))}
@@ -596,7 +599,7 @@ function Checklist({ card, run }: { card: CardDetail; run: Run }) {
             <Button
               variant="ghost"
               size="icon"
-              className="size-7 opacity-60 group-hover:opacity-100"
+              className="size-7 opacity-60 group-hover:opacity-100 pointer-coarse:size-10 pointer-coarse:opacity-100"
               aria-label={`Quitar «${item.text}» de la lista`}
               onClick={() => run(() => deleteChecklistItem(item.id))}
             >
@@ -667,7 +670,7 @@ function Attachments({ card, timeZone, run }: { card: CardDetail; timeZone: stri
               <span className="shrink-0 text-xs text-muted-foreground">
                 {formatSize(file.size)} · {formatDateTime(file.createdAt, timeZone)}
               </span>
-              <Button asChild variant="ghost" size="icon" className="size-7">
+              <Button asChild variant="ghost" size="icon" className="size-7 pointer-coarse:size-10">
                 <a
                   href={attachmentUrl(file.id)}
                   download={file.filename}
@@ -679,7 +682,7 @@ function Attachments({ card, timeZone, run }: { card: CardDetail; timeZone: stri
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-7"
+                className="size-7 pointer-coarse:size-10"
                 aria-label={`Borrar ${file.filename}`}
                 onClick={() => {
                   if (window.confirm(`¿Borrar «${file.filename}»?`))
@@ -744,7 +747,7 @@ function Comments({ card, timeZone, run }: { card: CardDetail; timeZone: string;
           onChange={(e) => setText(e.target.value)}
           maxLength={KANBAN_LIMITS.comment}
           rows={2}
-          className="w-full rounded-md border bg-background p-2 text-sm"
+          className="w-full rounded-md border bg-background p-2 text-base sm:text-sm"
         />
         <Button type="submit" size="sm" className="justify-self-start" disabled={!text.trim()}>
           Comentar
@@ -796,7 +799,7 @@ function Comments({ card, timeZone, run }: { card: CardDetail; timeZone: string;
                   onChange={(e) => setEditing({ id: comment.id, text: e.target.value })}
                   maxLength={KANBAN_LIMITS.comment}
                   rows={2}
-                  className="w-full rounded-md border bg-background p-2 text-sm"
+                  className="w-full rounded-md border bg-background p-2 text-base sm:text-sm"
                   autoFocus
                 />
                 <div className="flex gap-2">

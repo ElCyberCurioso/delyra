@@ -13,10 +13,16 @@ import {
   Button,
   cn,
   currentAppOrigins,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
   errorMessage,
   RequireSession,
   toast,
   useLogout,
+  useMediaQuery,
 } from "@delyra/ui";
 import type {
   DateSelectArg,
@@ -34,7 +40,7 @@ import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
-import { ChevronLeftIcon, ChevronRightIcon, PlusIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, PanelLeftIcon, PlusIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchEvent,
@@ -61,14 +67,19 @@ import {
 } from "./time";
 import { QuickAdd, SearchBox } from "./toolbar-inputs";
 
+/** `narrow`: solo en pantallas estrechas; `wide`: solo en anchas. La semana no cabe en un móvil. */
 const VIEWS = [
-  { id: "dayGridMonth", label: "Mes" },
-  { id: "timeGridWeek", label: "Semana" },
-  { id: "timeGridDay", label: "Día" },
-  { id: "listWeek", label: "Lista" },
-  { id: "multiMonthYear", label: "Año" },
+  { id: "dayGridMonth", label: "Mes", only: null },
+  { id: "timeGridWeek", label: "Semana", only: "wide" },
+  { id: "timeGridThreeDay", label: "3 días", only: "narrow" },
+  { id: "timeGridDay", label: "Día", only: null },
+  { id: "listWeek", label: "Lista", only: null },
+  { id: "multiMonthYear", label: "Año", only: null },
 ] as const;
 type ViewId = (typeof VIEWS)[number]["id"];
+
+/** Por debajo de este ancho se usa la disposición de móvil (FullCalendar y vistas). */
+const NARROW_QUERY = "(max-width: 639px)";
 
 const VIEW_KEY = "delyra.calendar.view";
 const TASKS_KEY = "delyra.calendar.tasks";
@@ -76,11 +87,17 @@ const TASK_COLOR = "#64748b";
 const DAY_MS = 86_400_000;
 
 function savedView(): ViewId {
+  const narrow = typeof window.matchMedia === "function" && window.matchMedia(NARROW_QUERY).matches;
+  const fallback: ViewId = narrow ? "timeGridThreeDay" : "timeGridWeek";
   try {
     const value = localStorage.getItem(VIEW_KEY);
-    return VIEWS.some((v) => v.id === value) ? (value as ViewId) : "timeGridWeek";
+    const view = VIEWS.find((v) => v.id === value);
+    if (!view) return fallback;
+    // La semana no cabe en un móvil y «3 días» solo existe en él: se cambia una por otra.
+    if (view.only === (narrow ? "wide" : "narrow")) return fallback;
+    return view.id;
   } catch {
-    return "timeGridWeek";
+    return fallback;
   }
 }
 
@@ -129,6 +146,11 @@ function Workspace({ session }: { session: ActiveSession }) {
   const [selected, setSelected] = useState(() => todayIn(timeZone));
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [showTasks, setShowTasks] = useState(savedTasksLayer);
+  const narrow = useMediaQuery(NARROW_QUERY);
+  // Con barra lateral (escritorio) sobran el botón de la hoja y el botón flotante.
+  const desktop = useMediaQuery("(min-width: 1024px)", true);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const views = VIEWS.filter((v) => v.only !== (narrow ? "wide" : "narrow"));
   const dueCards = useDueCards(range, showTasks);
   const [editor, setEditor] = useState<EditorTarget | null>(null);
   const { ask, dialog: scopeDialog } = useScopeDialog();
@@ -303,6 +325,63 @@ function Workspace({ session }: { session: ActiveSession }) {
     setEditor({ kind: "edit", occurrence });
   }
 
+  /** Mini mes, calendarios y filtros: en la barra lateral (escritorio) o en una hoja (móvil). */
+  const panel = (place: string) => (
+    <>
+      <MiniMonth
+        key={selected.slice(0, 7)}
+        today={todayIn(timeZone)}
+        selected={selected}
+        weekStart={weekStart}
+        onSelect={(date) => {
+          goToDate(date);
+          setPanelOpen(false);
+        }}
+      />
+      <CalendarList calendars={calendarList} />
+      <fieldset>
+        <legend className="mb-1 text-sm font-medium">Mostrar</legend>
+        {(
+          [
+            ["all", "Todo"],
+            ["event", "Eventos"],
+            ["birthday", "Cumpleaños"],
+          ] as const
+        ).map(([value, label]) => (
+          <label key={value} className="flex items-center gap-2 py-1 text-sm">
+            <input
+              type="radio"
+              name={`tipo-${place}`}
+              checked={typeFilter === value}
+              onChange={() => setTypeFilter(value)}
+            />
+            {label}
+          </label>
+        ))}
+        <label className="flex items-center gap-2 py-1 text-sm">
+          <input
+            type="checkbox"
+            checked={showTasks}
+            onChange={(e) => {
+              setShowTasks(e.target.checked);
+              try {
+                localStorage.setItem(TASKS_KEY, e.target.checked ? "on" : "off");
+              } catch {
+                // Sin almacenamiento: se recuerda solo durante la visita.
+              }
+            }}
+          />
+          <span
+            aria-hidden="true"
+            className="size-2.5 rounded-sm"
+            style={{ backgroundColor: TASK_COLOR }}
+          />
+          Tareas con fecha límite
+        </label>
+      </fieldset>
+    </>
+  );
+
   return (
     <div className="grid h-[calc(100dvh-7rem)] min-h-[36rem] gap-4 lg:grid-cols-[15rem_minmax(0,1fr)]">
       <aside
@@ -315,54 +394,7 @@ function Workspace({ session }: { session: ActiveSession }) {
           <PlusIcon aria-hidden="true" />
           Nuevo evento
         </Button>
-        <MiniMonth
-          key={selected.slice(0, 7)}
-          today={todayIn(timeZone)}
-          selected={selected}
-          weekStart={weekStart}
-          onSelect={goToDate}
-        />
-        <CalendarList calendars={calendarList} />
-        <fieldset>
-          <legend className="mb-1 text-sm font-medium">Mostrar</legend>
-          {(
-            [
-              ["all", "Todo"],
-              ["event", "Eventos"],
-              ["birthday", "Cumpleaños"],
-            ] as const
-          ).map(([value, label]) => (
-            <label key={value} className="flex items-center gap-2 py-1 text-sm">
-              <input
-                type="radio"
-                name="tipo"
-                checked={typeFilter === value}
-                onChange={() => setTypeFilter(value)}
-              />
-              {label}
-            </label>
-          ))}
-          <label className="flex items-center gap-2 py-1 text-sm">
-            <input
-              type="checkbox"
-              checked={showTasks}
-              onChange={(e) => {
-                setShowTasks(e.target.checked);
-                try {
-                  localStorage.setItem(TASKS_KEY, e.target.checked ? "on" : "off");
-                } catch {
-                  // Sin almacenamiento: se recuerda solo durante la visita.
-                }
-              }}
-            />
-            <span
-              aria-hidden="true"
-              className="size-2.5 rounded-sm"
-              style={{ backgroundColor: TASK_COLOR }}
-            />
-            Tareas con fecha límite
-          </label>
-        </fieldset>
+        {panel("lateral")}
       </aside>
 
       <section aria-label="Calendario" className="flex min-h-0 flex-col gap-3">
@@ -386,8 +418,18 @@ function Workspace({ session }: { session: ActiveSession }) {
           <h1 className="mr-auto text-lg font-semibold tracking-tight first-letter:uppercase">
             {title}
           </h1>
+          {desktop ? null : (
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Calendarios y filtros"
+              onClick={() => setPanelOpen(true)}
+            >
+              <PanelLeftIcon aria-hidden="true" />
+            </Button>
+          )}
           <div role="radiogroup" aria-label="Vista" className="flex rounded-md border p-0.5">
-            {VIEWS.map((option) => (
+            {views.map((option) => (
               <button
                 key={option.id}
                 type="button"
@@ -395,7 +437,7 @@ function Workspace({ session }: { session: ActiveSession }) {
                 aria-checked={view === option.id}
                 onClick={() => api()?.changeView(option.id)}
                 className={cn(
-                  "rounded px-2.5 py-1 text-sm",
+                  "rounded px-2 py-1.5 text-sm whitespace-nowrap sm:px-2.5 sm:py-1",
                   view === option.id
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent",
@@ -429,7 +471,9 @@ function Workspace({ session }: { session: ActiveSession }) {
             headerToolbar={false}
             locale={esLocale}
             firstDay={weekStart}
-            weekNumbers
+            weekNumbers={!narrow}
+            dayHeaderFormat={narrow ? { weekday: "short", day: "numeric" } : undefined}
+            longPressDelay={350}
             timeZone="UTC"
             now={() => floatingNow(timeZone)}
             nowIndicator
@@ -442,7 +486,10 @@ function Workspace({ session }: { session: ActiveSession }) {
             scrollTime="08:00:00"
             eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
             slotLabelFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
-            views={{ multiMonthYear: { multiMonthMaxColumns: 3 } }}
+            views={{
+              multiMonthYear: { multiMonthMaxColumns: 3 },
+              timeGridThreeDay: { type: "timeGrid", duration: { days: 3 } },
+            }}
             datesSet={onDatesSet}
             select={onSelect}
             eventClick={onEventClick}
@@ -452,6 +499,26 @@ function Workspace({ session }: { session: ActiveSession }) {
         </div>
       </section>
 
+      <Dialog open={panelOpen} onOpenChange={setPanelOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Calendarios y filtros</DialogTitle>
+            <DialogDescription className="sr-only">
+              Elige el día, qué calendarios se ven y qué tipo de entradas se muestran.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6">{panel("hoja")}</div>
+        </DialogContent>
+      </Dialog>
+      {desktop ? null : (
+        <Button
+          aria-label="Nuevo evento"
+          className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 size-14 rounded-full shadow-lg"
+          onClick={() => setEditor({ kind: "create", allDay: false, ...nextHourSlot(timeZone) })}
+        >
+          <PlusIcon aria-hidden="true" className="size-6" />
+        </Button>
+      )}
       <EventEditor
         target={editor}
         calendars={calendarList}

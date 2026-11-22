@@ -11,7 +11,7 @@ import {
   getFirstCollision,
   type KeyboardCoordinateGetter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
   pointerWithin,
   rectIntersection,
   TouchSensor,
@@ -156,8 +156,10 @@ export function BoardCanvas(props: BoardCanvasProps) {
   }, [board, visible, columnIds]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
+    // Ratón y dedo por separado: con el dedo, deslizar desplaza el tablero y una pulsación
+    // larga coge la tarjeta (con PointerSensor, deslizar arrastraría).
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter,
       // Intro abre la tarjeta; solo el espacio la coge.
@@ -328,7 +330,13 @@ export function BoardCanvas(props: BoardCanvasProps) {
     >
       <SortableContext items={columnOrder} strategy={horizontalListSortingStrategy}>
         <ol
-          className="flex min-h-[60vh] items-start gap-4 overflow-x-auto pb-4"
+          className={cn(
+            // `relative`: los textos sr-only (posición absoluta) quedan dentro del scroll y no
+            // ensanchan la página.
+            "relative flex min-h-[60vh] items-start gap-4 overflow-x-auto overscroll-x-contain pb-4",
+            // En el móvil las columnas encajan de una en una al deslizar (salvo al arrastrar).
+            active === null && "max-sm:snap-x max-sm:snap-mandatory",
+          )}
           aria-label="Columnas"
         >
           {ordered.map((column) => (
@@ -390,7 +398,7 @@ function SortableColumn({
       aria-labelledby={headingId}
       data-testid="column"
       className={cn(
-        "flex max-h-[calc(100dvh-12rem)] w-[min(18rem,85vw)] shrink-0 flex-col rounded-xl border bg-muted/40",
+        "relative flex max-h-[calc(100dvh-12rem)] w-[min(18rem,85vw)] shrink-0 snap-center flex-col rounded-xl border bg-muted/40 max-sm:max-h-[calc(100dvh-10rem)]",
         isDragging && "opacity-50",
       )}
     >
@@ -401,7 +409,7 @@ function SortableColumn({
           {...attributes}
           {...listeners}
           aria-label={`Mover la columna ${column.name}`}
-          className="cursor-grab rounded p-1 text-muted-foreground hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:cursor-grabbing"
+          className="cursor-grab touch-manipulation rounded p-1 text-muted-foreground hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:cursor-grabbing pointer-coarse:p-2.5"
         >
           <GripVerticalIcon aria-hidden="true" className="size-4" />
         </button>
@@ -421,7 +429,7 @@ function SortableColumn({
         <Button
           variant="ghost"
           size="icon"
-          className="size-7"
+          className="size-7 pointer-coarse:size-10"
           aria-label={`Ajustes de la columna ${column.name}`}
           onClick={() => onEditColumn(column)}
         >
@@ -487,7 +495,8 @@ function SortableCard({
         aria-label={card.title}
         data-testid="card"
         onClick={() => onOpenCard(card.id)}
-        className="cursor-pointer touch-manipulation rounded-lg focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+        // Sin menú contextual ni selección de texto al mantener pulsado para arrastrar.
+        className="cursor-pointer touch-manipulation rounded-lg select-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none [-webkit-touch-callout:none]"
       >
         <CardView card={card} labels={labels} timeZone={timeZone} now={now} />
       </div>

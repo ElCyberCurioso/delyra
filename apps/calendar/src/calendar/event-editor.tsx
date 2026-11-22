@@ -201,7 +201,7 @@ function RemindersField({
       {options.length > 0 && value.length < 10 ? (
         <select
           aria-label="Añadir alerta"
-          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm sm:w-64"
+          className="h-9 w-full rounded-md border border-input bg-background px-3 text-base sm:w-64 sm:text-sm"
           value=""
           onChange={(event) => {
             const offset = Number(event.target.value);

@@ -2,7 +2,7 @@ import type * as DelyraUi from "@delyra/ui";
 import { ThemeProvider } from "@delyra/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
@@ -74,6 +74,7 @@ const server = setupServer(
       ],
     }),
   ),
+  http.get("/api/cards/due", () => HttpResponse.json({ cards: [] })),
   http.get("/api/events", ({ request }) => {
     const url = new URL(request.url);
     const from = url.searchParams.get("from") ?? "";
@@ -164,6 +165,34 @@ describe("App (calendario)", () => {
     );
     const [range] = eventRanges;
     expect(range && Date.parse(range.to) - Date.parse(range.from)).toBe(7 * 86_400_000);
+  });
+
+  it("en el móvil: vista de 3 días, botón flotante y calendarios en una hoja", async () => {
+    sessionState = "active";
+    const width = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    try {
+      renderAt("/");
+      const user = userEvent.setup();
+      expect(await screen.findByRole("radio", { name: "3 días" })).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+      expect(screen.queryByRole("radio", { name: "Semana" })).toBeNull();
+      // (jsdom no aplica CSS: la barra lateral también está en el DOM.)
+      const floating = screen
+        .getAllByRole("button", { name: "Nuevo evento" })
+        .find((button) => button.className.includes("fixed"));
+      expect(floating).toBeDefined();
+      await user.click(screen.getByRole("button", { name: "Calendarios y filtros" }));
+      const sheet = await screen.findByRole("dialog", { name: "Calendarios y filtros" });
+      expect(within(sheet).getByRole("checkbox", { name: "Personal" })).toBeChecked();
+      expect(
+        within(sheet).getByRole("checkbox", { name: "Tareas con fecha límite" }),
+      ).toBeChecked();
+    } finally {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+    }
   });
 
   it("sin sesión lleva al login recordando a dónde volver", async () => {

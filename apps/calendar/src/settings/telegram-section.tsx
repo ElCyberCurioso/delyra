@@ -246,7 +246,7 @@ export function TelegramSection({ session }: { session: ActiveSession }) {
                 <Button
                   variant="link"
                   size="sm"
-                  className="h-auto p-0"
+                  className="min-h-0 p-0"
                   onClick={() =>
                     run(
                       () =>

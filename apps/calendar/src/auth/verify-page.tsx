@@ -113,6 +113,7 @@ export function VerifyPage() {
         </Button>
         <Button
           variant="link"
+          className="text-center"
           onClick={() => {
             setUseRecovery((value) => !value);
             setFormError(null);

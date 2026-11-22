@@ -7,6 +7,7 @@ import {
 } from "@delyra/shared";
 import {
   Button,
+  cn,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -29,9 +30,10 @@ import {
   PlusIcon,
   SearchIcon,
   SettingsIcon,
+  SlidersHorizontalIcon,
   XIcon,
 } from "lucide-react";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useId, useMemo, useState } from "react";
 import { WorkLayout } from "../layout";
 import type { BoardSearch } from "../router";
 import {
@@ -203,17 +205,20 @@ function BoardView({
 
   const visibleCount = visible.size;
   return (
-    <div className="grid gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button asChild variant="ghost" size="icon" aria-label="Volver a mis tableros">
-          <Link to="/">
-            <ArrowLeftIcon aria-hidden="true" />
-          </Link>
-        </Button>
-        <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight">
-          {board.board.name}
-        </h1>
-        <div className="ml-auto flex flex-wrap gap-2">
+    // `minmax(0,1fr)`: el tablero se desplaza dentro de su caja, no estira la página.
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
+        <div className="flex min-w-0 flex-1 basis-64 items-center gap-1">
+          <Button asChild variant="ghost" size="icon" aria-label="Volver a mis tableros">
+            <Link to="/">
+              <ArrowLeftIcon aria-hidden="true" />
+            </Link>
+          </Button>
+          <h1 className="min-w-0 truncate text-xl font-semibold tracking-tight sm:text-2xl">
+            {board.board.name}
+          </h1>
+        </div>
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => setEditingColumn("new")}>
             <PlusIcon aria-hidden="true" />
             Columna
@@ -280,6 +285,9 @@ function BoardView({
   );
 }
 
+const SELECT =
+  "h-10 w-full rounded-md border bg-background px-2 text-base sm:h-9 sm:w-auto sm:text-sm";
+
 function Toolbar({
   board,
   search,
@@ -290,6 +298,9 @@ function Toolbar({
   setSearch: (patch: Partial<BoardSearch>) => void;
 }) {
   const [q, setQ] = useState(search.q ?? "");
+  // En móvil los desplegables se pliegan tras el botón «Filtros».
+  const [open, setOpen] = useState(false);
+  const panelId = useId();
   // La búsqueda se aplica al dejar de escribir.
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -298,88 +309,109 @@ function Toolbar({
     return () => window.clearTimeout(timer);
   }, [q, search.q, setSearch]);
   const any = hasFilters(toFilters(search));
-  const select = "h-9 rounded-md border bg-background px-2 text-sm";
+  const active = [search.etiqueta, search.prioridad, search.vence].filter(Boolean).length;
   return (
-    <search className="flex flex-wrap items-center gap-2" aria-label="Filtros del tablero">
-      <div className="relative w-full sm:w-64">
-        <SearchIcon
-          aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-        />
-        <Input
-          type="search"
-          aria-label="Buscar tarjetas"
-          placeholder="Buscar tarjetas…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="pl-8"
-        />
-      </div>
-      <select
-        aria-label="Filtrar por etiqueta"
-        className={select}
-        value={search.etiqueta ?? ""}
-        onChange={(e) => setSearch({ etiqueta: e.target.value || undefined })}
-      >
-        <option value="">Todas las etiquetas</option>
-        {board.labels.map((label) => (
-          <option key={label.id} value={label.id}>
-            {label.name}
-          </option>
-        ))}
-      </select>
-      <select
-        aria-label="Filtrar por prioridad"
-        className={select}
-        value={search.prioridad ?? ""}
-        onChange={(e) =>
-          setSearch({
-            prioridad: CARD_PRIORITIES.find((p) => p === e.target.value),
-          })
-        }
-      >
-        <option value="">Cualquier prioridad</option>
-        {CARD_PRIORITIES.map((p) => (
-          <option key={p} value={p}>
-            {PRIORITY_LABELS[p]}
-          </option>
-        ))}
-      </select>
-      <select
-        aria-label="Filtrar por fecha límite"
-        className={select}
-        value={search.vence ?? ""}
-        onChange={(e) =>
-          setSearch({
-            vence:
-              e.target.value === "vencidas" || e.target.value === "semana"
-                ? e.target.value
-                : undefined,
-          })
-        }
-      >
-        <option value="">Cualquier fecha</option>
-        <option value="vencidas">Vencidas</option>
-        <option value="semana">Esta semana</option>
-      </select>
-      {any ? (
+    <search
+      className="grid gap-2 sm:flex sm:flex-wrap sm:items-center"
+      aria-label="Filtros del tablero"
+    >
+      <div className="flex gap-2">
+        <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
+          <SearchIcon
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            type="search"
+            aria-label="Buscar tarjetas"
+            placeholder="Buscar tarjetas…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="h-10 pl-8 sm:h-9"
+          />
+        </div>
         <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setQ("");
-            setSearch({
-              q: undefined,
-              etiqueta: undefined,
-              prioridad: undefined,
-              vence: undefined,
-            });
-          }}
+          variant="outline"
+          className="h-10 sm:hidden"
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={() => setOpen((value) => !value)}
         >
-          <FilterXIcon aria-hidden="true" />
-          Quitar filtros
+          <SlidersHorizontalIcon aria-hidden="true" />
+          Filtros{active > 0 ? ` (${String(active)})` : ""}
         </Button>
-      ) : null}
+      </div>
+      <div
+        id={panelId}
+        className={cn("grid gap-2 sm:flex sm:flex-wrap sm:items-center", !open && "max-sm:hidden")}
+      >
+        <select
+          aria-label="Filtrar por etiqueta"
+          className={SELECT}
+          value={search.etiqueta ?? ""}
+          onChange={(e) => setSearch({ etiqueta: e.target.value || undefined })}
+        >
+          <option value="">Todas las etiquetas</option>
+          {board.labels.map((label) => (
+            <option key={label.id} value={label.id}>
+              {label.name}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Filtrar por prioridad"
+          className={SELECT}
+          value={search.prioridad ?? ""}
+          onChange={(e) =>
+            setSearch({
+              prioridad: CARD_PRIORITIES.find((p) => p === e.target.value),
+            })
+          }
+        >
+          <option value="">Cualquier prioridad</option>
+          {CARD_PRIORITIES.map((p) => (
+            <option key={p} value={p}>
+              {PRIORITY_LABELS[p]}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Filtrar por fecha límite"
+          className={SELECT}
+          value={search.vence ?? ""}
+          onChange={(e) =>
+            setSearch({
+              vence:
+                e.target.value === "vencidas" || e.target.value === "semana"
+                  ? e.target.value
+                  : undefined,
+            })
+          }
+        >
+          <option value="">Cualquier fecha</option>
+          <option value="vencidas">Vencidas</option>
+          <option value="semana">Esta semana</option>
+        </select>
+        {any ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="max-sm:h-10 max-sm:justify-start"
+            onClick={() => {
+              setQ("");
+              setSearch({
+                q: undefined,
+                etiqueta: undefined,
+                prioridad: undefined,
+                vence: undefined,
+              });
+            }}
+          >
+            <FilterXIcon aria-hidden="true" />
+            Quitar filtros
+          </Button>
+        ) : null}
+      </div>
     </search>
   );
 }
@@ -632,7 +664,7 @@ function BoardSettings({ board, onClose }: { board: BoardDetail; onClose: () => 
               <button
                 type="button"
                 aria-label={`Borrar la etiqueta ${l.name}`}
-                className="rounded-full p-0.5 hover:bg-accent"
+                className="rounded-full p-0.5 hover:bg-accent pointer-coarse:p-1.5"
                 onClick={() => {
                   if (
                     window.confirm(`¿Borrar la etiqueta «${l.name}»? Se quitará de sus tarjetas.`)

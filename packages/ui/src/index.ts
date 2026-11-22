@@ -29,6 +29,7 @@ export { AppShell, type AppShellProps, currentAppOrigins } from "./layout/app-sh
 export { AppSwitcher } from "./layout/app-switcher";
 export { Brand, BrandMark } from "./layout/brand";
 export { type CurrentUser, UserMenu } from "./layout/user-menu";
+export { useMediaQuery } from "./lib/use-media-query";
 export { cn } from "./lib/utils";
 export { THEME_STORAGE_KEY } from "./theme/theme-init-script";
 export { type ResolvedTheme, type Theme, ThemeProvider, useTheme } from "./theme/theme-provider";
