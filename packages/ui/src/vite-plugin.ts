@@ -2,6 +2,8 @@ import { renderStaticHeadersFile } from "@delyra/shared";
 import type { Plugin } from "vite";
 import { THEME_INIT_SCRIPT } from "./theme/theme-init-script";
 
+export { pwaOptions } from "./pwa-options";
+
 /**
  * Ficheros estáticos comunes a las dos SPA:
  * - `_headers`: cabeceras de seguridad de Workers Static Assets (F0-12), generadas desde

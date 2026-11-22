@@ -291,3 +291,8 @@ export type EventDetail = z.infer<typeof eventDetailSchema>;
 
 export const eventResponseSchema = z.object({ event: eventDetailSchema });
 export const calendarResponseSchema = z.object({ calendar: calendarSchema });
+
+/** Feed ICS privado de un calendario (F7-02). */
+export const calendarFeedResponseSchema = z.object({
+  feed: z.object({ url: z.string(), createdAt: z.string() }).nullable(),
+});

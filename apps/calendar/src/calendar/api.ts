@@ -7,6 +7,8 @@ import {
   type EditScope,
   type EventDetail,
   eventResponseSchema,
+  type HolidayRegion,
+  holidaysResponseSchema,
   type Occurrence,
   occurrencesResponseSchema,
 } from "@delyra/shared";
@@ -68,6 +70,32 @@ export function useDueCards(range: Range | null, enabled: boolean) {
       }).then((r) => r.cards);
     },
   });
+}
+
+export const HOLIDAYS_KEY = ["holidays"] as const;
+
+/** Festivos del rango visible (F7-03), según la región elegida. */
+export function useHolidays(range: Range | null) {
+  return useQuery({
+    queryKey: [...HOLIDAYS_KEY, range?.from.slice(0, 10) ?? "", range?.to.slice(0, 10) ?? ""],
+    enabled: range !== null,
+    placeholderData: keepPreviousData,
+    staleTime: 60 * 60_000,
+    queryFn: ({ signal }) => {
+      const params = new URLSearchParams({
+        from: range?.from.slice(0, 10) ?? "",
+        to: range?.to.slice(0, 10) ?? "",
+      });
+      return apiFetch(`/api/holidays?${params.toString()}`, {
+        schema: holidaysResponseSchema,
+        signal,
+      });
+    },
+  });
+}
+
+export function setHolidayRegion(region: HolidayRegion) {
+  return apiFetch("/api/holidays/region", { method: "PUT", body: { region } });
 }
 
 export function searchEvents(query: string, signal?: AbortSignal) {

@@ -50,6 +50,8 @@ export const userSettings = sqliteTable("user_settings", {
     .default("weekly"),
   /** Copias automáticas que se conservan. */
   backupKeep: integer("backup_keep").notNull().default(4),
+  /** Festivos que se muestran (F7-03): `off`, `ES` (nacionales) o una comunidad (`ES-MD`). */
+  holidayRegion: text("holiday_region").notNull().default("ES-MD"),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
 

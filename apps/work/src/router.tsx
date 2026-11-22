@@ -5,13 +5,13 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  lazyRouteComponent,
   Link,
   Outlet,
   type RouterHistory,
   useNavigate,
 } from "@tanstack/react-router";
 import { lazy, type ReactNode, Suspense, useCallback } from "react";
-import { BoardsPage } from "./kanban/boards-page";
 import { WorkLayout } from "./layout";
 
 /** Búsqueda del tablero: tarjeta abierta y filtros (F4-09, F4-10). Todo va en la URL. */
@@ -108,7 +108,11 @@ const boardRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
-  createRoute({ getParentRoute: () => rootRoute, path: "/", component: BoardsPage }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/",
+    component: lazyRouteComponent(() => import("./kanban/boards-page"), "BoardsPage"),
+  }),
   boardRoute,
 ]);
 

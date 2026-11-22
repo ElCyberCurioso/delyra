@@ -1,8 +1,12 @@
 import {
   dateOnlyToUtc,
+  DEFAULT_HOLIDAY_REGION,
   type DueCard,
   type EditScope,
   type EventType,
+  HOLIDAY_REGIONS,
+  type Holiday,
+  holidayRegionSchema,
   instantToWall,
   type Occurrence,
   utcToDateOnly,
@@ -20,9 +24,12 @@ import {
   DialogTitle,
   errorMessage,
   RequireSession,
+  type Shortcut,
+  ShortcutsDialog,
   toast,
   useLogout,
   useMediaQuery,
+  useShortcuts,
 } from "@delyra/ui";
 import type {
   DateSelectArg,
@@ -44,12 +51,15 @@ import { ChevronLeftIcon, ChevronRightIcon, PanelLeftIcon, PlusIcon } from "luci
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchEvent,
+  HOLIDAYS_KEY,
   occurrencesKey,
   type Range,
+  setHolidayRegion,
   updateEvent,
   useCalendars,
   useInvalidateEvents,
   useDueCards,
+  useHolidays,
   useOccurrences,
 } from "./api";
 import { CalendarList } from "./calendar-list";
@@ -109,6 +119,23 @@ function savedTasksLayer(): boolean {
   }
 }
 
+const HOLIDAY_COLOR = "#64748b";
+
+/** Festivo (F7-03): de día completo y de solo lectura. */
+function holidayEvent(holiday: Holiday): EventInput {
+  return {
+    id: `festivo:${holiday.date}:${holiday.name}`,
+    title: holiday.name,
+    start: holiday.date,
+    allDay: true,
+    editable: false,
+    backgroundColor: HOLIDAY_COLOR,
+    borderColor: HOLIDAY_COLOR,
+    textColor: "#ffffff",
+    extendedProps: { holiday },
+  };
+}
+
 /** Tarjeta del kanban como evento de solo lectura; al pulsarla se abre en Trabajo. */
 function taskEvent(card: DueCard, timeZone: string): EventInput {
   return {
@@ -152,6 +179,7 @@ function Workspace({ session }: { session: ActiveSession }) {
   const [panelOpen, setPanelOpen] = useState(false);
   const views = VIEWS.filter((v) => v.only !== (narrow ? "wide" : "narrow"));
   const dueCards = useDueCards(range, showTasks);
+  const holidays = useHolidays(range);
   const [editor, setEditor] = useState<EditorTarget | null>(null);
   const { ask, dialog: scopeDialog } = useScopeDialog();
 
@@ -212,10 +240,60 @@ function Workspace({ session }: { session: ActiveSession }) {
         };
       });
     const tasks = showTasks ? (dueCards.data ?? []).map((card) => taskEvent(card, timeZone)) : [];
-    return [...list, ...tasks];
-  }, [occurrences.data, dueCards.data, showTasks, calendarList, typeFilter, timeZone]);
+    const festive = (holidays.data?.holidays ?? []).map(holidayEvent);
+    return [...list, ...tasks, ...festive];
+  }, [
+    occurrences.data,
+    dueCards.data,
+    holidays.data,
+    showTasks,
+    calendarList,
+    typeFilter,
+    timeZone,
+  ]);
 
   const api = () => calendarRef.current?.getApi();
+
+  // F7-07: atajos de teclado («?» muestra la ayuda).
+  const [helpOpen, setHelpOpen] = useState(false);
+  const goToView = (id: ViewId) => {
+    if (views.some((v) => v.id === id)) api()?.changeView(id);
+  };
+  const shortcuts: Shortcut[] = [
+    {
+      keys: ["n"],
+      label: "N",
+      description: "Nuevo evento",
+      run: () => setEditor({ kind: "create", allDay: false, ...nextHourSlot(timeZone) }),
+    },
+    { keys: ["t"], label: "T", description: "Ir a hoy", run: () => api()?.today() },
+    {
+      keys: ["j", "ArrowRight"],
+      label: "J / →",
+      description: "Siguiente",
+      run: () => api()?.next(),
+    },
+    { keys: ["k", "ArrowLeft"], label: "K / ←", description: "Anterior", run: () => api()?.prev() },
+    { keys: ["m"], label: "M", description: "Vista de mes", run: () => goToView("dayGridMonth") },
+    {
+      keys: ["w"],
+      label: "W",
+      description: "Vista de semana (3 días en el móvil)",
+      run: () => goToView(narrow ? "timeGridThreeDay" : "timeGridWeek"),
+    },
+    { keys: ["d"], label: "D", description: "Vista de día", run: () => goToView("timeGridDay") },
+    { keys: ["l"], label: "L", description: "Vista de lista", run: () => goToView("listWeek") },
+    { keys: ["y"], label: "Y", description: "Vista de año", run: () => goToView("multiMonthYear") },
+    {
+      keys: ["/"],
+      label: "/",
+      description: "Buscar eventos",
+      run: () =>
+        document.querySelector<HTMLInputElement>("input[aria-label='Buscar eventos']")?.focus(),
+    },
+    { keys: ["?"], label: "?", description: "Esta ayuda", run: () => setHelpOpen(true) },
+  ];
+  useShortcuts(shortcuts);
 
   function onDatesSet(arg: DatesSetArg) {
     setRange({ from: rangeEdge(arg.start, timeZone), to: rangeEdge(arg.end, timeZone) });
@@ -241,6 +319,11 @@ function Workspace({ session }: { session: ActiveSession }) {
 
   function onEventClick(arg: EventClickArg) {
     arg.jsEvent.preventDefault();
+    const holiday = arg.event.extendedProps.holiday as Holiday | undefined;
+    if (holiday) {
+      toast(`${holiday.name}${holiday.regional ? " (festivo autonómico)" : " (festivo nacional)"}`);
+      return;
+    }
     const task = arg.event.extendedProps.task as DueCard | undefined;
     if (task) {
       const url = new URL(`/tableros/${task.boardId}`, currentAppOrigins().work);
@@ -380,6 +463,32 @@ function Workspace({ session }: { session: ActiveSession }) {
             style={{ backgroundColor: TASK_COLOR }}
           />
           Tareas con fecha límite
+        </label>
+        <label className="grid gap-1 py-1 text-sm">
+          <span className="flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="size-2.5 rounded-sm"
+              style={{ backgroundColor: HOLIDAY_COLOR }}
+            />
+            Festivos
+          </span>
+          <select
+            className="h-9 w-full rounded-md border bg-background px-2 text-base sm:text-sm"
+            value={holidays.data?.region ?? DEFAULT_HOLIDAY_REGION}
+            onChange={(e) => {
+              const region = holidayRegionSchema.parse(e.target.value);
+              void setHolidayRegion(region)
+                .then(() => queryClient.invalidateQueries({ queryKey: HOLIDAYS_KEY }))
+                .catch((error: unknown) => toast.error(errorMessage(error)));
+            }}
+          >
+            {HOLIDAY_REGIONS.map((region) => (
+              <option key={region.code} value={region.code}>
+                {region.name}
+              </option>
+            ))}
+          </select>
         </label>
       </fieldset>
     </>
@@ -526,6 +635,7 @@ function Workspace({ session }: { session: ActiveSession }) {
           <PlusIcon aria-hidden="true" className="size-6" />
         </Button>
       )}
+      <ShortcutsDialog open={helpOpen} onOpenChange={setHelpOpen} shortcuts={shortcuts} />
       <EventEditor
         target={editor}
         calendars={calendarList}

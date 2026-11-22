@@ -2,6 +2,7 @@ import type { MeResponse } from "@delyra/shared";
 import { LoaderCircleIcon } from "lucide-react";
 import { type ReactNode, useEffect } from "react";
 import { Button } from "../components/button";
+import { rememberUser } from "../lib/offline";
 import { errorMessage } from "./api";
 import { goTo, pendingStepUrl, useMe } from "./session";
 
@@ -41,6 +42,12 @@ export function RequireSession({
   useEffect(() => {
     if (redirect) goTo(redirect, navigate);
   }, [redirect, navigate]);
+
+  // Si entra otra cuenta en este navegador, se vacía la caché sin conexión (F7-01).
+  const userId = me.data?.user?.id;
+  useEffect(() => {
+    if (userId) void rememberUser(userId);
+  }, [userId]);
 
   if (me.isError) {
     return (

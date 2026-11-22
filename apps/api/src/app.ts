@@ -15,8 +15,10 @@ import { backupRoutes, restoreRoutes } from "./routes/backups";
 import { calendarRoutes } from "./routes/calendars";
 import { cspReportRoutes } from "./routes/csp-report";
 import { eventRoutes } from "./routes/events";
+import { feedRoutes } from "./routes/feeds";
 import { googleRoutes } from "./routes/google";
 import { healthRoutes } from "./routes/health";
+import { holidayRoutes } from "./routes/holidays";
 import { importRoutes } from "./routes/imports";
 import {
   attachmentRoutes,
@@ -95,6 +97,8 @@ export function createApp() {
   api.route("/subscriptions", subscriptionRoutes);
   api.route("/backups", backupRoutes);
   api.route("/restores", restoreRoutes);
+  api.route("/feeds", feedRoutes);
+  api.route("/holidays", holidayRoutes);
   app.route("/api", api);
 
   app.notFound(notFoundHandler);

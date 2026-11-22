@@ -146,6 +146,34 @@ export const reminders = sqliteTable(
   ],
 );
 
+/**
+ * Feed ICS privado de un calendario (F7-02): una URL secreta para suscribirse desde Google, Apple
+ * u Outlook. El token se busca por su SHA-256 y se guarda también cifrado para poder mostrarlo
+ * otra vez; regenerarlo invalida el anterior.
+ */
+export const calendarFeeds = sqliteTable(
+  "calendar_feeds",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    calendarId: text("calendar_id")
+      .notNull()
+      .references(() => calendars.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    /** Token cifrado (AAD `feed:<ownerId>:<calendarId>`). */
+    tokenEnc: text("token_enc").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    lastAccessedAt: integer("last_accessed_at"),
+  },
+  (t) => [
+    uniqueIndex("calendar_feeds_calendar_idx").on(t.calendarId),
+    uniqueIndex("calendar_feeds_token_idx").on(t.tokenHash),
+  ],
+);
+
 export type Calendar = typeof calendars.$inferSelect;
+export type CalendarFeed = typeof calendarFeeds.$inferSelect;
 export type EventRow = typeof events.$inferSelect;
 export type Reminder = typeof reminders.$inferSelect;

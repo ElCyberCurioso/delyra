@@ -56,7 +56,10 @@ test.describe("humo @smoke", () => {
     const response = await request.get("/");
     const headers = response.headers();
     expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
-    expect(headers["content-security-policy-report-only"]).toContain("default-src 'self'");
+    expect(headers["content-security-policy"]).toContain("default-src 'self'");
+    expect(headers["content-security-policy"]).toContain(
+      "script-src 'self' https://challenges.cloudflare.com",
+    );
     expect(headers["x-content-type-options"]).toBe("nosniff");
     expect(headers["strict-transport-security"]).toContain("includeSubDomains");
   });

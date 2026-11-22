@@ -27,25 +27,24 @@ export const PERMISSIONS_POLICY = [
   "xr-spatial-tracking=()",
 ].join(", ");
 
-/** Directivas que ya se aplican (no rompen nada): impiden el framing e inyecciones de `<base>`. */
-export const SPA_CSP_ENFORCED = [
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "object-src 'none'",
-  "form-action 'self'",
-].join("; ");
-
 /** Origen del widget anti-bots (Turnstile): script e iframe del desafío. */
 export const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
 
-/** Política completa en modo informe hasta F7-08, cuando pasa a bloqueo. */
-export const SPA_CSP_REPORT_ONLY = [
+/**
+ * CSP de las SPA en modo bloqueo (F7-08). Tras meses en modo informe (F0-12), las únicas
+ * excepciones necesarias son:
+ * - `style-src 'unsafe-inline'`: FullCalendar y los avisos (sonner) insertan su CSS en `<style>`.
+ *   Los scripts siguen sin `unsafe-inline` ni `unsafe-eval`, y una inyección de CSS no puede
+ *   sacar datos fuera: `img-src`, `font-src` y `connect-src` no admiten otros orígenes.
+ * - `font-src data:`: la fuente de iconos de FullCalendar va incrustada.
+ */
+export const SPA_CSP = [
   "default-src 'self'",
   `script-src 'self' ${TURNSTILE_ORIGIN}`,
   `frame-src ${TURNSTILE_ORIGIN}`,
-  "style-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
-  "font-src 'self'",
+  "font-src 'self' data:",
   "connect-src 'self'",
   "manifest-src 'self'",
   "worker-src 'self'",
@@ -76,8 +75,7 @@ export function spaSecurityHeaders(): Record<string, string> {
   return {
     ...COMMON_HEADERS,
     "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Content-Security-Policy": SPA_CSP_ENFORCED,
-    "Content-Security-Policy-Report-Only": SPA_CSP_REPORT_ONLY,
+    "Content-Security-Policy": SPA_CSP,
     "Reporting-Endpoints": `${CSP_REPORT_GROUP}="${CSP_REPORT_PATH}"`,
   };
 }

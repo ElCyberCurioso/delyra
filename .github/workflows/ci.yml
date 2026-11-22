@@ -34,6 +34,9 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      # F7-07: presupuesto de rendimiento (JS y CSS iniciales de cada SPA, en gzip).
+      - name: Presupuesto del bundle inicial
+        run: node scripts/check-bundle-size.mjs
       - name: Auditoría de dependencias
         run: pnpm audit --audit-level high
 

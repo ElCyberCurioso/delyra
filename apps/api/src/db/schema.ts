@@ -50,3 +50,4 @@ export * from "./telegram";
 export * from "./kanban";
 export * from "./imports";
 export * from "./backups";
+export * from "./holidays";

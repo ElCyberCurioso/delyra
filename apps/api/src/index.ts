@@ -6,6 +6,7 @@ import { handleNotificationBatch } from "./jobs/notifications-consumer";
 import { runScheduler } from "./jobs/scheduler";
 import { keyringFromEnv } from "./lib/field-crypto";
 import { createLogger } from "./lib/logger";
+import { ensureHolidays } from "./services/holidays";
 import { purgeStaleGoogleTokens } from "./services/imports";
 import { syncDueSubscriptions } from "./services/subscriptions";
 
@@ -39,6 +40,9 @@ export default {
           logger.error("google_token_purge_failed", { error });
         }),
       );
+      // F7-03: festivos del año en curso y del siguiente (se refrescan cada mes).
+      const year = new Date().getUTCFullYear();
+      ctx.waitUntil(ensureHolidays(createDb(env.DB), [year, year + 1], Date.now(), logger));
       // F6-03: copias automáticas de los usuarios a los que les toca.
       ctx.waitUntil(
         scheduleAutoBackups(env, Date.now(), logger).catch((error: unknown) => {

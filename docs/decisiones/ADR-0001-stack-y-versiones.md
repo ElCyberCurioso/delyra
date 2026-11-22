@@ -45,6 +45,7 @@ momento de F0-01, documentándola aquí. Todas las dependencias se fijan con ver
 |                  | DOMPurify                                  | 3.4.17                  |
 | Google (F5)      | ical.js                                    | 2.2.1                   |
 |                  | fflate                                     | 0.8.3                   |
+| PWA (F7)         | vite-plugin-pwa / workbox                  | 2.0.0 / 7.4.1           |
 | Calidad          | Vitest                                     | 5.1.1                   |
 |                  | Testing Library (react / dom / jest-dom)   | 16.3.3 / 10.4.2 / 8.0.0 |
 |                  | MSW                                        | 3.0.7                   |

@@ -3,12 +3,14 @@ import { type Context, Hono } from "hono";
 import { createDb } from "../db/client";
 import type { Calendar } from "../db/schema";
 import { AppError } from "../lib/errors";
+import { keyringFromEnv } from "../lib/field-crypto";
 import { readBody } from "../lib/http";
 import { currentAuth, requireActiveSession } from "../middleware/session";
 import { calendarRepository } from "../repositories/calendars";
 import { eventRepository } from "../repositories/events";
 import { contentDisposition } from "../services/attachments";
 import { calendarToIcs } from "../services/exports";
+import { feedRepository, feedUrl } from "../services/feeds";
 import { getUserSettings } from "../services/users";
 import type { AppEnv } from "../types";
 
@@ -78,6 +80,43 @@ export const calendarRoutes = new Hono<AppEnv>()
         "Cache-Control": "private, no-store",
       },
     });
+  })
+
+  // F7-02: feed ICS privado (consultar, crear o regenerar, revocar).
+  .get("/:id/feed", async (c) => {
+    const id = idParam(c);
+    if (!(await repos(c).calendars.get(id))) throw new AppError(404);
+    const feeds = feedRepository(createDb(c.env.DB), currentAuth(c).user.id);
+    const row = await feeds.get(id);
+    if (!row) return c.json({ feed: null });
+    const token = await feeds.token(row, await keyringFromEnv(c.env));
+    return c.json({
+      feed: { url: feedUrl(c.env.APP_ENV, token), createdAt: row.createdAt.toISOString() },
+    });
+  })
+
+  .post("/:id/feed", async (c) => {
+    const id = idParam(c);
+    if (!(await repos(c).calendars.get(id))) throw new AppError(404);
+    const feeds = feedRepository(createDb(c.env.DB), currentAuth(c).user.id);
+    const token = await feeds.rotate(id, await keyringFromEnv(c.env));
+    const row = await feeds.get(id);
+    return c.json(
+      {
+        feed: {
+          url: feedUrl(c.env.APP_ENV, token),
+          createdAt: (row?.createdAt ?? new Date()).toISOString(),
+        },
+      },
+      201,
+    );
+  })
+
+  .delete("/:id/feed", async (c) => {
+    const id = idParam(c);
+    if (!(await repos(c).calendars.get(id))) throw new AppError(404);
+    await feedRepository(createDb(c.env.DB), currentAuth(c).user.id).revoke(id);
+    return c.body(null, 204);
   })
 
   .patch("/:id", async (c) => {

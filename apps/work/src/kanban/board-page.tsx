@@ -22,7 +22,10 @@ import {
   Field,
   FormError,
   Input,
+  type Shortcut,
+  ShortcutsDialog,
   toast,
+  useShortcuts,
 } from "@delyra/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -209,6 +212,27 @@ function BoardView({
   });
 
   const visibleCount = visible.size;
+  // F7-07: atajos de teclado («?» muestra la ayuda).
+  const [helpOpen, setHelpOpen] = useState(false);
+  const shortcuts: Shortcut[] = [
+    { keys: ["c"], label: "C", description: "Nueva columna", run: () => setEditingColumn("new") },
+    {
+      keys: ["/"],
+      label: "/",
+      description: "Buscar tarjetas",
+      run: () =>
+        document.querySelector<HTMLInputElement>("input[aria-label='Buscar tarjetas']")?.focus(),
+    },
+    {
+      keys: ["a"],
+      label: "A",
+      description: "Tarjetas archivadas",
+      run: () => setArchivedOpen(true),
+    },
+    { keys: ["?"], label: "?", description: "Esta ayuda", run: () => setHelpOpen(true) },
+  ];
+  useShortcuts(shortcuts);
+
   return (
     // `minmax(0,1fr)`: el tablero se desplaza dentro de su caja, no estira la página.
     <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
@@ -261,6 +285,7 @@ function BoardView({
       </div>
 
       <Toolbar board={board} search={search} setSearch={setSearch} />
+      <ShortcutsDialog open={helpOpen} onOpenChange={setHelpOpen} shortcuts={shortcuts} />
       {filtered ? (
         <p role="status" className="text-sm text-muted-foreground">
           {visibleCount === 1 ? "1 tarjeta coincide" : `${String(visibleCount)} tarjetas coinciden`}{" "}

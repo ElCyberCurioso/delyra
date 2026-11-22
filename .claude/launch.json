@@ -12,6 +12,48 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@delyra/work", "dev"],
       "port": 5174
+    },
+    {
+      "name": "calendar-preview",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@delyra/calendar",
+        "exec",
+        "wrangler",
+        "dev",
+        "-c",
+        "dist/delyra_calendar_local/wrangler.json",
+        "--port",
+        "5173",
+        "--persist-to",
+        "../../.wrangler/state"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "work-preview",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@delyra/work",
+        "exec",
+        "wrangler",
+        "dev",
+        "-c",
+        "dist/delyra_work_local/wrangler.json",
+        "--port",
+        "5174",
+        "--persist-to",
+        "../../.wrangler/state"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@delyra/api", "dev"],
+      "port": 8787
     }
   ]
 }

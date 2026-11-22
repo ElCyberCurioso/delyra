@@ -1,3 +1,4 @@
+import "./zod-config";
 export * from "./constants";
 export * from "./dates";
 export * from "./edge";
@@ -9,6 +10,7 @@ export * from "./schemas/auth";
 export * from "./schemas/backups";
 export * from "./schemas/calendar";
 export * from "./schemas/health";
+export * from "./schemas/holidays";
 export * from "./schemas/imports";
 export * from "./schemas/kanban";
 export * from "./schemas/telegram";

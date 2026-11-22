@@ -1,9 +1,10 @@
 import "./styles.css";
-import { ThemeProvider } from "@delyra/ui";
+import { setupServiceWorker, ThemeProvider } from "@delyra/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { registerSW } from "virtual:pwa-register";
 import { createAppRouter } from "./router";
 
 const queryClient = new QueryClient({
@@ -23,3 +24,6 @@ createRoot(container).render(
     </ThemeProvider>
   </StrictMode>,
 );
+
+// F7-01: PWA (caché de lectura sin conexión y aviso de versión nueva).
+setupServiceWorker(registerSW);

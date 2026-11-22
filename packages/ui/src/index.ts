@@ -23,6 +23,10 @@ export {
   DropdownMenuTrigger,
 } from "./components/dropdown-menu";
 export { Input } from "./components/input";
+export { clearOfflineData, forgetUser, rememberUser } from "./lib/offline";
+export { setupServiceWorker } from "./lib/register-sw";
+export { type Shortcut, useShortcuts } from "./lib/use-shortcuts";
+export { ShortcutsDialog } from "./components/shortcuts-dialog";
 export { toast, Toaster } from "./components/toaster";
 export { fetchHealth, HealthStatus, useHealth } from "./health/health-status";
 export { AppShell, type AppShellProps, currentAppOrigins } from "./layout/app-shell";

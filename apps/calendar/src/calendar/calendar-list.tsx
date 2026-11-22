@@ -29,6 +29,7 @@ import {
   updateCalendar,
   useInvalidateEvents,
 } from "./api";
+import { FeedDialog } from "./feed-dialog";
 
 export function ColorPicker({
   value,
@@ -126,6 +127,7 @@ export function CalendarList({ calendars }: { calendars: readonly CalendarInfo[]
   const invalidateEvents = useInvalidateEvents();
   const [editing, setEditing] = useState<Editing>(null);
   const [removing, setRemoving] = useState<CalendarInfo | null>(null);
+  const [sharing, setSharing] = useState<CalendarInfo | null>(null);
 
   async function toggle(calendar: CalendarInfo) {
     // Optimista: la visibilidad cambia al instante y se deshace si falla.
@@ -209,6 +211,9 @@ export function CalendarList({ calendars }: { calendars: readonly CalendarInfo[]
                     Exportar (.ics)
                   </a>
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setSharing(calendar)}>
+                  Ver en otras apps (iCal)
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   variant="destructive"
                   disabled={calendars.length <= 1}
@@ -228,6 +233,7 @@ export function CalendarList({ calendars }: { calendars: readonly CalendarInfo[]
         <DownloadIcon aria-hidden="true" className="size-4" />
         Importar desde Google
       </Link>
+      <FeedDialog calendar={sharing} onClose={() => setSharing(null)} />
       {editing ? (
         <CalendarDialog
           key={editing.kind === "edit" ? editing.calendar.id : "new"}

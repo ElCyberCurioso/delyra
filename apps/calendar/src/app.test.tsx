@@ -76,6 +76,12 @@ const server = setupServer(
     }),
   ),
   http.get("/api/cards/due", () => HttpResponse.json({ cards: [] })),
+  http.get("/api/holidays", () =>
+    HttpResponse.json({
+      region: "ES-MD",
+      holidays: [{ date: "2026-12-25", name: "Natividad del Señor", regional: false }],
+    }),
+  ),
   http.get("/api/events", ({ request }) => {
     const url = new URL(request.url);
     const from = url.searchParams.get("from") ?? "";
@@ -289,6 +295,19 @@ describe("App (calendario)", () => {
     } finally {
       Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
     }
+  });
+
+  it("atajos de teclado: «?» abre la ayuda y no se disparan al escribir", async () => {
+    sessionState = "active";
+    renderAt("/");
+    const user = userEvent.setup();
+    await screen.findByText("Dentista");
+    await user.type(screen.getByLabelText("Buscar eventos"), "?");
+    expect(screen.queryByRole("dialog", { name: "Atajos de teclado" })).toBeNull();
+    await user.click(document.body);
+    await user.keyboard("?");
+    expect(await screen.findByRole("dialog", { name: "Atajos de teclado" })).toBeInTheDocument();
+    expect(screen.getByText("Nuevo evento", { selector: "dd" })).toBeInTheDocument();
   });
 
   it("sin sesión lleva al login recordando a dónde volver", async () => {

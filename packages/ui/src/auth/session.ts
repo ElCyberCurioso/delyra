@@ -9,6 +9,7 @@ import {
 } from "@delyra/shared";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { currentAppOrigins } from "../layout/app-shell";
+import { clearOfflineData, forgetUser } from "../lib/offline";
 import { ApiError, apiFetch } from "./api";
 
 /** Sin sesión, `/api/auth/me` responde 401: se representa como estado `anonymous`. */
@@ -94,7 +95,10 @@ export function goTo(href: string, navigate?: (path: string) => void) {
 export function useLogout() {
   return useMutation({
     mutationFn: () => apiFetch("/api/auth/logout", { method: "POST" }),
-    onSettled: () => {
+    onSettled: async () => {
+      // F7-01: lo guardado para usar la app sin conexión no sobrevive al cierre de sesión.
+      forgetUser();
+      await clearOfflineData();
       window.location.assign(new URL("/login", currentAppOrigins().calendar).href);
     },
   });
