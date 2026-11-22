@@ -47,3 +47,4 @@ export type SystemBackupRun = typeof systemBackupRuns.$inferSelect;
 export * from "./identity";
 export * from "./calendar";
 export * from "./telegram";
+export * from "./kanban";

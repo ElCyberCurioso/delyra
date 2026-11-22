@@ -20,7 +20,7 @@ test("invitación → registro → TOTP → login con TOTP y con código de recu
 
   // Sesión común: la app de trabajo reconoce la misma cookie.
   await page.goto(workURL);
-  await expect(page.getByRole("heading", { level: 1, name: "Trabajo" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Tableros" })).toBeVisible();
 
   // Login en dos pasos con un TOTP posterior (el ya usado se rechazaría por anti-replay).
   await signOut(page);

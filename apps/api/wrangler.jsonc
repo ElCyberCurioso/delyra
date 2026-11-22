@@ -34,8 +34,8 @@
     // Sin bot en local: la vinculación aparece como no disponible (los tests simulan Telegram).
     "TELEGRAM_BOT_USERNAME": "",
   },
-  // F3-05: planificador de alertas y resumen diario, cada minuto.
-  "triggers": { "crons": ["* * * * *"] },
+  // F3-05: alertas y resumen diario, cada minuto. F4-07: autoarchivado, a las 03:00 UTC.
+  "triggers": { "crons": ["* * * * *", "0 3 * * *"] },
   "version_metadata": { "binding": "CF_VERSION_METADATA" },
   // F1-10: límite general de la API y otro más estricto para /api/auth/*.
   "ratelimits": [
@@ -100,7 +100,7 @@
         // Nombre del bot de @BotFather sin @ (P-10). Vacío = Telegram desactivado.
         "TELEGRAM_BOT_USERNAME": "delyra_app_bot",
       },
-      "triggers": { "crons": ["* * * * *"] },
+      "triggers": { "crons": ["* * * * *", "0 3 * * *"] },
       "version_metadata": { "binding": "CF_VERSION_METADATA" },
       "ratelimits": [
         {

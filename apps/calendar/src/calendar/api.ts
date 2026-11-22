@@ -2,6 +2,8 @@ import {
   type CalendarInfo,
   calendarResponseSchema,
   calendarsResponseSchema,
+  type DueCard,
+  dueCardsResponseSchema,
   type EditScope,
   type EventDetail,
   eventResponseSchema,
@@ -46,6 +48,24 @@ export function useOccurrences(range: Range | null) {
         schema: occurrencesResponseSchema,
         signal,
       }).then((r) => r.events);
+    },
+  });
+}
+
+export const DUE_CARDS_KEY = ["due-cards"] as const;
+
+/** Capa «Tareas» (F4-11): tarjetas del kanban con fecha límite en el rango visible. */
+export function useDueCards(range: Range | null, enabled: boolean) {
+  return useQuery<DueCard[]>({
+    queryKey: [...DUE_CARDS_KEY, range?.from ?? "", range?.to ?? ""],
+    enabled: enabled && range !== null,
+    placeholderData: keepPreviousData,
+    queryFn: ({ signal }) => {
+      const params = new URLSearchParams({ from: range?.from ?? "", to: range?.to ?? "" });
+      return apiFetch(`/api/cards/due?${params.toString()}`, {
+        schema: dueCardsResponseSchema,
+        signal,
+      }).then((r) => r.cards);
     },
   });
 }

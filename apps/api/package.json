@@ -19,6 +19,7 @@
     "@delyra/shared": "workspace:*",
     "@hono/zod-validator": "0.9.1",
     "drizzle-orm": "0.45.4",
+    "fractional-indexing": "4.0.0",
     "hono": "4.13.19",
     "rrule": "2.8.1",
     "zod": "4.6.7"

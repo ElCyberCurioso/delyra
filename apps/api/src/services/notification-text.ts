@@ -48,12 +48,23 @@ export function describeWhen(when: WhenInput, timeZone: string, now: number): st
   return `${day}, ${time(when.start, timeZone)}–${time(when.end, timeZone)}`;
 }
 
+/** «vence hoy a las 17:00», «vence mañana». */
+export function describeDeadline(when: WhenInput, timeZone: string, now: number): string {
+  const today = localDate(now, timeZone);
+  if (when.allDay) {
+    return `vence ${dayLabel(new Date(when.start).toISOString().slice(0, 10), today)}`;
+  }
+  return `vence ${dayLabel(localDate(when.start, timeZone), today)} a las ${time(when.start, timeZone)}`;
+}
+
 export interface ReminderContent extends WhenInput {
   title: string;
   calendarName: string | null;
   location: string | null;
   url: string | null;
   age: number | null;
+  /** Fecha límite de una tarjeta (un instante, no un intervalo). */
+  deadline?: boolean;
 }
 
 export function reminderText(
@@ -63,11 +74,12 @@ export function reminderText(
   footer?: string,
 ): string {
   const title = content.age !== null ? `${content.title} (${String(content.age)})` : content.title;
+  const when = content.deadline
+    ? describeDeadline(content, timeZone, now)
+    : describeWhen(content, timeZone, now);
   const lines = [
-    `🔔 <b>${escapeHtml(title)}</b>`,
-    escapeHtml(
-      [describeWhen(content, timeZone, now), content.calendarName].filter(Boolean).join(" · "),
-    ),
+    `${content.deadline ? "📌" : "🔔"} <b>${escapeHtml(title)}</b>`,
+    escapeHtml([when, content.calendarName].filter(Boolean).join(" · ")),
   ];
   if (content.location) lines.push(`📍 ${escapeHtml(content.location)}`);
   if (content.url) lines.push(`🔗 ${escapeHtml(content.url)}`);
@@ -124,6 +136,50 @@ export function agendaText(
     );
   }
   if (occurrences.length > 60) lines.push(`… y ${String(occurrences.length - 60)} más.`);
+  return lines.join("\n");
+}
+
+export interface TaskLine {
+  title: string;
+  boardName: string;
+  date: string;
+  dueAt: number;
+  allDay: boolean;
+  overdue: boolean;
+}
+
+/** Tareas con fecha límite: primero las vencidas, después agrupadas por día. */
+export function tasksText(
+  heading: string,
+  tasks: readonly TaskLine[],
+  timeZone: string,
+  now: number,
+): string {
+  if (tasks.length === 0) return `<b>${escapeHtml(heading)}</b>\nNo tienes tareas pendientes.`;
+  const today = localDate(now, timeZone);
+  const line = (t: TaskLine, withDay: boolean) => {
+    const when = t.allDay
+      ? withDay
+        ? dayLabel(t.date, today)
+        : ""
+      : `${withDay ? `${dayLabel(t.date, today)} ` : ""}${time(t.dueAt, timeZone)}`;
+    return `• ${when ? `${escapeHtml(when)} ` : ""}${escapeHtml(t.title)} <i>· ${escapeHtml(t.boardName)}</i>`;
+  };
+  const lines = [`<b>${escapeHtml(heading)}</b>`];
+  const shown = tasks.slice(0, 60);
+  const overdue = shown.filter((t) => t.overdue);
+  if (overdue.length > 0) {
+    lines.push("", "<u>⚠️ Vencidas</u>", ...overdue.map((t) => line(t, true)));
+  }
+  let lastDay = "";
+  for (const t of shown.filter((x) => !x.overdue)) {
+    if (t.date !== lastDay) {
+      lines.push("", `<u>${escapeHtml(dayLabel(t.date, today))}</u>`);
+      lastDay = t.date;
+    }
+    lines.push(line(t, false));
+  }
+  if (tasks.length > 60) lines.push(`… y ${String(tasks.length - 60)} más.`);
   return lines.join("\n");
 }
 

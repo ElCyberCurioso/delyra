@@ -14,10 +14,10 @@ import type { RequestMeta } from "../lib/request-meta";
 import { escapeHtml, type TelegramClient } from "../lib/telegram";
 import { calendarRepository } from "../repositories/calendars";
 import { eventRepository } from "../repositories/events";
-import { agendaFor, localToday } from "./agenda";
+import { agendaFor, localToday, tasksUntil } from "./agenda";
 import { audit } from "./audit";
 import { createEvent } from "./events";
-import { agendaText, describeWhen, helpText, reminderText } from "./notification-text";
+import { agendaText, describeWhen, helpText, reminderText, tasksText } from "./notification-text";
 import { loadReminder, reminderContent, settingsUrl } from "./notifications";
 import {
   consumeLinkToken,
@@ -180,8 +180,15 @@ async function runCommand(
       return agenda("📅 Mañana", tomorrow, 1);
     case "semana":
       return agenda("📅 Próximos 7 días", today, 7);
-    case "tareas":
-      return reply(deps, chatId, "Las tareas llegarán con el tablero de Trabajo.");
+    case "tareas": {
+      const lastDay = utcToDateOnly(addDays(dateOnlyToUtc(today), 6));
+      const tasks = await tasksUntil(deps.db, userId, timeZone, lastDay, deps.now);
+      return reply(
+        deps,
+        chatId,
+        tasksText("📌 Tareas de los próximos 7 días", tasks, timeZone, deps.now),
+      );
+    }
     case "nuevo": {
       const draft = args ? parseQuickAdd(args, reference(deps.now, timeZone)) : null;
       if (!draft) {
@@ -300,7 +307,7 @@ async function handleCallback(deps: BotDeps, query: NonNullable<TelegramUpdate["
 
   const timeZone = await timeZoneOf(deps.db, link.userId);
   const occurrenceStart = Number.parseInt(occurrence, 36);
-  const content = await reminderContent(deps.db, link.userId, loaded.event, occurrenceStart);
+  const content = await reminderContent(deps.db, link.userId, loaded.target, occurrenceStart);
   const events = eventRepository(deps.db, link.userId);
 
   let footer: string;

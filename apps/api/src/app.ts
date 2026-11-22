@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type MiddlewareHandler } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { AppError } from "./lib/errors";
 import { csrfProtection } from "./middleware/csrf";
@@ -15,6 +15,15 @@ import { calendarRoutes } from "./routes/calendars";
 import { cspReportRoutes } from "./routes/csp-report";
 import { eventRoutes } from "./routes/events";
 import { healthRoutes } from "./routes/health";
+import {
+  attachmentRoutes,
+  boardRoutes,
+  cardRoutes,
+  checklistRoutes,
+  columnRoutes,
+  commentRoutes,
+  labelRoutes,
+} from "./routes/kanban";
 import { telegramWebhookRoutes } from "./routes/telegram";
 import type { AppEnv } from "./types";
 
@@ -23,6 +32,9 @@ import type { AppEnv } from "./types";
  * todas las rutas cuelgan de `/api`. El middleware se aplica a cualquier ruta, incluidas
  * las inexistentes, para que todo error lleve request id y cabeceras de seguridad.
  */
+/** Subida de adjuntos: cuerpo binario en streaming (F4-06). */
+const UPLOAD_PATH = /^\/api\/cards\/[^/]+\/attachments$/;
+
 export function createApp() {
   const app = new Hono<AppEnv>();
 
@@ -33,16 +45,26 @@ export function createApp() {
   const api = new Hono<AppEnv>();
   // Los informes CSP los envía el navegador sin Origin ni JSON estándar: fuera del CSRF.
   // El webhook de Telegram se autentica con su propio secreto (F3-03).
-  api.use("*", csrfProtection({ exemptPaths: ["/api/csp-report", "/api/telegram/webhook"] }));
   api.use(
     "*",
-    bodyLimit({
-      maxSize: 64 * 1024,
-      onError: () => {
-        throw new AppError(413);
-      },
+    csrfProtection({
+      exemptPaths: ["/api/csp-report", "/api/telegram/webhook"],
+      rawBodyPaths: [UPLOAD_PATH],
     }),
   );
+  // 64 KB para todo salvo la subida de adjuntos, que limita su propio tamaño (F4-06).
+  const jsonLimit: MiddlewareHandler<AppEnv> = bodyLimit({
+    maxSize: 64 * 1024,
+    onError: () => {
+      throw new AppError(413);
+    },
+  });
+  const limitBody: MiddlewareHandler<AppEnv> = (c, next) => {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- regex fija, anclada y lineal
+    if (UPLOAD_PATH.test(c.req.path)) return next();
+    return jsonLimit(c, next);
+  };
+  api.use("*", limitBody);
   api.use("*", loadSession());
   // El límite estricto es para los intentos (login, registro, códigos…), no para las lecturas
   // (`/auth/me`, `/auth/config`) que cada página hace al cargar: esas van con el general.
@@ -57,6 +79,13 @@ export function createApp() {
   api.route("/calendars", calendarRoutes);
   api.route("/events", eventRoutes);
   api.route("/telegram", telegramWebhookRoutes);
+  api.route("/boards", boardRoutes);
+  api.route("/columns", columnRoutes);
+  api.route("/labels", labelRoutes);
+  api.route("/cards", cardRoutes);
+  api.route("/checklist", checklistRoutes);
+  api.route("/comments", commentRoutes);
+  api.route("/attachments", attachmentRoutes);
   app.route("/api", api);
 
   app.notFound(notFoundHandler);

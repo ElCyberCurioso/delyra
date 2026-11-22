@@ -11,7 +11,9 @@ import {
 } from "../db/schema";
 import type { Logger } from "../lib/logger";
 import { eventRepository } from "../repositories/events";
+import { kanbanRepository } from "../repositories/kanban";
 import { toSeries } from "../services/events";
+import { cardSeries } from "../services/kanban";
 import type { NotificationMessage } from "../services/notifications";
 import { nextFire } from "../services/reminder-schedule";
 import { purgeLinkTokens } from "../services/telegram-links";
@@ -74,6 +76,17 @@ async function claimDueReminders(deps: SchedulerDeps): Promise<Reminder[]> {
 
 async function advance(deps: SchedulerDeps, reminder: Reminder) {
   const events = eventRepository(deps.db, reminder.ownerId);
+  if (reminder.targetType === "card") {
+    // Una fecha límite avisa una vez; terminada o archivada, ya no.
+    const card = await kanbanRepository(deps.db, reminder.ownerId).getCard(reminder.targetId);
+    const series = card && !card.completedAt && !card.archivedAt ? cardSeries(card) : null;
+    const after = Math.max(deps.now, reminder.nextFireAt ?? deps.now);
+    await events.setNextFire(
+      reminder.id,
+      series ? nextFire(series, [], reminder.offsetMinutes, after) : null,
+    );
+    return;
+  }
   const event = reminder.targetType === "event" ? await events.get(reminder.targetId) : null;
   if (!event) {
     await events.setNextFire(reminder.id, null);

@@ -2,12 +2,13 @@ import { APP_ORIGINS, appEnvironmentSchema, dateOnlyToUtc } from "@delyra/shared
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../db/client";
-import { type EventRow, notificationDeliveries, type Reminder } from "../db/schema";
+import { type CardRow, type EventRow, notificationDeliveries, type Reminder } from "../db/schema";
 import type { Logger } from "../lib/logger";
 import { TelegramError, type TelegramClient } from "../lib/telegram";
 import { calendarRepository } from "../repositories/calendars";
 import { eventRepository } from "../repositories/events";
-import { agendaFor, localToday } from "./agenda";
+import { kanbanRepository } from "../repositories/kanban";
+import { agendaFor, localToday, tasksUntil } from "./agenda";
 import { createMailer } from "./mailer";
 import {
   agendaText,
@@ -16,6 +17,7 @@ import {
   reminderText,
   SECURITY_EVENTS,
   securityText,
+  tasksText,
 } from "./notification-text";
 import { chatIdOf, getLink, unlinkUser } from "./telegram-links";
 import { findUserById, getUserSettings } from "./users";
@@ -123,13 +125,40 @@ export function settingsUrl(env: Pick<Env, "APP_ENV">): string {
   return `${APP_ORIGINS[environment.success ? environment.data : "development"].calendar}/ajustes`;
 }
 
-/** Datos de la ocurrencia avisada: título, horario, calendario… */
+export type ReminderTarget =
+  { kind: "event"; event: EventRow } | { kind: "card"; card: CardRow; boardName: string };
+
+/** Enlace del botón «Abrir»: el evento en el calendario o la tarjeta en su tablero. */
+export function openTargetUrl(env: Pick<Env, "APP_ENV">, target: ReminderTarget): string | null {
+  if (target.kind === "event") {
+    return openEventUrl(env, target.event.recurringEventId ?? target.event.id);
+  }
+  const environment = appEnvironmentSchema.safeParse(env.APP_ENV);
+  if (!environment.success || environment.data !== "production") return null;
+  return `${APP_ORIGINS.production.work}/tableros/${target.card.boardId}?tarjeta=${target.card.id}`;
+}
+
+/** Datos de la ocurrencia avisada: título, horario, calendario (o tablero)… */
 export async function reminderContent(
   db: Database,
   ownerId: string,
-  event: EventRow,
+  target: ReminderTarget,
   occurrenceStart: number,
 ): Promise<ReminderContent> {
+  if (target.kind === "card") {
+    return {
+      title: target.card.title,
+      start: occurrenceStart,
+      end: occurrenceStart,
+      allDay: target.card.dueAllDay,
+      calendarName: target.boardName,
+      location: null,
+      url: null,
+      age: null,
+      deadline: true,
+    };
+  }
+  const { event } = target;
   const calendar = await calendarRepository(db, ownerId).get(event.calendarId);
   const year = new Date(occurrenceStart).getUTCFullYear();
   return {
@@ -148,12 +177,19 @@ export async function loadReminder(
   db: Database,
   ownerId: string,
   reminderId: string,
-): Promise<{ reminder: Reminder; event: EventRow } | null> {
+): Promise<{ reminder: Reminder; target: ReminderTarget } | null> {
   const events = eventRepository(db, ownerId);
   const reminder = await events.getReminder(reminderId);
-  if (reminder?.targetType !== "event") return null;
-  const event = await events.get(reminder.targetId);
-  return event ? { reminder, event } : null;
+  if (!reminder) return null;
+  if (reminder.targetType === "event") {
+    const event = await events.get(reminder.targetId);
+    return event ? { reminder, target: { kind: "event", event } } : null;
+  }
+  const kanban = kanbanRepository(db, ownerId);
+  const card = await kanban.getCard(reminder.targetId);
+  if (card?.archivedAt !== null) return null;
+  const board = await kanban.getBoard(card.boardId);
+  return board ? { reminder, target: { kind: "card", card, boardName: board.name } } : null;
 }
 
 // ── Entrega ──────────────────────────────────────────────────────────────────
@@ -195,10 +231,10 @@ async function deliverReminder(
 ): Promise<"sent" | "skipped"> {
   const loaded = await loadReminder(deps.db, message.ownerId, message.reminderId);
   if (!loaded) return "skipped";
-  const { reminder, event } = loaded;
+  const { reminder, target } = loaded;
   const settings = await getUserSettings(deps.db, message.ownerId);
-  const timeZone = settings?.timeZone ?? event.tz;
-  const content = await reminderContent(deps.db, message.ownerId, event, message.occurrenceStart);
+  const timeZone = settings?.timeZone ?? "Europe/Madrid";
+  const content = await reminderContent(deps.db, message.ownerId, target, message.occurrenceStart);
 
   let result: "sent" | "skipped";
   if (reminder.channel === "email") {
@@ -221,7 +257,7 @@ async function deliverReminder(
           inline_keyboard: reminderKeyboard(
             reminder.id,
             message.occurrenceStart,
-            openEventUrl(deps.env, event.recurringEventId ?? event.id),
+            openTargetUrl(deps.env, target),
           ),
         },
       },
@@ -252,10 +288,13 @@ async function deliverDigest(
     message.date === localToday(deps.now, timeZone)
       ? "☀️ Tu agenda de hoy"
       : `☀️ Tu agenda del ${new Intl.DateTimeFormat("es-ES", { dateStyle: "full", timeZone: "UTC" }).format(new Date(dateOnlyToUtc(message.date)))}`;
+  // F4-11: las tareas vencidas y las que vencen ese día van debajo de la agenda.
+  const tasks = await tasksUntil(deps.db, message.ownerId, timeZone, message.date, deps.now);
+  const text = agendaText(heading, occurrences, calendarNames, timeZone, deps.now, false);
   return sendTelegram(
     deps,
     message.ownerId,
-    agendaText(heading, occurrences, calendarNames, timeZone, deps.now, false),
+    tasks.length > 0 ? `${text}\n\n${tasksText("📌 Tareas", tasks, timeZone, deps.now)}` : text,
     { respectMute: true },
   );
 }

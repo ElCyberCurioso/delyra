@@ -57,9 +57,12 @@ export const SPA_CSP_REPORT_ONLY = [
   `report-to ${CSP_REPORT_GROUP}`,
 ].join("; ");
 
-/** La API solo devuelve JSON: nada se puede cargar ni enmarcar desde sus respuestas. */
+/**
+ * La API solo devuelve JSON y adjuntos para descargar: nada se puede cargar, enmarcar ni
+ * ejecutar desde sus respuestas (`sandbox` cubre un adjunto abierto directamente, F4-06).
+ */
 export const API_CSP =
-  "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
+  "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; sandbox";
 
 const COMMON_HEADERS: Readonly<Record<string, string>> = {
   "Strict-Transport-Security": HSTS_VALUE,

@@ -1,5 +1,6 @@
 import {
   dateOnlyToUtc,
+  type DueCard,
   type EditScope,
   type EventType,
   instantToWall,
@@ -11,6 +12,7 @@ import {
   AppShell,
   Button,
   cn,
+  currentAppOrigins,
   errorMessage,
   RequireSession,
   toast,
@@ -41,6 +43,7 @@ import {
   updateEvent,
   useCalendars,
   useInvalidateEvents,
+  useDueCards,
   useOccurrences,
 } from "./api";
 import { CalendarList } from "./calendar-list";
@@ -68,6 +71,8 @@ const VIEWS = [
 type ViewId = (typeof VIEWS)[number]["id"];
 
 const VIEW_KEY = "delyra.calendar.view";
+const TASKS_KEY = "delyra.calendar.tasks";
+const TASK_COLOR = "#64748b";
 const DAY_MS = 86_400_000;
 
 function savedView(): ViewId {
@@ -77,6 +82,30 @@ function savedView(): ViewId {
   } catch {
     return "timeGridWeek";
   }
+}
+
+function savedTasksLayer(): boolean {
+  try {
+    return localStorage.getItem(TASKS_KEY) !== "off";
+  } catch {
+    return true;
+  }
+}
+
+/** Tarjeta del kanban como evento de solo lectura; al pulsarla se abre en Trabajo. */
+function taskEvent(card: DueCard, timeZone: string): EventInput {
+  return {
+    id: `tarea:${card.id}`,
+    title: `${card.completed ? "✓" : "📌"} ${card.title}`,
+    start: toCalendarTime(card.due.at, card.due.allDay, timeZone),
+    allDay: card.due.allDay,
+    editable: false,
+    backgroundColor: TASK_COLOR,
+    borderColor: TASK_COLOR,
+    textColor: "#ffffff",
+    classNames: card.completed ? ["opacity-60", "line-through"] : [],
+    extendedProps: { task: card },
+  };
 }
 
 function todayIn(timeZone: string): string {
@@ -99,6 +128,8 @@ function Workspace({ session }: { session: ActiveSession }) {
   const [view, setView] = useState<ViewId>(savedView);
   const [selected, setSelected] = useState(() => todayIn(timeZone));
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [showTasks, setShowTasks] = useState(savedTasksLayer);
+  const dueCards = useDueCards(range, showTasks);
   const [editor, setEditor] = useState<EditorTarget | null>(null);
   const { ask, dialog: scopeDialog } = useScopeDialog();
 
@@ -138,7 +169,7 @@ function Workspace({ session }: { session: ActiveSession }) {
   }, [searchStr, router, timeZone]);
   const events = useMemo<EventInput[]>(() => {
     const byId = new Map(calendarList.map((c) => [c.id, c]));
-    return (occurrences.data ?? [])
+    const list: EventInput[] = (occurrences.data ?? [])
       .filter((o) => byId.get(o.calendarId)?.visible !== false)
       .filter((o) => typeFilter === "all" || o.type === typeFilter)
       .map((o) => {
@@ -155,7 +186,9 @@ function Workspace({ session }: { session: ActiveSession }) {
           extendedProps: { occurrence: o },
         };
       });
-  }, [occurrences.data, calendarList, typeFilter, timeZone]);
+    const tasks = showTasks ? (dueCards.data ?? []).map((card) => taskEvent(card, timeZone)) : [];
+    return [...list, ...tasks];
+  }, [occurrences.data, dueCards.data, showTasks, calendarList, typeFilter, timeZone]);
 
   const api = () => calendarRef.current?.getApi();
 
@@ -183,6 +216,13 @@ function Workspace({ session }: { session: ActiveSession }) {
 
   function onEventClick(arg: EventClickArg) {
     arg.jsEvent.preventDefault();
+    const task = arg.event.extendedProps.task as DueCard | undefined;
+    if (task) {
+      const url = new URL(`/tableros/${task.boardId}`, currentAppOrigins().work);
+      url.searchParams.set("tarjeta", task.id);
+      window.location.assign(url.href);
+      return;
+    }
     setEditor({ kind: "edit", occurrence: arg.event.extendedProps.occurrence as Occurrence });
   }
 
@@ -302,9 +342,25 @@ function Workspace({ session }: { session: ActiveSession }) {
               {label}
             </label>
           ))}
-          <label className="flex items-center gap-2 py-1 text-sm text-muted-foreground">
-            <input type="checkbox" disabled />
-            Tareas (llegan con el tablero)
+          <label className="flex items-center gap-2 py-1 text-sm">
+            <input
+              type="checkbox"
+              checked={showTasks}
+              onChange={(e) => {
+                setShowTasks(e.target.checked);
+                try {
+                  localStorage.setItem(TASKS_KEY, e.target.checked ? "on" : "off");
+                } catch {
+                  // Sin almacenamiento: se recuerda solo durante la visita.
+                }
+              }}
+            />
+            <span
+              aria-hidden="true"
+              className="size-2.5 rounded-sm"
+              style={{ backgroundColor: TASK_COLOR }}
+            />
+            Tareas con fecha límite
           </label>
         </fieldset>
       </aside>
