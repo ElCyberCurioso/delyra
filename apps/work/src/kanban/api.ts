@@ -178,7 +178,11 @@ export async function uploadAttachment(cardId: string, file: File): Promise<Card
 
 export const attachmentUrl = (id: string) => `/api/attachments/${id}`;
 
-/** Tras cambiar una tarjeta: su detalle y el tablero (contadores, etiquetas…) se refrescan. */
+/**
+ * Tras cambiar una tarjeta: su detalle y el tablero (contadores, etiquetas…) se actualizan al
+ * momento y el tablero se vuelve a pedir. Invalidar cancela cualquier petición del tablero que
+ * ya estuviera en curso: si no, una respuesta anterior al cambio podría llegar después y pisarlo.
+ */
 export function applyCard(queryClient: QueryClient, card: CardDetail) {
   queryClient.setQueryData(cardKey(card.id), card);
   queryClient.setQueryData<BoardDetail>(boardKey(card.boardId), (board) => {
@@ -187,5 +191,6 @@ export function applyCard(queryClient: QueryClient, card: CardDetail) {
     // Las archivadas salen del tablero.
     return { ...board, cards: card.archivedAt ? rest : [...rest, card] };
   });
+  void queryClient.invalidateQueries({ queryKey: boardKey(card.boardId), exact: true });
   void queryClient.invalidateQueries({ queryKey: BOARDS_KEY });
 }

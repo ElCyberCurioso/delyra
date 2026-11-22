@@ -35,8 +35,35 @@ async function drag(page: Page, source: Locator, target: Locator) {
 }
 
 /** Lo que anuncia dnd-kit a los lectores de pantalla (y señal de que el paso ya se aplicó). */
-const announced = (page: Page, text: string) =>
-  expect(page.getByRole("status").filter({ hasText: text })).toBeAttached();
+const announced = (page: Page, text: string, timeout?: number) =>
+  expect(page.getByRole("status").filter({ hasText: text })).toBeAttached({ timeout });
+
+/**
+ * Gesto de teclado completo: coger con espacio, flechas y soltar. El sensor de dnd-kit empieza a
+ * escuchar las teclas en un `setTimeout` tras coger, así que se deja una pausa como la de una
+ * persona; si aun así se pierde una tecla (timers lentos en CI), se cancela con Escape y se repite.
+ */
+async function keyboardDrag(
+  page: Page,
+  handle: Locator,
+  pickedUp: string,
+  steps: [key: string, announcement: string][],
+) {
+  let attempt = 0;
+  await expect(async () => {
+    // Un intento anterior a medias se cancela antes de repetir.
+    if (attempt++ > 0) await page.keyboard.press("Escape");
+    await handle.focus();
+    await page.keyboard.press("Space");
+    await announced(page, pickedUp, 2_000);
+    await page.waitForTimeout(250);
+    for (const [key, text] of steps) {
+      await page.keyboard.press(key);
+      await announced(page, text, 2_000);
+    }
+    await page.keyboard.press("Space");
+  }).toPass({ timeout: 30_000 });
+}
 
 const titles = async (col: Locator) =>
   (await cardsIn(col).allInnerTexts()).map((text) => text.split("\n").at(-1)?.trim() ?? "");
@@ -78,22 +105,21 @@ test("tablero: plantilla, arrastrar con ratón y teclado, reordenar columnas", a
   await expect(cardsIn(column(page, "Por hacer"))).toHaveCount(2);
 
   // Teclado: «Llaves» sube al principio de su columna (espacio, flecha arriba, espacio).
-  const keys = cardsIn(column(page, "Por hacer")).filter({ hasText: "Llaves" });
-  await keys.focus();
-  await page.keyboard.press("Space");
-  await announced(page, "«Llaves» está en su sitio, en «Por hacer».");
-  await page.keyboard.press("ArrowUp");
-  await announced(page, "«Llaves» está sobre «Furgoneta», en «Por hacer».");
-  await page.keyboard.press("Space");
+  await keyboardDrag(
+    page,
+    cardsIn(column(page, "Por hacer")).filter({ hasText: "Llaves" }),
+    "«Llaves» está en su sitio, en «Por hacer».",
+    [["ArrowUp", "«Llaves» está sobre «Furgoneta», en «Por hacer»."]],
+  );
   await expect.poll(() => titles(column(page, "Por hacer"))).toEqual(["Llaves", "Furgoneta"]);
 
   // Teclado entre columnas: «Furgoneta» a la derecha, a «Haciendo».
-  await cardsIn(column(page, "Por hacer")).filter({ hasText: "Furgoneta" }).focus();
-  await page.keyboard.press("Space");
-  await announced(page, "«Furgoneta» está en su sitio, en «Por hacer».");
-  await page.keyboard.press("ArrowRight");
-  await announced(page, "en «Haciendo»");
-  await page.keyboard.press("Space");
+  await keyboardDrag(
+    page,
+    cardsIn(column(page, "Por hacer")).filter({ hasText: "Furgoneta" }),
+    "«Furgoneta» está en su sitio, en «Por hacer».",
+    [["ArrowRight", "en «Haciendo»"]],
+  );
   await expect(cardsIn(column(page, "Haciendo")).filter({ hasText: "Furgoneta" })).toBeVisible();
 
   // Intro abre el detalle; desde ahí se mueve a «Hecho» y queda terminada.
@@ -107,14 +133,15 @@ test("tablero: plantilla, arrastrar con ratón y teclado, reordenar columnas", a
   await expect(cardsIn(column(page, "Hecho"))).toHaveText([/Llaves/]);
 
   // Columnas: «Hecho» al principio con el teclado desde su asa.
-  await page.getByRole("button", { name: "Mover la columna Hecho" }).focus();
-  await page.keyboard.press("Space");
-  await announced(page, "Columna «Hecho» en su sitio.");
-  await page.keyboard.press("ArrowLeft");
-  await announced(page, "Columna «Hecho» junto a «Haciendo».");
-  await page.keyboard.press("ArrowLeft");
-  await announced(page, "Columna «Hecho» junto a «Por hacer».");
-  await page.keyboard.press("Space");
+  await keyboardDrag(
+    page,
+    page.getByRole("button", { name: "Mover la columna Hecho" }),
+    "Columna «Hecho» en su sitio.",
+    [
+      ["ArrowLeft", "Columna «Hecho» junto a «Haciendo»."],
+      ["ArrowLeft", "Columna «Hecho» junto a «Por hacer»."],
+    ],
+  );
   await expect(page.getByTestId("column").getByRole("heading", { level: 2 })).toHaveText([
     "Hecho",
     "Por hacer",
