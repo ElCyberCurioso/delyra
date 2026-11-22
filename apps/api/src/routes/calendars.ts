@@ -32,6 +32,7 @@ const dto = (row: Calendar) => ({
   kind: row.kind,
   visible: row.visible,
   position: row.position,
+  readOnly: row.readOnly,
 });
 
 export const calendarRoutes = new Hono<AppEnv>()

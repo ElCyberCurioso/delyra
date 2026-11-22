@@ -89,6 +89,8 @@ export const calendarSchema = z.object({
   kind: z.enum(CALENDAR_KINDS),
   visible: z.boolean(),
   position: z.number(),
+  /** Suscripción iCal (F5-06): sus eventos no se pueden crear, mover ni editar. */
+  readOnly: z.boolean(),
 });
 export type CalendarInfo = z.infer<typeof calendarSchema>;
 

@@ -70,6 +70,7 @@ const server = setupServer(
           kind: "personal",
           visible: true,
           position: 0,
+          readOnly: false,
         },
       ],
     }),
@@ -150,6 +151,101 @@ function renderAt(path: string) {
   );
   return router;
 }
+
+const IMPORT_ID = "01a1fa43-8aed-7103-b1ae-9ca51d835999";
+
+function importInfo(status: "ready" | "importing" | "succeeded") {
+  return {
+    id: IMPORT_ID,
+    source: "file",
+    status,
+    filename: "takeout.zip",
+    calendars: [
+      {
+        key: "0",
+        name: "Personal",
+        color: null,
+        timeZone: "Europe/Madrid",
+        events: 120,
+        recurring: 4,
+        withReminders: 30,
+        birthdays: 0,
+        firstStart: "2024-01-08T09:00:00.000Z",
+        lastStart: "2026-12-28T09:00:00.000Z",
+        suggestedCalendarId: CALENDAR_ID,
+        suggestSkip: false,
+      },
+      {
+        key: "1",
+        name: "Festivos en España",
+        color: "#16a765",
+        timeZone: "Europe/Madrid",
+        events: 40,
+        recurring: 0,
+        withReminders: 0,
+        birthdays: 0,
+        firstStart: null,
+        lastStart: null,
+        suggestedCalendarId: null,
+        suggestSkip: true,
+      },
+    ],
+    warnings: ["Se han descartado 2 eventos"],
+    progress: { done: status === "succeeded" ? 120 : 0, total: 120 },
+    report:
+      status === "succeeded"
+        ? { created: 118, updated: 0, unchanged: 2, skipped: 0, calendars: [], warnings: [] }
+        : null,
+    error: null,
+    createdAt: "2026-11-22T10:00:00.000Z",
+    finishedAt: status === "succeeded" ? "2026-11-22T10:01:00.000Z" : null,
+  };
+}
+
+describe("Importar desde Google (F5-03)", () => {
+  it("vista previa: destino sugerido, festivos sin importar y el informe al terminar", async () => {
+    sessionState = "active";
+    let status: "ready" | "succeeded" = "ready";
+    server.use(
+      http.get(`/api/imports/${IMPORT_ID}`, () =>
+        HttpResponse.json({ import: importInfo(status) }),
+      ),
+      http.post(`/api/imports/${IMPORT_ID}/start`, async ({ request }) => {
+        requests.push({ path: "start", body: await request.json() });
+        status = "succeeded";
+        return HttpResponse.json({ import: importInfo("importing") }, { status: 202 });
+      }),
+    );
+    renderAt(`/importar?import=${IMPORT_ID}`);
+    const user = userEvent.setup();
+    const personal = await screen.findByLabelText("Destino de «Personal»");
+    expect(personal).toHaveValue(CALENDAR_ID);
+    expect(screen.getByLabelText("Destino de «Festivos en España»")).toHaveValue("skip");
+    expect(screen.getByText(/120 eventos · 4 series · 30 con alertas/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Importar" }));
+    expect(requests.find((r) => r.path === "start")?.body).toEqual({
+      reminders: true,
+      calendars: [
+        { key: "0", target: "existing", calendarId: CALENDAR_ID },
+        { key: "1", target: "skip" },
+      ],
+    });
+    expect(
+      await screen.findByText("Importación terminada", {}, { timeout: 4000 }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("118")).toBeInTheDocument();
+  });
+
+  it("las páginas de privacidad y condiciones son públicas", async () => {
+    sessionState = "anonymous";
+    renderAt("/privacidad");
+    expect(
+      await screen.findByRole("heading", { name: "Política de privacidad" }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(/calendar\.readonly/).length).toBeGreaterThan(0);
+  });
+});
 
 describe("App (calendario)", () => {
   it("con sesión completa muestra el calendario con los eventos del rango visible", async () => {

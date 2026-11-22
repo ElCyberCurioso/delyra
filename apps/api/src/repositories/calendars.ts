@@ -37,6 +37,7 @@ export function calendarRepository(db: Database, ownerId: string) {
       color: string;
       kind?: Calendar["kind"];
       position?: number;
+      readOnly?: boolean;
     }): Promise<Calendar> {
       const now = new Date();
       const [row] = await db
@@ -48,6 +49,7 @@ export function calendarRepository(db: Database, ownerId: string) {
           color: input.color,
           kind: input.kind ?? "custom",
           position: input.position ?? (await this.count()),
+          readOnly: input.readOnly ?? false,
           createdAt: now,
           updatedAt: now,
         })

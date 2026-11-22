@@ -19,8 +19,10 @@
     "@delyra/shared": "workspace:*",
     "@hono/zod-validator": "0.9.1",
     "drizzle-orm": "0.45.4",
+    "fflate": "0.8.3",
     "fractional-indexing": "4.0.0",
     "hono": "4.13.19",
+    "ical.js": "2.2.1",
     "rrule": "2.8.1",
     "zod": "4.6.7"
   },

@@ -195,8 +195,11 @@ function Workspace({ session }: { session: ActiveSession }) {
       .filter((o) => byId.get(o.calendarId)?.visible !== false)
       .filter((o) => typeFilter === "all" || o.type === typeFilter)
       .map((o) => {
-        const color = byId.get(o.calendarId)?.color ?? "#7c5cff";
+        const calendar = byId.get(o.calendarId);
+        const color = calendar?.color ?? "#7c5cff";
         return {
+          // Suscripción iCal (F5-06): se ve, pero no se arrastra ni se redimensiona.
+          ...(calendar?.readOnly ? { editable: false } : {}),
           id: o.id,
           title: o.age !== null ? `${o.title} (${String(o.age)})` : o.title,
           start: toCalendarTime(o.start, o.allDay, timeZone),
@@ -449,7 +452,11 @@ function Workspace({ session }: { session: ActiveSession }) {
           </div>
         </div>
         <div className="grid gap-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <QuickAdd calendars={calendarList} timeZone={timeZone} onMoreOptions={setEditor} />
+          <QuickAdd
+            calendars={calendarList.filter((c) => !c.readOnly)}
+            timeZone={timeZone}
+            onMoreOptions={setEditor}
+          />
           <SearchBox calendars={calendarList} timeZone={timeZone} onOpen={openFromSearch} />
         </div>
         {occurrences.isError ? (

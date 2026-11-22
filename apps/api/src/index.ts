@@ -3,8 +3,12 @@ import { createDb } from "./db/client";
 import { runAutoarchive } from "./jobs/autoarchive";
 import { handleNotificationBatch } from "./jobs/notifications-consumer";
 import { runScheduler } from "./jobs/scheduler";
+import { keyringFromEnv } from "./lib/field-crypto";
 import { createLogger } from "./lib/logger";
+import { purgeStaleGoogleTokens } from "./services/imports";
+import { syncDueSubscriptions } from "./services/subscriptions";
 
+export { ImportWorkflow } from "./jobs/import-workflow";
 export { SystemBackupWorkflow } from "./jobs/system-backup";
 
 const app = createApp();
@@ -28,8 +32,21 @@ export default {
             logger.error("autoarchive_failed", { error });
           }),
       );
+      ctx.waitUntil(
+        purgeStaleGoogleTokens(createDb(env.DB), Date.now()).catch((error: unknown) => {
+          logger.error("google_token_purge_failed", { error });
+        }),
+      );
       return;
     }
+    // F5-06: suscripciones iCal, cada hora cada una (unas pocas por minuto).
+    ctx.waitUntil(
+      keyringFromEnv(env)
+        .then((keyring) => syncDueSubscriptions(createDb(env.DB), keyring, Date.now(), logger))
+        .catch((error: unknown) => {
+          logger.error("subscriptions_sync_failed", { error });
+        }),
+    );
     ctx.waitUntil(
       runScheduler({
         db: createDb(env.DB),

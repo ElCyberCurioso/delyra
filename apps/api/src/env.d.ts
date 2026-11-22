@@ -17,6 +17,9 @@ interface Env {
   TELEGRAM_BOT_TOKEN?: string;
   /** Secreto que Telegram envía en `X-Telegram-Bot-Api-Secret-Token` (F3-03). */
   TELEGRAM_WEBHOOK_SECRET?: string;
+  /** Cliente OAuth web de Google (P-11). Sin los dos, la conexión con Google no aparece. */
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
 }
 
 declare namespace Cloudflare {
@@ -28,5 +31,7 @@ declare namespace Cloudflare {
     EMAIL?: SendEmail;
     TELEGRAM_BOT_TOKEN?: string;
     TELEGRAM_WEBHOOK_SECRET?: string;
+    GOOGLE_CLIENT_ID?: string;
+    GOOGLE_CLIENT_SECRET?: string;
   }
 }

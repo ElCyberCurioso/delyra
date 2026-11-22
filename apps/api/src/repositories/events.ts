@@ -125,6 +125,79 @@ export function eventRepository(db: Database, ownerId: string) {
         );
     },
 
+    // ── Importación (F5-02, F5-06) ────────────────────────────────────────────
+
+    /**
+     * Series y eventos sueltos con alguno de estos UID. Con `calendarId`, solo los de ese
+     * calendario (suscripción); sin él, los de cualquier calendario del usuario que se pueda
+     * escribir (una importación repetida actualiza el evento donde esté).
+     */
+    async findByUids(
+      uids: readonly string[],
+      scope: { calendarId: string } | { writableCalendarIds: readonly string[] },
+    ): Promise<EventRow[]> {
+      if (uids.length === 0) return [];
+      const where =
+        "calendarId" in scope
+          ? eq(events.calendarId, scope.calendarId)
+          : scope.writableCalendarIds.length > 0
+            ? inArray(events.calendarId, [...scope.writableCalendarIds])
+            : sql`0`;
+      const rows: EventRow[] = [];
+      // D1 admite como mucho 100 parámetros por consulta.
+      for (let i = 0; i < uids.length; i += 80) {
+        rows.push(
+          ...(await db
+            .select()
+            .from(events)
+            .where(
+              and(
+                live,
+                isNull(events.recurringEventId),
+                inArray(events.icalUid, uids.slice(i, i + 80)),
+                where,
+              ),
+            )),
+        );
+      }
+      return rows;
+    },
+
+    /** Series y eventos sueltos de un calendario con su UID (sincronización de suscripciones). */
+    async uidsOfCalendar(calendarId: string): Promise<{ id: string; icalUid: string | null }[]> {
+      return db
+        .select({ id: events.id, icalUid: events.icalUid })
+        .from(events)
+        .where(and(live, eq(events.calendarId, calendarId), isNull(events.recurringEventId)));
+    },
+
+    /** Borra de verdad (una suscripción refleja el origen; no hay papelera que conservar). */
+    async hardDelete(ids: readonly string[]): Promise<void> {
+      for (let i = 0; i < ids.length; i += 80) {
+        const chunk = ids.slice(i, i + 80);
+        await db.batch([
+          db
+            .delete(reminders)
+            .where(
+              and(
+                eq(reminders.ownerId, ownerId),
+                eq(reminders.targetType, "event"),
+                inArray(reminders.targetId, chunk),
+              ),
+            ),
+          db.delete(events).where(and(eq(events.ownerId, ownerId), inArray(events.id, chunk))),
+        ]);
+      }
+    },
+
+    async countInCalendar(calendarId: string): Promise<number> {
+      const [row] = await db
+        .select({ total: sql<number>`count(*)` })
+        .from(events)
+        .where(and(live, eq(events.calendarId, calendarId), isNull(events.recurringEventId)));
+      return row?.total ?? 0;
+    },
+
     // ── Consultas por rango y búsqueda ─────────────────────────────────────────
 
     /** Eventos sueltos y series que pueden tener ocurrencias en `[from, to)`. */

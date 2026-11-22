@@ -91,8 +91,20 @@ function normalizeRrule(value: string | null | undefined): string | null {
 
 async function requireCalendar(ctx: EventContext, calendarId: string) {
   // Un calendario ajeno responde igual que uno inexistente.
-  if (!(await ctx.calendars.get(calendarId))) {
-    throw invalidField("calendarId", "Calendario no encontrado");
+  const calendar = await ctx.calendars.get(calendarId);
+  if (!calendar) throw invalidField("calendarId", "Calendario no encontrado");
+  if (calendar.readOnly) {
+    throw invalidField("calendarId", "Ese calendario es una suscripción de solo lectura");
+  }
+}
+
+/** Los eventos de una suscripción iCal (F5-06) solo los cambia su sincronización. */
+async function requireWritable(ctx: EventContext, row: EventRow) {
+  const calendar = await ctx.calendars.get(row.calendarId);
+  if (calendar?.readOnly) {
+    throw new AppError(409, {
+      detail: "Este evento es de una suscripción de solo lectura y no se puede cambiar",
+    });
   }
 }
 
@@ -307,6 +319,7 @@ export async function createEvent(ctx: EventContext, input: CreateEventRequest):
     originalStart: null,
     birthYear: null,
     feb29Rule: null,
+    icalUid: null,
     ...(birthday ? birthdayFields(startAt, input) : {}),
   };
   fields.seriesEndAt = seriesEnd(seriesOf(fields));
@@ -458,6 +471,7 @@ async function updateThis(
         exdates: "[]",
         recurringEventId: master.id,
         originalStart: occurrenceStart,
+        icalUid: null,
       };
   const next = applyPatch(base, input);
   // Una excepción no se repite: es una ocurrencia suelta que sustituye a la original.
@@ -482,6 +496,8 @@ async function updateFollowing(
     ...fieldsOf(master),
     startAt: occurrenceStart,
     endAt: occurrenceStart + (master.endAt - master.startAt),
+    // La serie nueva ya no es la del origen importado: un UID por serie y calendario.
+    icalUid: null,
   };
   const next = applyPatch(base, input);
   next.rrule = input.rrule !== undefined ? normalizeRrule(input.rrule) : split.after;
@@ -526,6 +542,7 @@ export async function updateEvent(
   input: UpdateEventRequest,
 ): Promise<EventRow> {
   const { master, occurrenceStart } = await loadTarget(ctx, id);
+  await requireWritable(ctx, master);
   if (input.calendarId !== undefined) await requireCalendar(ctx, input.calendarId);
 
   const scope: EditScope = master.type === "birthday" ? "all" : (input.scope ?? "all");
@@ -547,6 +564,7 @@ export async function deleteEvent(
   occurrenceValue: string | undefined,
 ): Promise<void> {
   const { master, occurrenceStart } = await loadTarget(ctx, id);
+  await requireWritable(ctx, master);
   // Un cumpleaños se puede quitar un año («solo este») o entero; no tiene «los siguientes».
   const scope: EditScope =
     master.type === "birthday" && requestedScope === "following" ? "all" : requestedScope;

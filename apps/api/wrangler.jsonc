@@ -81,6 +81,12 @@
       "binding": "SYSTEM_BACKUP",
       "class_name": "SystemBackupWorkflow",
     },
+    // F5-02: importaciones de Google Calendar (.ics, .zip y API) por lotes.
+    {
+      "name": "delyra-import-local",
+      "binding": "IMPORT_WORKFLOW",
+      "class_name": "ImportWorkflow",
+    },
   ],
 
   "env": {
@@ -148,6 +154,11 @@
           "class_name": "SystemBackupWorkflow",
           // 02:00 UTC todos los días.
           "schedules": ["0 2 * * *"],
+        },
+        {
+          "name": "delyra-import",
+          "binding": "IMPORT_WORKFLOW",
+          "class_name": "ImportWorkflow",
         },
       ],
     },

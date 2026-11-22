@@ -37,6 +37,11 @@ export async function sha256Hex(value: string | Uint8Array): Promise<string> {
   return toHex(await crypto.subtle.digest("SHA-256", data));
 }
 
+/** SHA-256 en base64url (p. ej. el `code_challenge` S256 de PKCE). */
+export async function sha256Base64Url(value: string): Promise<string> {
+  return toBase64Url(new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(value))));
+}
+
 export async function hmacSha256Hex(key: string, value: string): Promise<string> {
   const cryptoKey = await crypto.subtle.importKey(
     "raw",

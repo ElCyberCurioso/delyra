@@ -14,7 +14,9 @@ import { authRoutes } from "./routes/auth";
 import { calendarRoutes } from "./routes/calendars";
 import { cspReportRoutes } from "./routes/csp-report";
 import { eventRoutes } from "./routes/events";
+import { googleRoutes } from "./routes/google";
 import { healthRoutes } from "./routes/health";
+import { importRoutes } from "./routes/imports";
 import {
   attachmentRoutes,
   boardRoutes,
@@ -24,6 +26,7 @@ import {
   commentRoutes,
   labelRoutes,
 } from "./routes/kanban";
+import { subscriptionRoutes } from "./routes/subscriptions";
 import { telegramWebhookRoutes } from "./routes/telegram";
 import type { AppEnv } from "./types";
 
@@ -32,8 +35,8 @@ import type { AppEnv } from "./types";
  * todas las rutas cuelgan de `/api`. El middleware se aplica a cualquier ruta, incluidas
  * las inexistentes, para que todo error lleve request id y cabeceras de seguridad.
  */
-/** Subida de adjuntos: cuerpo binario en streaming (F4-06). */
-const UPLOAD_PATH = /^\/api\/cards\/[^/]+\/attachments$/;
+/** Subidas en streaming: adjuntos (F4-06) e importaciones de calendarios (F5-02). */
+const UPLOAD_PATH = /^\/api\/(?:cards\/[^/]+\/attachments|imports)$/;
 
 export function createApp() {
   const app = new Hono<AppEnv>();
@@ -52,7 +55,7 @@ export function createApp() {
       rawBodyPaths: [UPLOAD_PATH],
     }),
   );
-  // 64 KB para todo salvo la subida de adjuntos, que limita su propio tamaño (F4-06).
+  // 64 KB para todo salvo las subidas, que limitan su propio tamaño (F4-06, F5-02).
   const jsonLimit: MiddlewareHandler<AppEnv> = bodyLimit({
     maxSize: 64 * 1024,
     onError: () => {
@@ -86,6 +89,9 @@ export function createApp() {
   api.route("/checklist", checklistRoutes);
   api.route("/comments", commentRoutes);
   api.route("/attachments", attachmentRoutes);
+  api.route("/imports", importRoutes);
+  api.route("/google", googleRoutes);
+  api.route("/subscriptions", subscriptionRoutes);
   app.route("/api", api);
 
   app.notFound(notFoundHandler);

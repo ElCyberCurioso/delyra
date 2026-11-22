@@ -19,6 +19,9 @@ export default defineConfig({
             TELEGRAM_BOT_TOKEN: "123456:token-de-prueba",
             TELEGRAM_WEBHOOK_SECRET: "secreto-del-webhook-de-prueba",
             TELEGRAM_BOT_USERNAME: "DelyraPruebasBot",
+            // Cliente OAuth ficticio: accounts.google.com y googleapis.com se simulan (F5-07).
+            GOOGLE_CLIENT_ID: "cliente-de-prueba.apps.googleusercontent.com",
+            GOOGLE_CLIENT_SECRET: "secreto-oauth-de-prueba",
           },
         },
       };

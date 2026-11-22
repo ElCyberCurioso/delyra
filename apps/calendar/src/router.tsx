@@ -65,6 +65,22 @@ const routeTree = rootRoute.addChildren([
   }),
   createRoute({
     getParentRoute: () => rootRoute,
+    path: "/importar",
+    component: lazyRouteComponent(() => import("./imports/import-page"), "ImportPage"),
+  }),
+  // Públicas (pantalla de consentimiento de Google, F5-04).
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/privacidad",
+    component: lazyRouteComponent(() => import("./legal/legal-pages"), "PrivacyPage"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/terminos",
+    component: lazyRouteComponent(() => import("./legal/legal-pages"), "TermsPage"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
     path: "/admin",
     component: lazyRouteComponent(() => import("./admin/admin-page"), "AdminPage"),
   }),

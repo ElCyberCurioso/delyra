@@ -44,6 +44,8 @@ export const calendars = sqliteTable(
     kind: text("kind", { enum: CALENDAR_KINDS }).notNull().default("custom"),
     visible: integer("visible", { mode: "boolean" }).notNull().default(true),
     position: integer("position").notNull().default(0),
+    /** Calendario de una suscripción iCal (F5-06): sus eventos solo los cambia la sincronización. */
+    readOnly: integer("read_only", { mode: "boolean" }).notNull().default(false),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },
@@ -86,6 +88,8 @@ export const events = sqliteTable(
     /** Cumpleaños: año de nacimiento (opcional) y qué día se celebra en años no bisiestos. */
     birthYear: integer("birth_year"),
     feb29Rule: text("feb29_rule", { enum: FEB29_RULES }),
+    /** `UID` de origen (ICS o Google) de un evento importado: evita duplicados (F5-02). */
+    icalUid: text("ical_uid"),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
     deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
@@ -94,6 +98,13 @@ export const events = sqliteTable(
     index("events_owner_start_idx").on(t.ownerId, t.startAt),
     index("events_calendar_idx").on(t.calendarId),
     uniqueIndex("events_override_idx").on(t.recurringEventId, t.originalStart),
+    // Un mismo UID solo una vez por calendario (las excepciones lo comparten con su serie).
+    uniqueIndex("events_ical_uid_idx")
+      .on(t.calendarId, t.icalUid)
+      .where(sql`"ical_uid" IS NOT NULL AND "recurring_event_id" IS NULL AND "deleted_at" IS NULL`),
+    index("events_owner_uid_idx")
+      .on(t.ownerId, t.icalUid)
+      .where(sql`"ical_uid" IS NOT NULL`),
     check("events_type_check", sql`"type" IN (${quoted(EVENT_TYPES)})`),
     check("events_range_check", sql`"end_at" > "start_at"`),
   ],

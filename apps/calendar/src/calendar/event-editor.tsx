@@ -13,6 +13,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   errorMessage,
@@ -35,7 +36,7 @@ import {
   toRrule,
 } from "./presets";
 import { useScopeDialog } from "./scope-dialog";
-import { joinInstant, shiftSeries, splitInstant, wallDelta } from "./time";
+import { describeWhen, joinInstant, shiftSeries, splitInstant, wallDelta } from "./time";
 
 const DAY_MS = 86_400_000;
 
@@ -661,6 +662,60 @@ function EditorForm({
   );
 }
 
+/** Detalle de un evento de una suscripción: se lee aquí y se cambia en Google Calendar. */
+function ReadOnlyEvent({
+  occurrence,
+  calendar,
+  timeZone,
+  onClose,
+}: {
+  occurrence: Occurrence;
+  calendar: CalendarInfo | undefined;
+  timeZone: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="grid gap-4 text-sm">
+      <div>
+        <p className="text-base font-semibold break-words">{occurrence.title}</p>
+        <p className="text-muted-foreground">{describeWhen(occurrence, timeZone)}</p>
+      </div>
+      <dl className="grid gap-2">
+        {calendar ? (
+          <div className="flex items-center gap-2">
+            <dt className="sr-only">Calendario</dt>
+            <span
+              aria-hidden="true"
+              className="size-3 rounded-full"
+              style={{ backgroundColor: calendar.color }}
+            />
+            <dd>{calendar.name}</dd>
+          </div>
+        ) : null}
+        {occurrence.location ? (
+          <div>
+            <dt className="font-medium">Ubicación</dt>
+            <dd className="break-words">{occurrence.location}</dd>
+          </div>
+        ) : null}
+        {occurrence.notes ? (
+          <div>
+            <dt className="font-medium">Notas</dt>
+            <dd className="break-words whitespace-pre-wrap">{occurrence.notes}</dd>
+          </div>
+        ) : null}
+      </dl>
+      <p className="rounded-md bg-muted p-3 text-muted-foreground">
+        Viene de una suscripción de Google Calendar y se actualiza sola cada hora. Para cambiarlo,
+        hazlo en Google Calendar.
+      </p>
+      <DialogFooter>
+        <Button onClick={onClose}>Cerrar</Button>
+      </DialogFooter>
+    </div>
+  );
+}
+
 /** Panel de creación y edición de eventos y cumpleaños (F2-09). */
 export function EventEditor({
   target,
@@ -674,6 +729,11 @@ export function EventEditor({
   onClose: () => void;
 }) {
   const eventId = target?.kind === "edit" ? target.occurrence.eventId : null;
+  // Los eventos de una suscripción iCal (F5-06) solo se consultan.
+  const readOnly =
+    target?.kind === "edit" &&
+    calendars.find((c) => c.id === target.occurrence.calendarId)?.readOnly === true;
+  const writable = calendars.filter((c) => !c.readOnly);
   const detail = useQuery({
     queryKey: ["event", eventId],
     enabled: eventId !== null,
@@ -681,9 +741,10 @@ export function EventEditor({
     staleTime: 0,
   });
   // Sin calendarios aún (primera carga) el formulario no tendría uno por defecto.
-  const ready = target !== null && calendars.length > 0 && (eventId === null || detail.isSuccess);
-  const title =
-    target?.kind === "edit"
+  const ready = target !== null && writable.length > 0 && (eventId === null || detail.isSuccess);
+  const title = readOnly
+    ? "Evento de una suscripción"
+    : target?.kind === "edit"
       ? target.occurrence.type === "birthday"
         ? "Editar cumpleaños"
         : "Editar evento"
@@ -699,12 +760,19 @@ export function EventEditor({
           </DialogDescription>
         </DialogHeader>
         {detail.isError ? <p role="alert">{errorMessage(detail.error)}</p> : null}
-        {ready ? (
+        {readOnly && target.kind === "edit" ? (
+          <ReadOnlyEvent
+            occurrence={target.occurrence}
+            calendar={calendars.find((c) => c.id === target.occurrence.calendarId)}
+            timeZone={timeZone}
+            onClose={onClose}
+          />
+        ) : ready ? (
           <EditorForm
             key={target.kind === "edit" ? target.occurrence.id : `${target.start}-${target.end}`}
             target={target}
             detail={detail.data}
-            calendars={calendars}
+            calendars={writable}
             timeZone={timeZone}
             onClose={onClose}
           />

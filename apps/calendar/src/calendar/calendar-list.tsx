@@ -19,7 +19,8 @@ import {
   toast,
 } from "@delyra/ui";
 import { useQueryClient } from "@tanstack/react-query";
-import { MoreHorizontalIcon, PlusIcon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { DownloadIcon, LockIcon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import {
   CALENDARS_KEY,
@@ -29,7 +30,13 @@ import {
   useInvalidateEvents,
 } from "./api";
 
-function ColorPicker({ value, onChange }: { value: string; onChange: (color: string) => void }) {
+export function ColorPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (color: string) => void;
+}) {
   return (
     <fieldset>
       <legend className="mb-1.5 text-sm font-medium">Color</legend>
@@ -175,6 +182,12 @@ export function CalendarList({ calendars }: { calendars: readonly CalendarInfo[]
                 onChange={() => void toggle(calendar)}
               />
               <span className="truncate">{calendar.name}</span>
+              {calendar.readOnly ? (
+                <LockIcon
+                  aria-label="Suscripción de solo lectura"
+                  className="size-3.5 shrink-0 text-muted-foreground"
+                />
+              ) : null}
             </label>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -196,13 +209,20 @@ export function CalendarList({ calendars }: { calendars: readonly CalendarInfo[]
                   disabled={calendars.length <= 1}
                   onSelect={() => setRemoving(calendar)}
                 >
-                  Borrar
+                  {calendar.readOnly ? "Quitar suscripción" : "Borrar"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </li>
         ))}
       </ul>
+      <Link
+        to="/importar"
+        className="mt-1 flex items-center gap-2 rounded-md px-1 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+      >
+        <DownloadIcon aria-hidden="true" className="size-4" />
+        Importar desde Google
+      </Link>
       {editing ? (
         <CalendarDialog
           key={editing.kind === "edit" ? editing.calendar.id : "new"}

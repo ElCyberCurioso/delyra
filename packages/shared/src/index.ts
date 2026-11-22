@@ -8,6 +8,7 @@ export * from "./schemas/account";
 export * from "./schemas/auth";
 export * from "./schemas/calendar";
 export * from "./schemas/health";
+export * from "./schemas/imports";
 export * from "./schemas/kanban";
 export * from "./schemas/telegram";
 export * from "./security-headers";

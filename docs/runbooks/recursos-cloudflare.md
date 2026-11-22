@@ -30,6 +30,9 @@ Reglas de ciclo de vida que crea el script:
 
 Las reglas de `weekly/` y `monthly/` llegan con F6-08.
 
+Los Workflows (`delyra-system-backup` y, desde F5-02, `delyra-import`) no se crean a mano: los
+crea `wrangler deploy` a partir de `apps/api/wrangler.jsonc`.
+
 ## 2. Conectar los identificadores
 
 En `apps/api/wrangler.jsonc`, dentro de `env.production`:
