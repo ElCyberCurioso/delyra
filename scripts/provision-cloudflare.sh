@@ -29,6 +29,12 @@ step "Ciclo de vida: backups diarios del sistema, 30 días (F0-14)"
 wrangler r2 bucket lifecycle add "delyra-backups" system-daily-30d "system/daily/" \
   --expire-days 30 --jurisdiction eu --force || true
 
+step "Ciclo de vida: backups semanales (12 semanas) y mensuales (12 meses) (F6-08)"
+wrangler r2 bucket lifecycle add "delyra-backups" system-weekly-84d "system/weekly/" \
+  --expire-days 84 --jurisdiction eu --force || true
+wrangler r2 bucket lifecycle add "delyra-backups" system-monthly-365d "system/monthly/" \
+  --expire-days 365 --jurisdiction eu --force || true
+
 step "Ciclo de vida: importaciones temporales, 7 días (F5-02)"
 wrangler r2 bucket lifecycle add "delyra-imports" imports-7d "" \
   --expire-days 7 --abort-multipart-days 1 --jurisdiction eu --force || true

@@ -6,6 +6,7 @@ export * from "./ids";
 export * from "./problem";
 export * from "./schemas/account";
 export * from "./schemas/auth";
+export * from "./schemas/backups";
 export * from "./schemas/calendar";
 export * from "./schemas/health";
 export * from "./schemas/imports";

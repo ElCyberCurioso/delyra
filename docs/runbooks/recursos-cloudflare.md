@@ -22,16 +22,19 @@ create` responde «maximum number of D1 databases», hace falta Workers Paid o l
 
 Reglas de ciclo de vida que crea el script:
 
-| Bucket               | Regla                | Efecto                                       |
-| -------------------- | -------------------- | -------------------------------------------- |
-| `delyra-backups`     | `system-daily-30d`   | Borra `system/daily/*` a los 30 días (F0-14) |
-| `delyra-imports`     | `imports-7d`         | Borra todo a los 7 días (F5-02)              |
-| `delyra-attachments` | `abort-multipart-1d` | Aborta subidas multiparte abandonadas        |
+| Bucket               | Regla                 | Efecto                                           |
+| -------------------- | --------------------- | ------------------------------------------------ |
+| `delyra-backups`     | `system-daily-30d`    | Borra `system/daily/*` a los 30 días (F0-14)     |
+| `delyra-backups`     | `system-weekly-84d`   | Borra `system/weekly/*` a las 12 semanas (F6-08) |
+| `delyra-backups`     | `system-monthly-365d` | Borra `system/monthly/*` a los 12 meses (F6-08)  |
+| `delyra-imports`     | `imports-7d`          | Borra todo a los 7 días (F5-02)                  |
+| `delyra-attachments` | `abort-multipart-1d`  | Aborta subidas multiparte abandonadas            |
 
-Las reglas de `weekly/` y `monthly/` llegan con F6-08.
+Las copias de los usuarios (`users/<id>/<copia>.zip`) no tienen regla: las borra la propia
+aplicación según cuántas se conservan (F6-03).
 
-Los Workflows (`delyra-system-backup` y, desde F5-02, `delyra-import`) no se crean a mano: los
-crea `wrangler deploy` a partir de `apps/api/wrangler.jsonc`.
+Los Workflows (`delyra-system-backup`, `delyra-import` desde F5-02 y `delyra-user-backup` desde
+F6-02) no se crean a mano: los crea `wrangler deploy` a partir de `apps/api/wrangler.jsonc`.
 
 ## 2. Conectar los identificadores
 

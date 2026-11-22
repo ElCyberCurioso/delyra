@@ -87,6 +87,12 @@
       "binding": "IMPORT_WORKFLOW",
       "class_name": "ImportWorkflow",
     },
+    // F6-02 a F6-04: copias de usuario y restauraciones.
+    {
+      "name": "delyra-user-backup-local",
+      "binding": "BACKUP_WORKFLOW",
+      "class_name": "BackupWorkflow",
+    },
   ],
 
   "env": {
@@ -159,6 +165,11 @@
           "name": "delyra-import",
           "binding": "IMPORT_WORKFLOW",
           "class_name": "ImportWorkflow",
+        },
+        {
+          "name": "delyra-user-backup",
+          "binding": "BACKUP_WORKFLOW",
+          "class_name": "BackupWorkflow",
         },
       ],
     },

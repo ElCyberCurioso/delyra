@@ -1,5 +1,6 @@
 import { AppShell, RequireSession, useLogout } from "@delyra/ui";
 import { useRouter } from "@tanstack/react-router";
+import { BackupsSection } from "./backups-section";
 import { PasswordSection, ProfileSection } from "./profile-section";
 import { ActivitySection, SessionsSection } from "./sessions-section";
 import { TelegramSection } from "./telegram-section";
@@ -10,6 +11,7 @@ const NAV = [
   { href: "#contrasena", label: "Contraseña" },
   { href: "#verificacion", label: "Verificación en dos pasos" },
   { href: "#telegram", label: "Telegram" },
+  { href: "#copias", label: "Copias de seguridad" },
   { href: "#sesiones", label: "Sesiones activas" },
   { href: "#actividad", label: "Actividad reciente" },
 ];
@@ -45,6 +47,7 @@ export function SettingsPage() {
               <PasswordSection />
               <TwoFactorSection session={session} />
               <TelegramSection session={session} />
+              <BackupsSection session={session} />
               <SessionsSection session={session} />
               <ActivitySection session={session} />
             </div>

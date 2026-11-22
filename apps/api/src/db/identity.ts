@@ -1,3 +1,4 @@
+import { BACKUP_FREQUENCIES } from "@delyra/shared";
 import { sql } from "drizzle-orm";
 import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
@@ -43,6 +44,12 @@ export const userSettings = sqliteTable("user_settings", {
   locale: text("locale").notNull().default("es"),
   /** 0 = domingo … 6 = sábado. */
   weekStart: integer("week_start").notNull().default(1),
+  /** Copia automática de los datos del usuario (F6-03): `off`, `daily`, `weekly`, `monthly`. */
+  backupFrequency: text("backup_frequency", { enum: BACKUP_FREQUENCIES })
+    .notNull()
+    .default("weekly"),
+  /** Copias automáticas que se conservan. */
+  backupKeep: integer("backup_keep").notNull().default(4),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
 

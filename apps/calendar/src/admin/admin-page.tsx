@@ -35,6 +35,7 @@ import { type FormEvent, useState } from "react";
 import { apiFieldErrors, type FieldErrors, formValues } from "../auth/form";
 import { formatDateTime } from "../settings/format";
 import { Section } from "../settings/section";
+import { SystemBackupsSection } from "./system-backups";
 
 const USERS_KEY = ["admin", "users"] as const;
 const INVITATIONS_KEY = ["admin", "invitations"] as const;
@@ -417,6 +418,7 @@ function AdminContent({ session }: { session: ActiveSession }) {
       <Section id="usuarios" title="Usuarios">
         <UsersList currentUserId={session.user.id} timeZone={timeZone} />
       </Section>
+      <SystemBackupsSection timeZone={timeZone} />
       <HealthStatus />
     </div>
   );

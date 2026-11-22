@@ -1,5 +1,6 @@
 import { createApp } from "./app";
 import { createDb } from "./db/client";
+import { scheduleAutoBackups } from "./jobs/auto-backups";
 import { runAutoarchive } from "./jobs/autoarchive";
 import { handleNotificationBatch } from "./jobs/notifications-consumer";
 import { runScheduler } from "./jobs/scheduler";
@@ -8,6 +9,7 @@ import { createLogger } from "./lib/logger";
 import { purgeStaleGoogleTokens } from "./services/imports";
 import { syncDueSubscriptions } from "./services/subscriptions";
 
+export { BackupWorkflow } from "./jobs/backup-workflow";
 export { ImportWorkflow } from "./jobs/import-workflow";
 export { SystemBackupWorkflow } from "./jobs/system-backup";
 
@@ -35,6 +37,12 @@ export default {
       ctx.waitUntil(
         purgeStaleGoogleTokens(createDb(env.DB), Date.now()).catch((error: unknown) => {
           logger.error("google_token_purge_failed", { error });
+        }),
+      );
+      // F6-03: copias automáticas de los usuarios a los que les toca.
+      ctx.waitUntil(
+        scheduleAutoBackups(env, Date.now(), logger).catch((error: unknown) => {
+          logger.error("auto_backups_failed", { error });
         }),
       );
       return;

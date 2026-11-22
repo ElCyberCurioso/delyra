@@ -31,7 +31,10 @@ export type AuditEvent =
   | "invitation.revoked"
   | "admin.user_disabled"
   | "admin.user_enabled"
-  | "admin.totp_reset";
+  | "admin.totp_reset"
+  | "admin.system_backup"
+  | "backup.restore_started"
+  | "backup.restore_undone";
 
 export async function audit(
   db: Database,

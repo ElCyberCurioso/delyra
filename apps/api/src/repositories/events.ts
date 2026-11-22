@@ -190,6 +190,34 @@ export function eventRepository(db: Database, ownerId: string) {
       }
     },
 
+    /** Series, eventos sueltos y excepciones de un calendario (exportación ICS, F6-02). */
+    async allOfCalendar(calendarId: string): Promise<EventRow[]> {
+      return db
+        .select()
+        .from(events)
+        .where(and(live, eq(events.calendarId, calendarId)))
+        .orderBy(asc(events.startAt));
+    },
+
+    async remindersOfEvents(eventIds: readonly string[]): Promise<Reminder[]> {
+      const rows: Reminder[] = [];
+      for (let i = 0; i < eventIds.length; i += 80) {
+        rows.push(
+          ...(await db
+            .select()
+            .from(reminders)
+            .where(
+              and(
+                eq(reminders.ownerId, ownerId),
+                eq(reminders.targetType, "event"),
+                inArray(reminders.targetId, eventIds.slice(i, i + 80)),
+              ),
+            )),
+        );
+      }
+      return rows;
+    },
+
     async countInCalendar(calendarId: string): Promise<number> {
       const [row] = await db
         .select({ total: sql<number>`count(*)` })

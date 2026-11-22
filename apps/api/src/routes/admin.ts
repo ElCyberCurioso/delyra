@@ -1,4 +1,9 @@
-import { appEnvironmentSchema, createInvitationRequestSchema, idSchema } from "@delyra/shared";
+import {
+  appEnvironmentSchema,
+  createInvitationRequestSchema,
+  idSchema,
+  newId,
+} from "@delyra/shared";
 import { eq } from "drizzle-orm";
 import { type Context, Hono } from "hono";
 import { createDb } from "../db/client";
@@ -18,6 +23,7 @@ import {
 import { createMailer } from "../services/mailer";
 import { resetSecondFactor } from "../services/second-factor";
 import { revokeUserSessions } from "../services/sessions";
+import { listBackupRuns, listSystemBackupObjects } from "../services/system-backups";
 import { findUserByEmail, findUserById, listUsers } from "../services/users";
 import type { AppEnv } from "../types";
 
@@ -120,6 +126,37 @@ export const adminRoutes = new Hono<AppEnv>()
   })
 
   .get("/users", async (c) => c.json({ users: await listUsers(createDb(c.env.DB)) }))
+
+  // ── Backups del sistema (F6-06) ────────────────────────────────────────────
+
+  .get("/backups", async (c) => {
+    const runs = await listBackupRuns(createDb(c.env.DB), 30);
+    return c.json({
+      runs: runs.map((run) => ({
+        id: run.id,
+        trigger: run.trigger,
+        status: run.status,
+        startedAt: run.startedAt.toISOString(),
+        finishedAt: run.finishedAt?.toISOString() ?? null,
+        r2Key: run.r2Key,
+        sizeBytes: run.sizeBytes,
+        error: run.error,
+      })),
+      objects: await listSystemBackupObjects(c.env.BACKUPS),
+    });
+  })
+
+  .post("/backups", async (c) => {
+    const db = createDb(c.env.DB);
+    const admin = currentAuth(c).user;
+    const running = (await listBackupRuns(db, 5)).find(
+      (run) => run.status === "running" && run.startedAt.getTime() > Date.now() - 30 * 60_000,
+    );
+    if (running) throw new AppError(409, { detail: "Ya hay un backup en marcha" });
+    const instance = await c.env.SYSTEM_BACKUP.create({ id: `manual-${newId()}` });
+    await audit(db, c.get("meta"), "admin.system_backup", { actorId: admin.id });
+    return c.json({ id: instance.id }, 202);
+  })
 
   .post("/users/:id/disable", async (c) => {
     const { user: admin } = currentAuth(c);

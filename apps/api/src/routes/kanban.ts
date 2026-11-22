@@ -49,6 +49,8 @@ import {
   setArchived,
   updateCard,
 } from "../services/kanban";
+import { boardCsv, boardExport } from "../services/exports";
+import { collectBackupData } from "../services/user-backups";
 import type { AppEnv } from "../types";
 
 /**
@@ -88,6 +90,27 @@ export const boardRoutes = new Hono<AppEnv>()
   .get("/:id", async (c) => {
     const r = repo(c);
     return c.json(await boardDetail(r, await requireBoard(r, idParam(c))));
+  })
+
+  // F6-02: el tablero en JSON o CSV (hoja de cálculo).
+  .get("/:id/export", async (c) => {
+    const r = repo(c);
+    const board = await requireBoard(r, idParam(c));
+    const format = c.req.query("format") === "csv" ? "csv" : "json";
+    const data = boardExport(await collectBackupData(r.db, r.ownerId), board.id);
+    if (!data) throw new AppError(404);
+    const base = board.name.replace(/[^\p{L}\p{N} _-]/gu, "").trim() || "tablero";
+    const headers = {
+      "Content-Disposition": contentDisposition(`${base}.${format}`),
+      "Cache-Control": "private, no-store",
+    };
+    return format === "csv"
+      ? new Response(boardCsv(data), {
+          headers: { ...headers, "Content-Type": "text/csv; charset=utf-8" },
+        })
+      : new Response(JSON.stringify(data, null, 2), {
+          headers: { ...headers, "Content-Type": "application/json; charset=utf-8" },
+        });
   })
 
   .patch("/:id", async (c) => {

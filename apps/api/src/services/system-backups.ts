@@ -74,3 +74,72 @@ export async function recordBackupFailure(
 export async function listBackupRuns(db: Database, limit = 30): Promise<SystemBackupRun[]> {
   return db.select().from(systemBackupRuns).orderBy(desc(systemBackupRuns.startedAt)).limit(limit);
 }
+
+// ── Retención por niveles (F6-08) ────────────────────────────────────────────
+
+export const SYSTEM_TIER_PREFIXES = {
+  daily: "system/daily/",
+  weekly: "system/weekly/",
+  monthly: "system/monthly/",
+} as const;
+
+/**
+ * A qué niveles más se copia el volcado de un día: el domingo, a `weekly/`; el día 1, a
+ * `monthly/`. El ciclo de vida del bucket borra cada nivel a su plazo (30 días, 12 semanas y
+ * 12 meses; docs/runbooks/recursos-cloudflare.md).
+ */
+export function tierKeys(utcDate: string): string[] {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(utcDate)) throw new RangeError("Fecha de backup no válida");
+  const date = new Date(`${utcDate}T00:00:00Z`);
+  const keys: string[] = [];
+  if (date.getUTCDay() === 0) keys.push(`${SYSTEM_TIER_PREFIXES.weekly}${utcDate}.sql`);
+  if (date.getUTCDate() === 1)
+    keys.push(`${SYSTEM_TIER_PREFIXES.monthly}${utcDate.slice(0, 7)}.sql`);
+  return keys;
+}
+
+export async function copyToTiers(bucket: R2Bucket, dailyKey: string, utcDate: string) {
+  const copied: string[] = [];
+  for (const key of tierKeys(utcDate)) {
+    const object = await bucket.get(dailyKey);
+    if (!object) throw new Error("No se encuentra el volcado diario para copiarlo");
+    const fixed = new FixedLengthStream(object.size);
+    const piping = object.body.pipeTo(fixed.writable);
+    await bucket.put(key, fixed.readable, {
+      httpMetadata: object.httpMetadata,
+      customMetadata: { ...object.customMetadata, copiedFrom: dailyKey },
+    });
+    await piping;
+    copied.push(key);
+  }
+  return copied;
+}
+
+/** Ficheros de backup del sistema en R2 (panel de admin, F6-06). */
+export async function listSystemBackupObjects(bucket: R2Bucket) {
+  const result: {
+    key: string;
+    tier: keyof typeof SYSTEM_TIER_PREFIXES;
+    sizeBytes: number;
+    uploadedAt: string;
+  }[] = [];
+  for (const [tier, prefix] of Object.entries(SYSTEM_TIER_PREFIXES) as [
+    keyof typeof SYSTEM_TIER_PREFIXES,
+    string,
+  ][]) {
+    let cursor: string | undefined;
+    do {
+      const listing = await bucket.list({ prefix, cursor, limit: 1000 });
+      for (const object of listing.objects) {
+        result.push({
+          key: object.key,
+          tier,
+          sizeBytes: object.size,
+          uploadedAt: object.uploaded.toISOString(),
+        });
+      }
+      cursor = listing.truncated ? listing.cursor : undefined;
+    } while (cursor);
+  }
+  return result.sort((a, b) => b.key.localeCompare(a.key));
+}

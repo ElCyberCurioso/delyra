@@ -3,11 +3,16 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloud
 import { NonRetryableError } from "cloudflare:workflows";
 import { createDb } from "../db/client";
 import { createLogger, safeErrorMessage } from "../lib/logger";
+import { backupFailedEmail } from "../services/email-templates";
+import { createMailer } from "../services/mailer";
+import { notifyAdmins } from "../services/admin-notify";
 import {
+  copyToTiers,
   recordBackupFailure,
   recordBackupStart,
   recordBackupSuccess,
   storeDump,
+  SYSTEM_BACKUP_PREFIX,
   systemBackupKey,
 } from "../services/system-backups";
 import { D1ExportClient, D1ExportFailedError } from "./d1-export";
@@ -80,6 +85,13 @@ export class SystemBackupWorkflow extends WorkflowEntrypoint<Env, SystemBackupPa
         },
       );
 
+      // F6-08: el domingo también a `weekly/` y el día 1 a `monthly/`.
+      await step.do(
+        "copias semanal y mensual",
+        { retries: { limit: 3, delay: "30 seconds", backoff: "exponential" } },
+        () => copyToTiers(this.env.BACKUPS, r2Key, r2Key.slice(SYSTEM_BACKUP_PREFIX.length, -4)),
+      );
+
       await step.do("registrar resultado", async () => {
         await recordBackupSuccess(db, instanceId, {
           r2Key,
@@ -96,7 +108,12 @@ export class SystemBackupWorkflow extends WorkflowEntrypoint<Env, SystemBackupPa
         await recordBackupFailure(db, instanceId, { error: message, finishedAt: new Date() });
       });
       logger.error("system_backup_failed", { r2Key, error: message });
-      // TODO(F1-12): enviar aviso por email al administrador.
+      // F6-06: aviso por email a los administradores (si Email Service está configurado).
+      await step.do("avisar a los administradores", async () => {
+        await notifyAdmins(db, createMailer(this.env, logger), (to) =>
+          backupFailedEmail(to, message),
+        );
+      });
       throw error;
     }
   }

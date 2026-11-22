@@ -204,6 +204,11 @@ export function CalendarList({ calendars }: { calendars: readonly CalendarInfo[]
                 <DropdownMenuItem onSelect={() => setEditing({ kind: "edit", calendar })}>
                   Editar nombre y color
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href={`/api/calendars/${calendar.id}/export`} download>
+                    Exportar (.ics)
+                  </a>
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   variant="destructive"
                   disabled={calendars.length <= 1}

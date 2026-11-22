@@ -11,6 +11,7 @@ import { loadSession } from "./middleware/session";
 import { accountRoutes } from "./routes/account";
 import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
+import { backupRoutes, restoreRoutes } from "./routes/backups";
 import { calendarRoutes } from "./routes/calendars";
 import { cspReportRoutes } from "./routes/csp-report";
 import { eventRoutes } from "./routes/events";
@@ -35,8 +36,8 @@ import type { AppEnv } from "./types";
  * todas las rutas cuelgan de `/api`. El middleware se aplica a cualquier ruta, incluidas
  * las inexistentes, para que todo error lleve request id y cabeceras de seguridad.
  */
-/** Subidas en streaming: adjuntos (F4-06) e importaciones de calendarios (F5-02). */
-const UPLOAD_PATH = /^\/api\/(?:cards\/[^/]+\/attachments|imports)$/;
+/** Subidas en streaming: adjuntos (F4-06), importaciones (F5-02) y copias a restaurar (F6-04). */
+const UPLOAD_PATH = /^\/api\/(?:cards\/[^/]+\/attachments|imports|restores\/upload)$/;
 
 export function createApp() {
   const app = new Hono<AppEnv>();
@@ -92,6 +93,8 @@ export function createApp() {
   api.route("/imports", importRoutes);
   api.route("/google", googleRoutes);
   api.route("/subscriptions", subscriptionRoutes);
+  api.route("/backups", backupRoutes);
+  api.route("/restores", restoreRoutes);
   app.route("/api", api);
 
   app.notFound(notFoundHandler);

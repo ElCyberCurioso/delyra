@@ -14,6 +14,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   errorMessage,
   Field,
   FormError,
@@ -25,6 +29,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArchiveIcon,
   ArrowLeftIcon,
+  DownloadIcon,
   FilterXIcon,
   LoaderCircleIcon,
   PlusIcon,
@@ -231,6 +236,27 @@ function BoardView({
             <SettingsIcon aria-hidden="true" />
             Ajustes
           </Button>
+          {/* F6-02: el tablero en CSV (hoja de cálculo) o JSON. */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <DownloadIcon aria-hidden="true" />
+                Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <a href={`/api/boards/${board.board.id}/export?format=csv`} download>
+                  Hoja de cálculo (.csv)
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href={`/api/boards/${board.board.id}/export?format=json`} download>
+                  Datos completos (.json)
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

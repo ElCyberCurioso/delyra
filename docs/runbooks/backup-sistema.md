@@ -10,8 +10,14 @@
      `D1_EXPORT_API_TOKEN` (permiso solo sobre D1, P-06).
   3. Espera a que el volcado esté listo (reintentos cada 15 s, hasta 10 min) y lo copia en
      `delyra-backups` → `system/daily/AAAA-MM-DD.sql`.
-  4. Registra el resultado (`succeeded` con clave y tamaño, o `failed` con el error saneado).
-- La regla de ciclo de vida `system-daily-30d` borra los volcados con más de 30 días.
+  4. Los domingos lo copia también a `system/weekly/AAAA-MM-DD.sql` y el día 1 de cada mes a
+     `system/monthly/AAAA-MM.sql` (F6-08).
+  5. Registra el resultado (`succeeded` con clave y tamaño, o `failed` con el error saneado). Si
+     falla, avisa por email a los administradores (si Email Service está configurado).
+- Las reglas de ciclo de vida borran los diarios a los 30 días, los semanales a las 12 semanas y
+  los mensuales a los 12 meses.
+- El panel de admin (_delyra.app/admin → Backups del sistema_) muestra el último resultado, los
+  ficheros de cada nivel y un botón para lanzarlo a mano.
 - Los errores definitivos (credenciales, permisos, exportación fallida) no se reintentan; los
   transitorios (429, 5xx) sí.
 
@@ -52,5 +58,4 @@ Un lanzamiento manual del mismo día sobrescribe el volcado de ese día.
    `wrangler.jsonc` del entorno, o el secreto.
 4. Relánzalo a mano y comprueba el objeto en R2.
 
-El aviso por email al administrador se conecta en F1-12. Mientras tanto, revisa la tabla o el
-panel de Workflows. La restauración (Time Travel o desde un volcado) se documenta en F6-07.
+La restauración (Time Travel o desde un volcado) está en docs/runbooks/restauracion.md.

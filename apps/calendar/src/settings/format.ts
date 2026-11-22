@@ -68,6 +68,9 @@ export const AUDIT_LABELS: Readonly<Record<string, string>> = {
   "admin.user_disabled": "Cuenta desactivada por un administrador",
   "admin.user_enabled": "Cuenta reactivada por un administrador",
   "admin.totp_reset": "Verificación en dos pasos reiniciada por un administrador",
+  "admin.system_backup": "Backup del sistema lanzado a mano",
+  "backup.restore_started": "Restauración de una copia de seguridad",
+  "backup.restore_undone": "Restauración deshecha",
 };
 
 /** Eventos que conviene destacar: pueden indicar que alguien intenta entrar. */

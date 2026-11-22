@@ -7,6 +7,9 @@ import { readBody } from "../lib/http";
 import { currentAuth, requireActiveSession } from "../middleware/session";
 import { calendarRepository } from "../repositories/calendars";
 import { eventRepository } from "../repositories/events";
+import { contentDisposition } from "../services/attachments";
+import { calendarToIcs } from "../services/exports";
+import { getUserSettings } from "../services/users";
 import type { AppEnv } from "../types";
 
 /** Calendarios del usuario (F2-03). Un calendario ajeno responde 404, como uno inexistente. */
@@ -53,6 +56,28 @@ export const calendarRoutes = new Hono<AppEnv>()
       });
     }
     return c.json({ calendar: dto(await calendars.create(body)) }, 201);
+  })
+
+  // F6-02: el calendario en ICS, para Google, Apple, Outlook o para volver a importarlo.
+  .get("/:id/export", async (c) => {
+    const id = idParam(c);
+    const db = createDb(c.env.DB);
+    const { user } = currentAuth(c);
+    const { calendars, events } = repos(c);
+    const calendar = await calendars.get(id);
+    if (!calendar) throw new AppError(404);
+    const rows = await events.allOfCalendar(id);
+    const reminders = await events.remindersOfEvents(rows.map((r) => r.id));
+    const settings = await getUserSettings(db, user.id);
+    const ics = calendarToIcs(calendar, rows, reminders, settings?.timeZone ?? "Europe/Madrid");
+    const filename = `${calendar.name.replace(/[^\p{L}\p{N} _-]/gu, "").trim() || "calendario"}.ics`;
+    return new Response(ics, {
+      headers: {
+        "Content-Type": "text/calendar; charset=utf-8",
+        "Content-Disposition": contentDisposition(filename),
+        "Cache-Control": "private, no-store",
+      },
+    });
   })
 
   .patch("/:id", async (c) => {
