@@ -10,14 +10,25 @@ import {
   Field,
   FormError,
   errorMessage,
+  toast,
 } from "@delyra/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LoaderCircleIcon, PlusIcon, SquareKanbanIcon } from "lucide-react";
+import { LoaderCircleIcon, MailIcon, PlusIcon, SquareKanbanIcon, UsersIcon } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { WorkLayout } from "../layout";
-import { BOARDS_KEY, boardKey, createBoard, useBoards } from "./api";
+import {
+  acceptBoardInvitation,
+  BOARDS_KEY,
+  boardKey,
+  createBoard,
+  declineBoardInvitation,
+  INVITATIONS_KEY,
+  useBoards,
+  usePendingInvitations,
+} from "./api";
 import { TEMPLATE_LABELS } from "./logic";
+import { ROLE_LABELS } from "./share-dialog";
 
 /** Lista de tableros (F4-10) y alta con plantilla (F4-03). */
 export function BoardsPage(): ReactNode {
@@ -33,6 +44,7 @@ export function BoardsPage(): ReactNode {
               Nuevo tablero
             </Button>
           </div>
+          <PendingInvitations />
           <BoardList onCreate={() => setCreating(true)} />
           <NewBoardDialog open={creating} onOpenChange={setCreating} />
         </div>
@@ -90,10 +102,88 @@ function BoardList({ onCreate }: { onCreate: () => void }) {
                 ? "1 tarjeta abierta"
                 : `${String(board.openCards)} tarjetas abiertas`}
             </span>
+            {board.role !== "owner" ? (
+              <span className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <UsersIcon aria-hidden="true" className="size-3.5" />
+                De {board.ownerName ?? "otra persona"} · {ROLE_LABELS[board.role]}
+              </span>
+            ) : board.members > 0 ? (
+              <span className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <UsersIcon aria-hidden="true" className="size-3.5" />
+                {board.members === 1
+                  ? "Compartido con 1 persona"
+                  : `Compartido con ${String(board.members)} personas`}
+              </span>
+            ) : null}
           </Link>
         </li>
       ))}
     </ul>
+  );
+}
+
+/** Invitaciones a tableros de otras personas que esperan respuesta (F7-04). */
+function PendingInvitations() {
+  const invitations = usePendingInvitations();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const answer = useMutation({
+    mutationFn: (v: { id: string; accept: boolean }) =>
+      v.accept ? acceptBoardInvitation(v.id) : declineBoardInvitation(v.id),
+    onSuccess: (result) => {
+      void queryClient.invalidateQueries({ queryKey: INVITATIONS_KEY });
+      void queryClient.invalidateQueries({ queryKey: BOARDS_KEY });
+      if (result) {
+        void navigate({ to: "/tableros/$boardId", params: { boardId: result.boardId } });
+      }
+    },
+    onError: (error) => {
+      toast.error(errorMessage(error));
+      void queryClient.invalidateQueries({ queryKey: INVITATIONS_KEY });
+    },
+  });
+  if (!invitations.data || invitations.data.length === 0) return null;
+  return (
+    <section aria-labelledby="invitaciones-titulo" className="grid gap-2">
+      <h2 id="invitaciones-titulo" className="flex items-center gap-2 text-lg font-semibold">
+        <MailIcon aria-hidden="true" className="size-5 text-primary" />
+        Te han invitado
+      </h2>
+      <ul className="grid gap-2">
+        {invitations.data.map((invitation) => (
+          <li
+            key={invitation.id}
+            className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/40 bg-primary/5 p-3"
+          >
+            <span className="min-w-0 flex-1 text-sm">
+              <span className="font-medium">{invitation.boardName}</span>
+              <span className="block text-muted-foreground">
+                {invitation.invitedBy ?? "Alguien"} te invita · {ROLE_LABELS[invitation.role]}
+              </span>
+            </span>
+            <span className="flex gap-2">
+              <Button
+                size="sm"
+                disabled={answer.isPending}
+                onClick={() => answer.mutate({ id: invitation.id, accept: true })}
+                aria-label={`Aceptar la invitación a ${invitation.boardName}`}
+              >
+                Aceptar
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={answer.isPending}
+                onClick={() => answer.mutate({ id: invitation.id, accept: false })}
+                aria-label={`Rechazar la invitación a ${invitation.boardName}`}
+              >
+                Rechazar
+              </Button>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

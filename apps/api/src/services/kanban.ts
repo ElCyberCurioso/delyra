@@ -132,7 +132,15 @@ function summary(
   };
 }
 
-function boardSummary(board: Board, openCards: number): BoardSummary {
+export function boardSummary(
+  board: Board,
+  openCards: number,
+  sharing: Pick<BoardSummary, "role" | "ownerName" | "members"> = {
+    role: "owner",
+    ownerName: null,
+    members: 0,
+  },
+): BoardSummary {
   return {
     id: board.id,
     name: board.name,
@@ -140,14 +148,22 @@ function boardSummary(board: Board, openCards: number): BoardSummary {
     autoarchiveDays: board.autoarchiveDays,
     openCards,
     createdAt: board.createdAt.toISOString(),
+    ...sharing,
   };
 }
 
 // ── Tableros y columnas ──────────────────────────────────────────────────────
 
+/** Los tableros propios (los compartidos contigo los añade `services/board-access.ts`). */
 export async function listBoards(repo: KanbanRepository): Promise<BoardSummary[]> {
-  const rows = await repo.listBoards();
-  return rows.map((r) => boardSummary(r.board, Number(r.openCards)));
+  const [rows, members] = await Promise.all([repo.listBoards(), repo.memberCounts()]);
+  return rows.map((r) =>
+    boardSummary(r.board, Number(r.openCards), {
+      role: "owner",
+      ownerName: null,
+      members: members.get(r.board.id) ?? 0,
+    }),
+  );
 }
 
 export async function createBoard(
@@ -199,17 +215,24 @@ export async function requireBoard(repo: KanbanRepository, id: string): Promise<
 }
 
 export async function boardDetail(repo: KanbanRepository, board: Board): Promise<BoardDetail> {
-  const [columns, cardRows, labelRows, labelIds, checklist, counts] = await Promise.all([
-    repo.columnsOf(board.id),
-    repo.cardsOfBoard(board.id, false),
-    repo.labelsOf(board.id),
-    repo.labelIdsOfBoard(board.id),
-    repo.checklistStats(board.id),
-    repo.countsOfBoard(board.id),
-  ]);
+  const [columns, cardRows, labelRows, labelIds, checklist, counts, members, owner] =
+    await Promise.all([
+      repo.columnsOf(board.id),
+      repo.cardsOfBoard(board.id, false),
+      repo.labelsOf(board.id),
+      repo.labelIdsOfBoard(board.id),
+      repo.checklistStats(board.id),
+      repo.countsOfBoard(board.id),
+      repo.memberCount(board.id),
+      repo.role === "owner" ? Promise.resolve(null) : repo.namesOf([board.ownerId]),
+    ]);
   const open = cardRows.filter((c) => c.completedAt === null).length;
   return {
-    board: boardSummary(board, open),
+    board: boardSummary(board, open, {
+      role: repo.role,
+      ownerName: owner?.get(board.ownerId) ?? null,
+      members,
+    }),
     columns: columns.map((c) => ({
       id: c.id,
       name: c.name,
@@ -473,6 +496,11 @@ export async function cardDetail(repo: KanbanRepository, card: CardRow): Promise
     repo.activityOf(card.id),
     repo.remindersOfCard(card.id),
   ]);
+  const names = await repo.namesOf(
+    [...comments.map((c) => c.authorId), ...activity.map((a) => a.actorId)].filter(
+      (id): id is string => id !== null,
+    ),
+  );
   const parse = (data: string) => {
     try {
       return JSON.parse(data) as Record<string, unknown>;
@@ -498,6 +526,9 @@ export async function cardDetail(repo: KanbanRepository, card: CardRow): Promise
       body: c.body,
       createdAt: c.createdAt.toISOString(),
       updatedAt: c.updatedAt.toISOString(),
+      // Sin autor: cuenta borrada, u otra persona en una copia restaurada (migración 0010).
+      authorName: c.authorId ? (names.get(c.authorId) ?? null) : null,
+      mine: c.authorId !== null && c.authorId === repo.actorId,
     })),
     attachmentList: attachments.map((a) => ({
       id: a.id,
@@ -511,6 +542,7 @@ export async function cardDetail(repo: KanbanRepository, card: CardRow): Promise
       kind: a.kind,
       data: parse(a.data),
       createdAt: a.createdAt.toISOString(),
+      actorName: a.actorId ? (names.get(a.actorId) ?? null) : null,
     })),
     reminders: cardReminders.map((r) => ({
       id: r.id,

@@ -588,3 +588,45 @@ describe("backups del sistema en el panel de admin (F6-06)", () => {
     }
   });
 });
+
+describe("copias de tableros compartidos (F7-04)", () => {
+  it("lo que escribió otra persona se restaura sin autor, nunca a nombre de otra cuenta", async () => {
+    const owner = await registerUser();
+    const bob = await registerUser();
+    const board = await json<BoardDetail>(
+      owner.client.post("/api/boards", { name: "Obra", template: "personal" }),
+    );
+    const { card } = await json<{ card: CardDetail }>(
+      owner.client.post(`/api/columns/${board.columns[0]?.id ?? ""}/cards`, { title: "Tarea" }),
+    );
+    await owner.client.post(`/api/boards/${board.board.id}/invitations`, {
+      email: bob.email,
+      role: "editor",
+    });
+    const { invitations } = await json<{ invitations: { id: string }[] }>(
+      bob.client.get("/api/board-invitations"),
+    );
+    await bob.client.post(`/api/board-invitations/${invitations[0]?.id ?? ""}/accept`);
+    await owner.client.post(`/api/cards/${card.id}/comments`, { body: "Del dueño" });
+    await bob.client.post(`/api/cards/${card.id}/comments`, { body: "De Bob" });
+
+    const backup = await createBackup(owner.client);
+    const ready = await restoreFrom(owner.client, () =>
+      owner.client.post("/api/restores", { backupId: backup?.id }),
+    );
+    expect((await start(owner.client, ready.id, "merge")).status).toBe("succeeded");
+    const { boards } = await json<{ boards: { id: string; name: string }[] }>(
+      owner.client.get("/api/boards"),
+    );
+    const restored = boards.find((b) => b.name === "Obra (restaurado)");
+    const detail = await json<BoardDetail>(owner.client.get(`/api/boards/${restored?.id ?? ""}`));
+    const copy = await json<{ card: CardDetail }>(
+      owner.client.get(`/api/cards/${detail.cards[0]?.id ?? ""}`),
+    );
+    const byBody = Object.fromEntries(copy.card.commentList.map((c) => [c.body, c]));
+    expect(byBody["Del dueño"]).toMatchObject({ mine: true, authorName: "Persona de prueba" });
+    expect(byBody["De Bob"]).toMatchObject({ mine: false, authorName: null });
+    // Bob no tiene acceso a la copia.
+    expect((await bob.client.get(`/api/boards/${restored?.id ?? ""}`)).status).toBe(404);
+  });
+});

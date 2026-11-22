@@ -10,6 +10,7 @@ import { ensureHolidays } from "./services/holidays";
 import { purgeStaleGoogleTokens } from "./services/imports";
 import { syncDueSubscriptions } from "./services/subscriptions";
 
+export { BoardRoom } from "./durable/board-room";
 export { BackupWorkflow } from "./jobs/backup-workflow";
 export { ImportWorkflow } from "./jobs/import-workflow";
 export { SystemBackupWorkflow } from "./jobs/system-backup";

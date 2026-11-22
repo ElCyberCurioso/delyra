@@ -55,8 +55,8 @@ siempre la persona que restaura.
 | `cardLabels`     | `cardId`, `labelId`                                                                               |
 | `cardReminders`  | `cardId`, `offsetMinutes`, `channel`                                                              |
 | `checklist`      | `id`, `cardId`, `text`, `done`, `position`                                                        |
-| `comments`       | `id`, `cardId`, `body`, fechas                                                                    |
-| `activity`       | `id`, `cardId`, `kind`, `data` (JSON en texto)                                                    |
+| `comments`       | `id`, `cardId`, `body`, fechas, `byOwner` (opcional, F7-04: `false` si lo escribió otra persona)  |
+| `activity`       | `id`, `cardId`, `kind`, `data` (JSON en texto), `byOwner` (opcional, igual que en `comments`)     |
 | `attachments`    | `id`, `cardId`, `filename`, `contentType`, `size`, `sha256` del contenido                         |
 
 ## Qué no se incluye

@@ -8,6 +8,8 @@ export interface AppVariables {
   meta: RequestMeta;
   /** Sesión de la cookie, si es válida (en cualquier estado). */
   auth: ResolvedSession | null;
+  /** Tablero que ha cambiado en esta petición: se avisa a su sala en vivo al terminar (F7-05). */
+  touchedBoard?: string;
 }
 
 export interface AppEnv {

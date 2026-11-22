@@ -234,6 +234,8 @@ export const backupDataV1Schema = z.object({
         body: text(KANBAN_LIMITS.comment).min(1),
         createdAt: ms,
         updatedAt: ms,
+        /** F7-04: `false` si lo escribió otra persona (tablero compartido). Sin él: propio. */
+        byOwner: z.boolean().optional(),
       }),
     )
     .max(BACKUP_LIMITS.comments),
@@ -245,6 +247,7 @@ export const backupDataV1Schema = z.object({
         kind: text(40).min(1),
         data: text(4_000),
         createdAt: ms,
+        byOwner: z.boolean().optional(),
       }),
     )
     .max(BACKUP_LIMITS.activity),

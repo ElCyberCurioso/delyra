@@ -27,6 +27,21 @@ hay que hacerlo antes de desplegar.
 - Para lanzarlo a mano en local: `wrangler dev --test-scheduled` (en `apps/api`) y
   `curl "http://localhost:8787/cdn-cgi/handler/scheduled?cron=0+3+*+*+*"`.
 
+## Tableros compartidos y en vivo (F7-04, F7-05)
+
+- Migraciones `0009_board_sharing.sql` (miembros, invitaciones y autoría) y
+  `0010_backfill_authors.sql` (atribuye al dueño los comentarios y la actividad anteriores). El
+  despliegue las aplica con `pnpm db:migrate:prod` antes de publicar el Worker `api`.
+- El Durable Object `BoardRoom` (uno por tablero) lo crea `wrangler deploy` a partir de la
+  migración `v1` de `apps/api/wrangler.jsonc`; no hay nada que crear a mano.
+- Para ver los miembros de un tablero:
+  `wrangler d1 execute DB --env production --remote --command "SELECT user_id, role FROM board_members WHERE board_id = '<tablero>'"`.
+- Si el tiempo real no llega: en los logs, `GET /api/boards/:id/live` debe responder 101 (403 =
+  `Origin` no permitido; 404 = sin acceso; 426 = no era un WebSocket) y `board_live_notify_failed`
+  indica que no se pudo avisar a la sala. Sin canal la app sigue funcionando: refresca al volver a
+  la pestaña.
+- Quitar el acceso a alguien cierra al momento sus pestañas abiertas en ese tablero.
+
 ## Alertas de tarjetas
 
 Usan el mismo planificador que los eventos (ADR-0006). Si una alerta no llega, comprobar en

@@ -45,6 +45,9 @@ const board: BoardDetail = {
     autoarchiveDays: 14,
     openCards: 3,
     createdAt: "2027-01-01T00:00:00.000Z",
+    role: "owner",
+    ownerName: null,
+    members: 0,
   },
   columns: [
     { id: "done", name: "Hecho", position: "a2", wipLimit: null, isDone: true },

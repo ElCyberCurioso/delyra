@@ -163,6 +163,11 @@ function CardBody({
   const queryClient = useQueryClient();
   const columns = sortedColumns(board);
   const ids = { column: useId(), priority: useId(), due: useId(), reminder: useId() };
+  // F7-04: permisos en el tablero y autoría (solo se muestra si el tablero está compartido).
+  const { role } = board.board;
+  const readOnly = role === "reader";
+  const isOwner = role === "owner";
+  const shared = board.board.members > 0 || !isOwner;
 
   const save = useMutation({
     mutationFn: (body: Record<string, unknown>) => updateCard(card.id, body),
@@ -232,7 +237,10 @@ function CardBody({
           key={card.title}
           id={`${ids.column}-title`}
           defaultValue={card.title}
-          onBlur={(e) => saveTitle(e.currentTarget)}
+          readOnly={readOnly}
+          onBlur={(e) => {
+            if (!readOnly) saveTitle(e.currentTarget);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -256,168 +264,199 @@ function CardBody({
           className="grid content-start gap-4 md:col-start-2 md:row-start-1"
           aria-label="Propiedades de la tarjeta"
         >
-          <div className="grid gap-1.5">
-            <label htmlFor={ids.column} className="text-sm font-medium">
-              Columna
-            </label>
-            <select
-              id={ids.column}
-              value={card.columnId}
-              disabled={Boolean(card.archivedAt) || move.isPending}
-              onChange={(e) => move.mutate(e.target.value)}
-              className="h-10 rounded-md border bg-background px-2 text-base sm:h-9 sm:text-sm"
-            >
-              {columns.map((column) => (
-                <option key={column.id} value={column.id}>
-                  {column.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="grid gap-1.5">
-            <label htmlFor={ids.priority} className="text-sm font-medium">
-              Prioridad
-            </label>
-            <select
-              id={ids.priority}
-              value={card.priority}
-              onChange={(e) => save.mutate({ priority: e.target.value })}
-              className="h-10 rounded-md border bg-background px-2 text-base sm:h-9 sm:text-sm"
-            >
-              {CARD_PRIORITIES.map((p) => (
-                <option key={p} value={p}>
-                  {PRIORITY_LABELS[p]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <fieldset className="grid gap-1.5">
-            <legend className="mb-1 text-sm font-medium">Etiquetas</legend>
-            {board.labels.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Este tablero no tiene etiquetas.</p>
-            ) : (
-              board.labels.map((label) => (
-                <label key={label.id} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="pointer-coarse:size-5"
-                    checked={card.labelIds.includes(label.id)}
-                    onChange={(e) =>
-                      save.mutate({
-                        labelIds: e.target.checked
-                          ? [...card.labelIds, label.id]
-                          : card.labelIds.filter((id) => id !== label.id),
-                      })
+          {/* Desactiva de una vez todos los controles para quien solo lee. */}
+          <fieldset disabled={readOnly} className="contents">
+            <div className="grid gap-1.5">
+              <label htmlFor={ids.column} className="text-sm font-medium">
+                Columna
+              </label>
+              <select
+                id={ids.column}
+                value={card.columnId}
+                disabled={Boolean(card.archivedAt) || move.isPending}
+                onChange={(e) => move.mutate(e.target.value)}
+                className="h-10 rounded-md border bg-background px-2 text-base sm:h-9 sm:text-sm"
+              >
+                {columns.map((column) => (
+                  <option key={column.id} value={column.id}>
+                    {column.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid gap-1.5">
+              <label htmlFor={ids.priority} className="text-sm font-medium">
+                Prioridad
+              </label>
+              <select
+                id={ids.priority}
+                value={card.priority}
+                onChange={(e) => save.mutate({ priority: e.target.value })}
+                className="h-10 rounded-md border bg-background px-2 text-base sm:h-9 sm:text-sm"
+              >
+                {CARD_PRIORITIES.map((p) => (
+                  <option key={p} value={p}>
+                    {PRIORITY_LABELS[p]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <fieldset className="grid gap-1.5">
+              <legend className="mb-1 text-sm font-medium">Etiquetas</legend>
+              {board.labels.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Este tablero no tiene etiquetas.</p>
+              ) : (
+                board.labels.map((label) => (
+                  <label key={label.id} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      className="pointer-coarse:size-5"
+                      checked={card.labelIds.includes(label.id)}
+                      onChange={(e) =>
+                        save.mutate({
+                          labelIds: e.target.checked
+                            ? [...card.labelIds, label.id]
+                            : card.labelIds.filter((id) => id !== label.id),
+                        })
+                      }
+                    />
+                    <span
+                      aria-hidden="true"
+                      className="size-2.5 rounded-full"
+                      style={{ backgroundColor: label.color }}
+                    />
+                    {label.name}
+                  </label>
+                ))
+              )}
+            </fieldset>
+            <fieldset className="grid gap-1.5">
+              <legend className="mb-1 text-sm font-medium">Fecha límite</legend>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="pointer-coarse:size-5"
+                  checked={allDay}
+                  onChange={(e) => {
+                    if (!card.due) {
+                      setAllDayDraft(e.target.checked);
+                      return;
                     }
-                  />
-                  <span
-                    aria-hidden="true"
-                    className="size-2.5 rounded-full"
-                    style={{ backgroundColor: label.color }}
-                  />
-                  {label.name}
-                </label>
-              ))
-            )}
-          </fieldset>
-          <fieldset className="grid gap-1.5">
-            <legend className="mb-1 text-sm font-medium">Fecha límite</legend>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="pointer-coarse:size-5"
-                checked={allDay}
-                onChange={(e) => {
-                  if (!card.due) {
-                    setAllDayDraft(e.target.checked);
-                    return;
-                  }
-                  const date = card.due.allDay
-                    ? card.due.at
-                    : toLocalInput(card.due.at, timeZone).slice(0, 10);
-                  setDue(
-                    e.target.checked
-                      ? { allDay: true, at: date }
-                      : { allDay: false, at: fromLocalInput(`${date}T09:00`, timeZone) ?? "" },
-                  );
-                }}
-              />
-              Todo el día
-            </label>
-            <label htmlFor={ids.due} className="sr-only">
-              Fecha límite
-            </label>
-            {allDay ? (
-              <Input
-                id={ids.due}
-                type="date"
-                value={card.due?.at ?? ""}
-                onChange={(e) => {
-                  if (e.target.value) setDue({ allDay: true, at: e.target.value });
-                }}
-              />
-            ) : (
-              <Input
-                id={ids.due}
-                type="datetime-local"
-                value={card.due ? toLocalInput(card.due.at, timeZone) : ""}
-                onChange={(e) => {
-                  const at = fromLocalInput(e.target.value, timeZone);
-                  if (at) setDue({ allDay: false, at });
-                }}
-              />
-            )}
-            {overdue ? <p className="text-sm font-medium text-destructive">Vencida</p> : null}
-            {card.due ? (
-              <>
-                <label htmlFor={ids.reminder} className="mt-1 text-sm font-medium">
-                  Aviso por Telegram
-                </label>
-                <select
-                  id={ids.reminder}
-                  value={currentReminder}
-                  onChange={(e) =>
-                    save.mutate({
-                      reminders:
-                        e.target.value === ""
-                          ? []
-                          : [{ offsetMinutes: Number(e.target.value), channel: "telegram" }],
-                    })
-                  }
-                  className="h-10 rounded-md border bg-background px-2 text-base sm:h-9 sm:text-sm"
-                >
-                  {reminderOptions.some((o) => o.value === currentReminder) ? null : (
-                    <option value={currentReminder}>Personalizado</option>
+                    const date = card.due.allDay
+                      ? card.due.at
+                      : toLocalInput(card.due.at, timeZone).slice(0, 10);
+                    setDue(
+                      e.target.checked
+                        ? { allDay: true, at: date }
+                        : { allDay: false, at: fromLocalInput(`${date}T09:00`, timeZone) ?? "" },
+                    );
+                  }}
+                />
+                Todo el día
+              </label>
+              <label htmlFor={ids.due} className="sr-only">
+                Fecha límite
+              </label>
+              {allDay ? (
+                <Input
+                  id={ids.due}
+                  type="date"
+                  value={card.due?.at ?? ""}
+                  onChange={(e) => {
+                    if (e.target.value) setDue({ allDay: true, at: e.target.value });
+                  }}
+                />
+              ) : (
+                <Input
+                  id={ids.due}
+                  type="datetime-local"
+                  value={card.due ? toLocalInput(card.due.at, timeZone) : ""}
+                  onChange={(e) => {
+                    const at = fromLocalInput(e.target.value, timeZone);
+                    if (at) setDue({ allDay: false, at });
+                  }}
+                />
+              )}
+              {overdue ? <p className="text-sm font-medium text-destructive">Vencida</p> : null}
+              {card.due ? (
+                <>
+                  {/* Los avisos le llegan a quien creó el tablero: solo esa persona los elige. */}
+                  {isOwner ? (
+                    <>
+                      <label htmlFor={ids.reminder} className="mt-1 text-sm font-medium">
+                        Aviso por Telegram
+                      </label>
+                      <select
+                        id={ids.reminder}
+                        value={currentReminder}
+                        onChange={(e) =>
+                          save.mutate({
+                            reminders:
+                              e.target.value === ""
+                                ? []
+                                : [{ offsetMinutes: Number(e.target.value), channel: "telegram" }],
+                          })
+                        }
+                        className="h-10 rounded-md border bg-background px-2 text-base sm:h-9 sm:text-sm"
+                      >
+                        {reminderOptions.some((o) => o.value === currentReminder) ? null : (
+                          <option value={currentReminder}>Personalizado</option>
+                        )}
+                        {reminderOptions.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  ) : null}
+                  {readOnly ? null : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="justify-start"
+                      onClick={() => setDue(null)}
+                    >
+                      <XIcon aria-hidden="true" />
+                      Quitar fecha
+                    </Button>
                   )}
-                  {reminderOptions.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="justify-start"
-                  onClick={() => setDue(null)}
-                >
-                  <XIcon aria-hidden="true" />
-                  Quitar fecha
-                </Button>
-              </>
-            ) : null}
+                </>
+              ) : null}
+            </fieldset>
           </fieldset>
         </aside>
         <div className="grid min-w-0 content-start gap-5 md:col-start-1 md:row-span-2 md:row-start-1">
-          <Description card={card} onSave={(description) => save.mutate({ description })} />
-          <Checklist card={card} run={(action) => run.mutate(action)} />
-          <Attachments card={card} timeZone={timeZone} run={(action) => run.mutate(action)} />
-          <Comments card={card} timeZone={timeZone} run={(action) => run.mutate(action)} />
+          <Description
+            card={card}
+            readOnly={readOnly}
+            onSave={(description) => save.mutate({ description })}
+          />
+          <Checklist card={card} readOnly={readOnly} run={(action) => run.mutate(action)} />
+          <Attachments
+            card={card}
+            timeZone={timeZone}
+            readOnly={readOnly}
+            run={(action) => run.mutate(action)}
+          />
+          <Comments
+            card={card}
+            timeZone={timeZone}
+            readOnly={readOnly}
+            isOwner={isOwner}
+            shared={shared}
+            run={(action) => run.mutate(action)}
+          />
           <Section title="Actividad">
             <ol className="grid gap-1 text-sm text-muted-foreground">
               {card.activity.map((entry) => (
                 <li key={entry.id} className="flex flex-wrap justify-between gap-x-3">
-                  <span>{ACTIVITY[entry.kind]?.(entry.data) ?? entry.kind}</span>
+                  <span>
+                    {shared && entry.actorName ? (
+                      <span className="font-medium text-foreground">{entry.actorName}: </span>
+                    ) : null}
+                    {ACTIVITY[entry.kind]?.(entry.data) ?? entry.kind}
+                  </span>
                   <time dateTime={entry.createdAt} className="text-xs">
                     {formatDateTime(entry.createdAt, timeZone)}
                   </time>
@@ -426,44 +465,55 @@ function CardBody({
             </ol>
           </Section>
         </div>
-        <div className="grid content-start gap-2 border-t pt-4 md:col-start-2 md:row-start-2">
-          {card.archivedAt ? (
+        {readOnly ? null : (
+          <div className="grid content-start gap-2 border-t pt-4 md:col-start-2 md:row-start-2">
+            {card.archivedAt ? (
+              <Button
+                variant="outline"
+                onClick={() => archive.mutate(false)}
+                disabled={archive.isPending}
+              >
+                <ArchiveRestoreIcon aria-hidden="true" />
+                Restaurar
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => archive.mutate(true)}
+                disabled={archive.isPending}
+              >
+                <ArchiveIcon aria-hidden="true" />
+                Archivar
+              </Button>
+            )}
             <Button
-              variant="outline"
-              onClick={() => archive.mutate(false)}
-              disabled={archive.isPending}
+              variant="ghost"
+              className="text-destructive hover:text-destructive"
+              disabled={remove.isPending}
+              onClick={() => {
+                if (window.confirm(`¿Borrar «${card.title}»? No se puede deshacer.`))
+                  remove.mutate();
+              }}
             >
-              <ArchiveRestoreIcon aria-hidden="true" />
-              Restaurar
+              <Trash2Icon aria-hidden="true" />
+              Borrar tarjeta
             </Button>
-          ) : (
-            <Button
-              variant="outline"
-              onClick={() => archive.mutate(true)}
-              disabled={archive.isPending}
-            >
-              <ArchiveIcon aria-hidden="true" />
-              Archivar
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            className="text-destructive hover:text-destructive"
-            disabled={remove.isPending}
-            onClick={() => {
-              if (window.confirm(`¿Borrar «${card.title}»? No se puede deshacer.`)) remove.mutate();
-            }}
-          >
-            <Trash2Icon aria-hidden="true" />
-            Borrar tarjeta
-          </Button>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function Description({ card, onSave }: { card: CardDetail; onSave: (text: string) => void }) {
+function Description({
+  card,
+  readOnly,
+  onSave,
+}: {
+  card: CardDetail;
+  readOnly: boolean;
+  onSave: (text: string) => void;
+}) {
   const [editing, setEditing] = useState(false);
   const [tab, setTab] = useState<"write" | "preview">("write");
   const [text, setText] = useState(card.description);
@@ -535,10 +585,19 @@ function Description({ card, onSave }: { card: CardDetail; onSave: (text: string
       ) : card.description ? (
         <div className="grid gap-2">
           <Markdown source={card.description} className="markdown text-sm" />
-          <Button size="sm" variant="outline" className="justify-self-start" onClick={startEditing}>
-            Editar descripción
-          </Button>
+          {readOnly ? null : (
+            <Button
+              size="sm"
+              variant="outline"
+              className="justify-self-start"
+              onClick={startEditing}
+            >
+              Editar descripción
+            </Button>
+          )}
         </div>
+      ) : readOnly ? (
+        <p className="text-sm text-muted-foreground">Sin descripción.</p>
       ) : (
         <Button
           variant="outline"
@@ -554,7 +613,7 @@ function Description({ card, onSave }: { card: CardDetail; onSave: (text: string
 
 type Run = (action: () => Promise<CardDetail>) => void;
 
-function Checklist({ card, run }: { card: CardDetail; run: Run }) {
+function Checklist({ card, readOnly, run }: { card: CardDetail; readOnly: boolean; run: Run }) {
   const [text, setText] = useState("");
   const { done, total } = card.checklist;
   const submit = (event: FormEvent) => {
@@ -588,6 +647,7 @@ function Checklist({ card, run }: { card: CardDetail; run: Run }) {
               className="pointer-coarse:size-5"
               id={`check-${item.id}`}
               checked={item.done}
+              disabled={readOnly}
               onChange={(e) => run(() => updateChecklistItem(item.id, { done: e.target.checked }))}
             />
             <label
@@ -596,19 +656,24 @@ function Checklist({ card, run }: { card: CardDetail; run: Run }) {
             >
               {item.text}
             </label>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7 opacity-60 group-hover:opacity-100 pointer-coarse:size-10 pointer-coarse:opacity-100"
-              aria-label={`Quitar «${item.text}» de la lista`}
-              onClick={() => run(() => deleteChecklistItem(item.id))}
-            >
-              <XIcon aria-hidden="true" />
-            </Button>
+            {readOnly ? null : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 opacity-60 group-hover:opacity-100 pointer-coarse:size-10 pointer-coarse:opacity-100"
+                aria-label={`Quitar «${item.text}» de la lista`}
+                onClick={() => run(() => deleteChecklistItem(item.id))}
+              >
+                <XIcon aria-hidden="true" />
+              </Button>
+            )}
           </li>
         ))}
       </ul>
-      {total < KANBAN_LIMITS.checklistPerCard ? (
+      {readOnly && total === 0 ? (
+        <p className="text-sm text-muted-foreground">Sin elementos.</p>
+      ) : null}
+      {!readOnly && total < KANBAN_LIMITS.checklistPerCard ? (
         <form onSubmit={submit} className="flex gap-2">
           <Input
             aria-label="Nuevo elemento de la lista"
@@ -628,7 +693,17 @@ function Checklist({ card, run }: { card: CardDetail; run: Run }) {
 
 const ACCEPT = ATTACHMENT_TYPES.join(",");
 
-function Attachments({ card, timeZone, run }: { card: CardDetail; timeZone: string; run: Run }) {
+function Attachments({
+  card,
+  timeZone,
+  readOnly,
+  run,
+}: {
+  card: CardDetail;
+  timeZone: string;
+  readOnly: boolean;
+  run: Run;
+}) {
   const queryClient = useQueryClient();
   const input = useRef<HTMLInputElement>(null);
   const upload = useMutation({
@@ -679,56 +754,77 @@ function Attachments({ card, timeZone, run }: { card: CardDetail; timeZone: stri
                   <DownloadIcon aria-hidden="true" />
                 </a>
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7 pointer-coarse:size-10"
-                aria-label={`Borrar ${file.filename}`}
-                onClick={() => {
-                  if (window.confirm(`¿Borrar «${file.filename}»?`))
-                    run(() => deleteAttachment(file.id));
-                }}
-              >
-                <Trash2Icon aria-hidden="true" />
-              </Button>
+              {readOnly ? null : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 pointer-coarse:size-10"
+                  aria-label={`Borrar ${file.filename}`}
+                  onClick={() => {
+                    if (window.confirm(`¿Borrar «${file.filename}»?`))
+                      run(() => deleteAttachment(file.id));
+                  }}
+                >
+                  <Trash2Icon aria-hidden="true" />
+                </Button>
+              )}
             </li>
           ))}
         </ul>
+      ) : readOnly ? (
+        <p className="text-sm text-muted-foreground">Sin adjuntos.</p>
       ) : null}
-      <div className="flex items-center gap-2">
-        <input
-          ref={input}
-          type="file"
-          accept={ACCEPT}
-          className="sr-only"
-          id={`upload-${card.id}`}
-          onChange={(e) => pick(e.target.files)}
-          disabled={upload.isPending || full}
-        />
-        <Button
-          asChild
-          variant="outline"
-          size="sm"
-          className={cn((upload.isPending || full) && "pointer-events-none opacity-50")}
-        >
-          <label htmlFor={`upload-${card.id}`} className="cursor-pointer">
-            {upload.isPending ? (
-              <LoaderCircleIcon aria-hidden="true" className="animate-spin" />
-            ) : (
-              <PaperclipIcon aria-hidden="true" />
-            )}
-            {upload.isPending ? "Subiendo…" : "Adjuntar fichero"}
-          </label>
-        </Button>
-        <span className="text-xs text-muted-foreground">
-          Imágenes, PDF, texto, CSV, ZIP u Office · hasta 10 MB
-        </span>
-      </div>
+      {readOnly ? null : (
+        <div className="flex items-center gap-2">
+          <input
+            ref={input}
+            type="file"
+            accept={ACCEPT}
+            className="sr-only"
+            id={`upload-${card.id}`}
+            onChange={(e) => pick(e.target.files)}
+            disabled={upload.isPending || full}
+          />
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className={cn((upload.isPending || full) && "pointer-events-none opacity-50")}
+          >
+            <label htmlFor={`upload-${card.id}`} className="cursor-pointer">
+              {upload.isPending ? (
+                <LoaderCircleIcon aria-hidden="true" className="animate-spin" />
+              ) : (
+                <PaperclipIcon aria-hidden="true" />
+              )}
+              {upload.isPending ? "Subiendo…" : "Adjuntar fichero"}
+            </label>
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            Imágenes, PDF, texto, CSV, ZIP u Office · hasta 10 MB
+          </span>
+        </div>
+      )}
     </Section>
   );
 }
 
-function Comments({ card, timeZone, run }: { card: CardDetail; timeZone: string; run: Run }) {
+function Comments({
+  card,
+  timeZone,
+  readOnly,
+  isOwner,
+  shared,
+  run,
+}: {
+  card: CardDetail;
+  timeZone: string;
+  readOnly: boolean;
+  /** Quien creó el tablero puede borrar cualquier comentario (moderar). */
+  isOwner: boolean;
+  shared: boolean;
+  run: Run;
+}) {
   const [text, setText] = useState("");
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
   const submit = (event: FormEvent) => {
@@ -739,49 +835,65 @@ function Comments({ card, timeZone, run }: { card: CardDetail; timeZone: string;
   };
   return (
     <Section title="Comentarios">
-      <form onSubmit={submit} className="grid gap-2">
-        <textarea
-          aria-label="Nuevo comentario"
-          placeholder="Escribe un comentario…"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          maxLength={KANBAN_LIMITS.comment}
-          rows={2}
-          className="w-full rounded-md border bg-background p-2 text-base sm:text-sm"
-        />
-        <Button type="submit" size="sm" className="justify-self-start" disabled={!text.trim()}>
-          Comentar
-        </Button>
-      </form>
+      {readOnly ? null : (
+        <form onSubmit={submit} className="grid gap-2">
+          <textarea
+            aria-label="Nuevo comentario"
+            placeholder="Escribe un comentario…"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            maxLength={KANBAN_LIMITS.comment}
+            rows={2}
+            className="w-full rounded-md border bg-background p-2 text-base sm:text-sm"
+          />
+          <Button type="submit" size="sm" className="justify-self-start" disabled={!text.trim()}>
+            Comentar
+          </Button>
+        </form>
+      )}
+      {readOnly && card.commentList.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Sin comentarios.</p>
+      ) : null}
       <ul className="grid gap-2">
         {card.commentList.map((comment) => (
           <li key={comment.id} className="grid gap-1 rounded-md border p-2 text-sm">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              {shared ? (
+                <span className="font-medium text-foreground">
+                  {comment.authorName ?? "Otra persona"}
+                </span>
+              ) : null}
               <time dateTime={comment.createdAt}>
                 {formatDateTime(comment.createdAt, timeZone)}
               </time>
               {comment.updatedAt !== comment.createdAt ? <span>(editado)</span> : null}
-              <span className="ml-auto flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2"
-                  onClick={() => setEditing({ id: comment.id, text: comment.body })}
-                >
-                  Editar
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-destructive hover:text-destructive"
-                  onClick={() => {
-                    if (window.confirm("¿Borrar el comentario?"))
-                      run(() => deleteComment(comment.id));
-                  }}
-                >
-                  Borrar
-                </Button>
-              </span>
+              {readOnly ? null : (
+                <span className="ml-auto flex gap-1">
+                  {comment.mine ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2"
+                      onClick={() => setEditing({ id: comment.id, text: comment.body })}
+                    >
+                      Editar
+                    </Button>
+                  ) : null}
+                  {comment.mine || isOwner ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-destructive hover:text-destructive"
+                      onClick={() => {
+                        if (window.confirm("¿Borrar el comentario?"))
+                          run(() => deleteComment(comment.id));
+                      }}
+                    >
+                      Borrar
+                    </Button>
+                  ) : null}
+                </span>
+              )}
             </div>
             {editing?.id === comment.id ? (
               <form

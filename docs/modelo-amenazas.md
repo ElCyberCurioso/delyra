@@ -1,7 +1,7 @@
 # Modelo de amenazas de Delyra (F7-08)
 
-Revisión del 22 de noviembre de 2026, con las Fases 0 a 6 en producción y el bloque 1 de la Fase 7
-(PWA, feeds ICS, festivos y CSP en bloqueo). Formato STRIDE por superficie; cada amenaza enlaza
+Revisión del 22 de noviembre de 2026, con las Fases 0 a 6 en producción y los bloques 1 y 2 de la
+Fase 7 (PWA, feeds ICS, festivos, CSP en bloqueo, tableros compartidos y tiempo real). Formato STRIDE por superficie; cada amenaza enlaza
 con su mitigación en el código o en un runbook.
 
 ## Activos
@@ -28,28 +28,32 @@ con su mitigación en el código o en un runbook.
 
 ## Amenazas y mitigaciones
 
-| Superficie / STRIDE     | Amenaza                                                 | Mitigación                                                                                                                                 |
-| ----------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Autenticación (S)       | Robo de credenciales, fuerza bruta                      | scrypt, 2FA obligatorio, Turnstile, límites estrictos y bloqueos (ADR-0004)                                                                |
-| Sesión (S, E)           | Robo o fijación de sesión                               | Token opaco de 256 bits, solo su hash en D1, HttpOnly + Secure + Lax, rotación al pasar el 2FA                                             |
-| API (T)                 | CSRF                                                    | `Origin` en lista blanca + `Content-Type: application/json`; subidas con `X-Filename` (middleware `csrf.ts`)                               |
-| Datos de usuario (I, E) | IDOR: leer o escribir datos de otro                     | Repositorios con `ownerId` obligatorio; recurso ajeno = 404; pruebas de permisos cruzados en cada endpoint                                 |
-| Frontend (T)            | XSS                                                     | React escapa; Markdown con DOMPurify; textos importados en texto plano; **CSP en bloqueo** sin `unsafe-inline` ni `unsafe-eval` en scripts |
-| Frontend (I)            | Exfiltración por CSS inyectado                          | `img-src`, `font-src` y `connect-src` sin orígenes externos (el `unsafe-inline` de estilos no permite sacar datos)                         |
-| Framing (T)             | Clickjacking                                            | `frame-ancestors 'none'` y `X-Frame-Options: DENY`                                                                                         |
-| Adjuntos (T, I)         | Ficheros activos (HTML/SVG), polyglots                  | Tipo por contenido, `Content-Disposition: attachment`, `nosniff`, CSP `sandbox` en la API                                                  |
-| Importaciones (D, T)    | Zip bomb, ICS gigantes, HTML en textos                  | Límites contados en bytes reales, textos saneados, Workflow por lotes (ADR-0008)                                                           |
-| Copias (T, E)           | Copia manipulada para escribir en otra cuenta           | Checksum, esquema, referencias solo internas, ids regenerados, propietario reescrito (ADR-0009)                                            |
-| Suscripciones iCal (I)  | SSRF                                                    | Solo `https://calendar.google.com/calendar/ical/…`, sin redirecciones, tiempo y tamaño máximos                                             |
-| OAuth Google (S, I)     | CSRF de login, robo de código, tokens de larga duración | PKCE S256, `state` en cookie cifrada de un solo uso, `access_type=online`, token borrado tras el análisis                                  |
-| Feeds ICS (I)           | Fuga de la URL del feed                                 | Token de 256 bits por calendario, revocable y regenerable; solo su hash para buscar; `noindex`; nunca en logs (solo patrón de ruta)        |
-| Festivos (T)            | Respuesta manipulada del servicio                       | Validación estricta (fechas, códigos de región, tamaño), texto plano; sin datos del usuario en la petición                                 |
-| PWA (I)                 | Datos en caché vistos por otra persona del dispositivo  | Solo GET de lectura concretos en caché; se vacía al cerrar sesión y al entrar otra cuenta; navegaciones `/api/*` fuera del SW              |
-| Telegram (S)            | Webhook falso                                           | Secreto en `X-Telegram-Bot-Api-Secret-Token`, comparación en tiempo constante, idempotencia por `update_id`                                |
-| Notificaciones (R)      | Repudio de acciones                                     | Historial de seguridad (`audit_log`) con eventos de cuenta, admin y restauraciones                                                         |
-| Disponibilidad (D)      | Abuso de la API                                         | Rate limiting general y estricto en auth; cuotas diarias de importación, copias y restauraciones                                           |
-| Plataforma (E)          | Token de Cloudflare filtrado                            | Permisos mínimos (abajo), gitleaks en CI, secretos solo en Wrangler/GitHub                                                                 |
-| Datos (D)               | Pérdida o corrupción                                    | Backups diario/semanal/mensual, Time Travel 30 días, simulacro documentado (docs/runbooks/restauracion.md)                                 |
+| Superficie / STRIDE      | Amenaza                                                                      | Mitigación                                                                                                                                                    |
+| ------------------------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Autenticación (S)        | Robo de credenciales, fuerza bruta                                           | scrypt, 2FA obligatorio, Turnstile, límites estrictos y bloqueos (ADR-0004)                                                                                   |
+| Sesión (S, E)            | Robo o fijación de sesión                                                    | Token opaco de 256 bits, solo su hash en D1, HttpOnly + Secure + Lax, rotación al pasar el 2FA                                                                |
+| API (T)                  | CSRF                                                                         | `Origin` en lista blanca + `Content-Type: application/json`; subidas con `X-Filename` (middleware `csrf.ts`)                                                  |
+| Datos de usuario (I, E)  | IDOR: leer o escribir datos de otro                                          | Repositorios con `ownerId` obligatorio; recurso ajeno = 404; pruebas de permisos cruzados en cada endpoint                                                    |
+| Tableros compartidos (E) | Un lector escribe, un editor borra el tablero o gestiona miembros            | Papel resuelto en cada endpoint a partir del recurso (`board-access.ts`); 403 por papel, 404 sin acceso; pruebas por papel y por endpoint (ADR-0011)          |
+| Invitaciones (I, S)      | Enumerar cuentas por email; aceptar una invitación ajena                     | Misma respuesta exista o no la cuenta; la invitación solo la ve y acepta quien entra con ese email; emails de miembros solo para el dueño                     |
+| Canal en vivo (S, I)     | Secuestro del WebSocket desde otro sitio (CSWSH); fuga de datos por el canal | `Origin` en lista blanca, sesión completa y papel antes de conectar; el canal solo dice «ha cambiado» y quién mira; al quitar el acceso se cierra la conexión |
+| Canal en vivo (D)        | Muchas conexiones a una sala                                                 | Máximo 100 conexiones por tablero; hibernación; sin mensajes del cliente salvo `ping`                                                                         |
+| Frontend (T)             | XSS                                                                          | React escapa; Markdown con DOMPurify; textos importados en texto plano; **CSP en bloqueo** sin `unsafe-inline` ni `unsafe-eval` en scripts                    |
+| Frontend (I)             | Exfiltración por CSS inyectado                                               | `img-src`, `font-src` y `connect-src` sin orígenes externos (el `unsafe-inline` de estilos no permite sacar datos)                                            |
+| Framing (T)              | Clickjacking                                                                 | `frame-ancestors 'none'` y `X-Frame-Options: DENY`                                                                                                            |
+| Adjuntos (T, I)          | Ficheros activos (HTML/SVG), polyglots                                       | Tipo por contenido, `Content-Disposition: attachment`, `nosniff`, CSP `sandbox` en la API                                                                     |
+| Importaciones (D, T)     | Zip bomb, ICS gigantes, HTML en textos                                       | Límites contados en bytes reales, textos saneados, Workflow por lotes (ADR-0008)                                                                              |
+| Copias (T, E)            | Copia manipulada para escribir en otra cuenta                                | Checksum, esquema, referencias solo internas, ids regenerados, propietario reescrito (ADR-0009)                                                               |
+| Suscripciones iCal (I)   | SSRF                                                                         | Solo `https://calendar.google.com/calendar/ical/…`, sin redirecciones, tiempo y tamaño máximos                                                                |
+| OAuth Google (S, I)      | CSRF de login, robo de código, tokens de larga duración                      | PKCE S256, `state` en cookie cifrada de un solo uso, `access_type=online`, token borrado tras el análisis                                                     |
+| Feeds ICS (I)            | Fuga de la URL del feed                                                      | Token de 256 bits por calendario, revocable y regenerable; solo su hash para buscar; `noindex`; nunca en logs (solo patrón de ruta)                           |
+| Festivos (T)             | Respuesta manipulada del servicio                                            | Validación estricta (fechas, códigos de región, tamaño), texto plano; sin datos del usuario en la petición                                                    |
+| PWA (I)                  | Datos en caché vistos por otra persona del dispositivo                       | Solo GET de lectura concretos en caché; se vacía al cerrar sesión y al entrar otra cuenta; navegaciones `/api/*` fuera del SW                                 |
+| Telegram (S)             | Webhook falso                                                                | Secreto en `X-Telegram-Bot-Api-Secret-Token`, comparación en tiempo constante, idempotencia por `update_id`                                                   |
+| Notificaciones (R)       | Repudio de acciones                                                          | Historial de seguridad (`audit_log`) con eventos de cuenta, admin y restauraciones                                                                            |
+| Disponibilidad (D)       | Abuso de la API                                                              | Rate limiting general y estricto en auth; cuotas diarias de importación, copias y restauraciones                                                              |
+| Plataforma (E)           | Token de Cloudflare filtrado                                                 | Permisos mínimos (abajo), gitleaks en CI, secretos solo en Wrangler/GitHub                                                                                    |
+| Datos (D)                | Pérdida o corrupción                                                         | Backups diario/semanal/mensual, Time Travel 30 días, simulacro documentado (docs/runbooks/restauracion.md)                                                    |
 
 ## Revisión de permisos de los tokens
 
@@ -69,7 +73,9 @@ Si alguno tiene más permisos, edítalo o crea otro y revoca el anterior. Rotaci
 
 La auditoría con Burp Suite la hace el propietario contra producción con una cuenta de prueba. Puntos
 mínimos: IDOR cambiando ids en todos los endpoints (eventos, tableros, tarjetas, adjuntos, copias,
-restauraciones, feeds, suscripciones, importaciones), manipulación de `state` en `/api/google/callback`,
+restauraciones, feeds, suscripciones, importaciones), papeles de los tableros compartidos (lector y
+editor contra cada endpoint, ids de invitaciones ajenas), WebSocket `/api/boards/<id>/live` sin
+`Origin` o con otro, manipulación de `state` en `/api/google/callback`,
 copias manipuladas (ids ajenos, checksum, tamaño), URL de suscripción con otros hosts y redirecciones,
 subida de adjuntos con tipos falsos, CSRF sin `Origin` o con otro `Content-Type`, y fuerza bruta en el
 login y el 2FA. Los hallazgos altos o críticos bloquean la versión 1.0.

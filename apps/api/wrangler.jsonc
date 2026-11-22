@@ -75,6 +75,9 @@
       },
     ],
   },
+  // F7-05: una sala en vivo por tablero (WebSocket Hibernation).
+  "durable_objects": { "bindings": [{ "name": "BOARD_ROOM", "class_name": "BoardRoom" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BoardRoom"] }],
   "workflows": [
     {
       "name": "delyra-system-backup-local",
@@ -153,6 +156,8 @@
           },
         ],
       },
+      "durable_objects": { "bindings": [{ "name": "BOARD_ROOM", "class_name": "BoardRoom" }] },
+      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BoardRoom"] }],
       "workflows": [
         {
           "name": "delyra-system-backup",

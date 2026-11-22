@@ -34,7 +34,9 @@ export type AuditEvent =
   | "admin.totp_reset"
   | "admin.system_backup"
   | "backup.restore_started"
-  | "backup.restore_undone";
+  | "backup.restore_undone"
+  | "board.invitation_created"
+  | "board.invitation_accepted";
 
 export async function audit(
   db: Database,

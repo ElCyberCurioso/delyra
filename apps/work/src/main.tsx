@@ -1,5 +1,5 @@
 import "./styles.css";
-import { setupServiceWorker, ThemeProvider } from "@delyra/ui";
+import { ApiError, setupServiceWorker, ThemeProvider } from "@delyra/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
@@ -8,7 +8,14 @@ import { registerSW } from "virtual:pwa-register";
 import { createAppRouter } from "./router";
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 30_000 } },
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      // Un 4xx (sin acceso, borrado…) no cambia por repetir: se muestra al momento.
+      retry: (failures, error) =>
+        !(error instanceof ApiError && error.status < 500) && failures < 3,
+    },
+  },
 });
 const router = createAppRouter();
 

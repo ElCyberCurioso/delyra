@@ -1,6 +1,14 @@
-import { BOARD_TEMPLATES, CARD_PRIORITIES } from "@delyra/shared";
+import { BOARD_MEMBER_ROLES, BOARD_TEMPLATES, CARD_PRIORITIES } from "@delyra/shared";
 import { sql } from "drizzle-orm";
-import { check, index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  check,
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 import { users } from "./identity";
 
 /**
@@ -140,6 +148,8 @@ export const cardComments = sqliteTable(
       .notNull()
       .references(() => cards.id, { onDelete: "cascade" }),
     body: text("body").notNull(),
+    /** Quién lo escribió (F7-04, tableros compartidos). Null = el dueño del tablero. */
+    authorId: text("author_id").references(() => users.id, { onDelete: "set null" }),
     ...timestamps,
   },
   (t) => [index("card_comments_card_idx").on(t.cardId, t.createdAt)],
@@ -174,12 +184,64 @@ export const cardActivity = sqliteTable(
     kind: text("kind").notNull(),
     /** JSON con el detalle (nombres de columnas, campos cambiados…). */
     data: text("data").notNull().default("{}"),
+    /** Quién hizo el cambio (F7-04). Null = el dueño del tablero. */
+    actorId: text("actor_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   },
   (t) => [index("card_activity_card_idx").on(t.cardId, t.createdAt)],
 );
 
+/**
+ * Tableros compartidos (F7-04). El tablero y todo lo que cuelga de él siguen siendo del dueño
+ * (`owner_id`); los miembros tienen un papel: `editor` (cambia tarjetas, columnas y etiquetas)
+ * o `reader` (solo lectura).
+ */
+export const boardMembers = sqliteTable(
+  "board_members",
+  {
+    boardId: text("board_id")
+      .notNull()
+      .references(() => boards.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role", { enum: BOARD_MEMBER_ROLES }).notNull(),
+    addedAt: integer("added_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.boardId, t.userId] }),
+    index("board_members_user_idx").on(t.userId),
+    check("board_members_role_check", sql`"role" IN (${quoted(BOARD_MEMBER_ROLES)})`),
+  ],
+);
+
+/**
+ * Invitaciones a un tablero por email. Se guardan por email (normalizado), no por usuario: así
+ * invitar no revela si esa dirección tiene cuenta, y la invitación aparece si la crea después.
+ */
+export const boardInvitations = sqliteTable(
+  "board_invitations",
+  {
+    id: text("id").primaryKey(),
+    boardId: text("board_id")
+      .notNull()
+      .references(() => boards.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    role: text("role", { enum: BOARD_MEMBER_ROLES }).notNull(),
+    invitedBy: text("invited_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => [
+    uniqueIndex("board_invitations_board_email_idx").on(t.boardId, t.email),
+    index("board_invitations_email_idx").on(t.email),
+    check("board_invitations_role_check", sql`"role" IN (${quoted(BOARD_MEMBER_ROLES)})`),
+  ],
+);
+
 export type Board = typeof boards.$inferSelect;
+export type BoardMemberRow = typeof boardMembers.$inferSelect;
+export type BoardInvitationRow = typeof boardInvitations.$inferSelect;
 export type BoardColumnRow = typeof boardColumns.$inferSelect;
 export type CardRow = typeof cards.$inferSelect;
 export type LabelRow = typeof labels.$inferSelect;

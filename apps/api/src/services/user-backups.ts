@@ -204,6 +204,7 @@ export async function collectBackupData(db: Database, ownerId: string): Promise<
         body: c.body,
         createdAt: c.createdAt.getTime(),
         updatedAt: c.updatedAt.getTime(),
+        byOwner: c.authorId === ownerId,
       }),
     ),
     activity: (await db.select().from(cardActivity).where(eq(cardActivity.ownerId, ownerId))).map(
@@ -213,6 +214,7 @@ export async function collectBackupData(db: Database, ownerId: string): Promise<
         kind: a.kind,
         data: a.data.slice(0, 4_000),
         createdAt: a.createdAt.getTime(),
+        byOwner: a.actorId === ownerId,
       }),
     ),
     attachments: (

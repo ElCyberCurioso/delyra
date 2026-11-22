@@ -1,12 +1,16 @@
 import {
+  acceptedBoardInvitationSchema,
   archivedCardsResponseSchema,
   type BoardDetail,
   boardDetailSchema,
+  type BoardMemberRole,
+  boardMembersResponseSchema,
   boardsResponseSchema,
   type CardDetail,
   cardResponseSchema,
   labelResponseSchema,
   moveCardResponseSchema,
+  pendingBoardInvitationsResponseSchema,
   problemDetailsSchema,
 } from "@delyra/shared";
 import { ApiError, apiFetch } from "@delyra/ui";
@@ -18,6 +22,8 @@ export const BOARDS_KEY = ["boards"] as const;
 export const boardKey = (id: string) => ["board", id] as const;
 export const cardKey = (id: string) => ["card", id] as const;
 export const archivedKey = (id: string) => ["board", id, "archived"] as const;
+export const membersKey = (id: string) => ["board", id, "members"] as const;
+export const INVITATIONS_KEY = ["board-invitations"] as const;
 
 export function useBoards() {
   return useQuery({
@@ -56,6 +62,59 @@ export function useArchived(boardId: string, enabled: boolean) {
       }).then((r) => r.cards),
   });
 }
+
+// ── Compartir (F7-04) ────────────────────────────────────────────────────────
+
+export function useBoardMembers(boardId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: membersKey(boardId),
+    enabled,
+    queryFn: ({ signal }) =>
+      apiFetch(`/api/boards/${boardId}/members`, { schema: boardMembersResponseSchema, signal }),
+  });
+}
+
+/** Invitaciones a tableros que esperan respuesta de quien ha entrado. */
+export function usePendingInvitations() {
+  return useQuery({
+    queryKey: INVITATIONS_KEY,
+    queryFn: ({ signal }) =>
+      apiFetch("/api/board-invitations", {
+        schema: pendingBoardInvitationsResponseSchema,
+        signal,
+      }).then((r) => r.invitations),
+  });
+}
+
+export const inviteToBoard = (boardId: string, body: { email: string; role: BoardMemberRole }) =>
+  apiFetch(`/api/boards/${boardId}/invitations`, {
+    method: "POST",
+    body,
+    schema: boardMembersResponseSchema,
+  });
+
+export const revokeBoardInvitation = (boardId: string, invitationId: string) =>
+  apiFetch(`/api/boards/${boardId}/invitations/${invitationId}`, { method: "DELETE" });
+
+export const setBoardMemberRole = (boardId: string, userId: string, role: BoardMemberRole) =>
+  apiFetch(`/api/boards/${boardId}/members/${userId}`, {
+    method: "PATCH",
+    body: { role },
+    schema: boardMembersResponseSchema,
+  });
+
+/** Quita a alguien del tablero; con el id propio, salir de él. */
+export const removeBoardMember = (boardId: string, userId: string) =>
+  apiFetch(`/api/boards/${boardId}/members/${userId}`, { method: "DELETE" });
+
+export const acceptBoardInvitation = (id: string) =>
+  apiFetch(`/api/board-invitations/${id}/accept`, {
+    method: "POST",
+    schema: acceptedBoardInvitationSchema,
+  });
+
+export const declineBoardInvitation = (id: string) =>
+  apiFetch(`/api/board-invitations/${id}/decline`, { method: "POST" });
 
 // ── Tableros y columnas ──────────────────────────────────────────────────────
 

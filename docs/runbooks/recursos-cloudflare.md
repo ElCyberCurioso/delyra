@@ -34,7 +34,8 @@ Las copias de los usuarios (`users/<id>/<copia>.zip`) no tienen regla: las borra
 aplicación según cuántas se conservan (F6-03).
 
 Los Workflows (`delyra-system-backup`, `delyra-import` desde F5-02 y `delyra-user-backup` desde
-F6-02) no se crean a mano: los crea `wrangler deploy` a partir de `apps/api/wrangler.jsonc`.
+F6-02) no se crean a mano: los crea `wrangler deploy` a partir de `apps/api/wrangler.jsonc`. Lo
+mismo el Durable Object `BoardRoom` (F7-05, almacenamiento SQLite, migración `v1`).
 
 ## 2. Conectar los identificadores
 

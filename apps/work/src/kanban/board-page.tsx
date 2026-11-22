@@ -39,6 +39,7 @@ import {
   SearchIcon,
   SettingsIcon,
   SlidersHorizontalIcon,
+  UsersIcon,
   XIcon,
 } from "lucide-react";
 import { type FormEvent, useEffect, useId, useMemo, useState } from "react";
@@ -65,6 +66,7 @@ import {
 } from "./api";
 import { BoardCanvas } from "./board-canvas";
 import { CardDialog } from "./card-dialog";
+import { type LivePerson, useBoardLive } from "./live";
 import {
   type BoardFilters,
   hasFilters,
@@ -73,6 +75,7 @@ import {
   moveColumnLocally,
   PRIORITY_LABELS,
 } from "./logic";
+import { ROLE_LABELS, ShareDialog } from "./share-dialog";
 
 /** Tablero (F4-08 a F4-10). */
 export interface BoardPageProps {
@@ -84,12 +87,20 @@ export interface BoardPageProps {
 export function BoardPage(props: BoardPageProps) {
   return (
     <WorkLayout>
-      {(session) => <Board {...props} timeZone={session.settings.timeZone} />}
+      {(session) => (
+        <Board {...props} timeZone={session.settings.timeZone} userId={session.user.id} />
+      )}
     </WorkLayout>
   );
 }
 
-function Board({ boardId, search, setSearch, timeZone }: BoardPageProps & { timeZone: string }) {
+function Board({
+  boardId,
+  search,
+  setSearch,
+  timeZone,
+  userId,
+}: BoardPageProps & { timeZone: string; userId: string }) {
   const board = useBoard(boardId);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -123,6 +134,7 @@ function Board({ boardId, search, setSearch, timeZone }: BoardPageProps & { time
       setSearch={setSearch}
       timeZone={timeZone}
       now={now}
+      userId={userId}
     />
   );
 }
@@ -142,14 +154,21 @@ function BoardView({
   setSearch,
   timeZone,
   now,
+  userId,
 }: {
   board: BoardDetail;
   search: BoardSearch;
   setSearch: (patch: Partial<BoardSearch>) => void;
   timeZone: string;
   now: number;
+  userId: string;
 }) {
   const queryClient = useQueryClient();
+  // F7-04: quien solo lee ve el tablero sin controles de edición (la API lo impide igualmente).
+  const { role } = board.board;
+  const canEdit = role !== "reader";
+  const live = useBoardLive(board.board.id, userId);
+  const [shareOpen, setShareOpen] = useState(false);
   const key = boardKey(board.board.id);
   const filters = useMemo(() => toFilters(search), [search]);
   const visible = useMemo(
@@ -215,7 +234,16 @@ function BoardView({
   // F7-07: atajos de teclado («?» muestra la ayuda).
   const [helpOpen, setHelpOpen] = useState(false);
   const shortcuts: Shortcut[] = [
-    { keys: ["c"], label: "C", description: "Nueva columna", run: () => setEditingColumn("new") },
+    ...(canEdit
+      ? [
+          {
+            keys: ["c"],
+            label: "C",
+            description: "Nueva columna",
+            run: () => setEditingColumn("new"),
+          },
+        ]
+      : []),
     {
       keys: ["/"],
       label: "/",
@@ -246,20 +274,41 @@ function BoardView({
           <h1 className="min-w-0 truncate text-xl font-semibold tracking-tight sm:text-2xl">
             {board.board.name}
           </h1>
+          {role !== "owner" ? (
+            <span className="shrink-0 rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+              {ROLE_LABELS[role]}
+              {board.board.ownerName ? ` · de ${board.board.ownerName}` : ""}
+            </span>
+          ) : null}
         </div>
+        <Presence people={live.others} />
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => setEditingColumn("new")}>
-            <PlusIcon aria-hidden="true" />
-            Columna
-          </Button>
+          {canEdit ? (
+            <Button variant="outline" size="sm" onClick={() => setEditingColumn("new")}>
+              <PlusIcon aria-hidden="true" />
+              Columna
+            </Button>
+          ) : null}
           <Button variant="outline" size="sm" onClick={() => setArchivedOpen(true)}>
             <ArchiveIcon aria-hidden="true" />
             Archivadas
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
-            <SettingsIcon aria-hidden="true" />
-            Ajustes
+          <Button variant="outline" size="sm" onClick={() => setShareOpen(true)}>
+            <UsersIcon aria-hidden="true" />
+            {role === "owner" ? "Compartir" : "Personas"}
+            {board.board.members > 0 ? (
+              <span className="text-muted-foreground tabular-nums">
+                {board.board.members + 1}
+                <span className="sr-only"> con acceso</span>
+              </span>
+            ) : null}
           </Button>
+          {canEdit ? (
+            <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
+              <SettingsIcon aria-hidden="true" />
+              Ajustes
+            </Button>
+          ) : null}
           {/* F6-02: el tablero en CSV (hoja de cálculo) o JSON. */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -296,7 +345,9 @@ function BoardView({
       {board.columns.length === 0 ? (
         <div className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-xl border border-dashed p-8 text-center">
           <p className="text-muted-foreground">Este tablero aún no tiene columnas.</p>
-          <Button onClick={() => setEditingColumn("new")}>Añadir la primera columna</Button>
+          {canEdit ? (
+            <Button onClick={() => setEditingColumn("new")}>Añadir la primera columna</Button>
+          ) : null}
         </div>
       ) : (
         <BoardCanvas
@@ -311,6 +362,7 @@ function BoardView({
           onMoveColumn={(columnId, index) => moveColumnMutation.mutate({ columnId, index })}
           onAddCard={(columnId, title) => addCardMutation.mutateAsync({ columnId, title })}
           onEditColumn={setEditingColumn}
+          readOnly={!canEdit}
         />
       )}
 
@@ -323,6 +375,7 @@ function BoardView({
       />
       <ColumnDialog board={board} column={editingColumn} onClose={() => setEditingColumn(null)} />
       <BoardSettingsDialog board={board} open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <ShareDialog board={board} open={shareOpen} onOpenChange={setShareOpen} />
       <ArchivedDialog
         board={board}
         open={archivedOpen}
@@ -333,6 +386,28 @@ function BoardView({
         }}
       />
     </div>
+  );
+}
+
+/** Quién más tiene el tablero abierto ahora mismo (F7-05). */
+function Presence({ people }: { people: LivePerson[] }) {
+  if (people.length === 0) return null;
+  const names = people.map((p) => p.name);
+  return (
+    <p className="flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
+      <span className="flex -space-x-1.5" aria-hidden="true">
+        {people.slice(0, 4).map((person) => (
+          <span
+            key={person.id}
+            title={person.name}
+            className="grid size-7 place-items-center rounded-full border-2 border-background bg-primary/15 text-xs font-medium text-primary"
+          >
+            {person.name.trim().charAt(0).toUpperCase()}
+          </span>
+        ))}
+      </span>
+      <span className="max-w-60 truncate">También aquí: {names.join(", ")}</span>
+    </p>
   );
 }
 
@@ -774,24 +849,26 @@ function BoardSettings({ board, onClose }: { board: BoardDetail; onClose: () => 
         </form>
       </section>
 
-      <section className="grid gap-2 border-t pt-4">
-        <h3 className="text-sm font-semibold text-destructive">Zona peligrosa</h3>
-        <Button
-          variant="destructive"
-          className="justify-self-start"
-          disabled={remove.isPending}
-          onClick={() => {
-            if (
-              window.confirm(
-                `¿Borrar «${board.board.name}» con todas sus tarjetas y adjuntos? No se puede deshacer.`,
+      {board.board.role === "owner" ? (
+        <section className="grid gap-2 border-t pt-4">
+          <h3 className="text-sm font-semibold text-destructive">Zona peligrosa</h3>
+          <Button
+            variant="destructive"
+            className="justify-self-start"
+            disabled={remove.isPending}
+            onClick={() => {
+              if (
+                window.confirm(
+                  `¿Borrar «${board.board.name}» con todas sus tarjetas y adjuntos? No se puede deshacer.`,
+                )
               )
-            )
-              remove.mutate();
-          }}
-        >
-          Borrar tablero
-        </Button>
-      </section>
+                remove.mutate();
+            }}
+          >
+            Borrar tablero
+          </Button>
+        </section>
+      ) : null}
     </>
   );
 }
@@ -848,14 +925,16 @@ function ArchivedDialog({
                     {columnName(card.columnId)}
                   </span>
                 </button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={restore.isPending}
-                  onClick={() => restore.mutate(card.id)}
-                >
-                  Restaurar
-                </Button>
+                {board.board.role !== "reader" ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={restore.isPending}
+                    onClick={() => restore.mutate(card.id)}
+                  >
+                    Restaurar
+                  </Button>
+                ) : null}
               </li>
             ))}
           </ul>

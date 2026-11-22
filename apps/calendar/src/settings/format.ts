@@ -71,6 +71,8 @@ export const AUDIT_LABELS: Readonly<Record<string, string>> = {
   "admin.system_backup": "Backup del sistema lanzado a mano",
   "backup.restore_started": "Restauración de una copia de seguridad",
   "backup.restore_undone": "Restauración deshecha",
+  "board.invitation_created": "Invitación a un tablero de Trabajo",
+  "board.invitation_accepted": "Invitación a un tablero aceptada",
 };
 
 /** Eventos que conviene destacar: pueden indicar que alguien intenta entrar. */

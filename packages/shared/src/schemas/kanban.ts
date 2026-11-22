@@ -2,6 +2,7 @@ import { z } from "zod";
 import { timeZoneSchema } from "../constants";
 import { idSchema } from "../ids";
 import { isValidDateOnly } from "../time";
+import { emailSchema } from "./auth";
 import { reminderInputSchema } from "./calendar";
 
 /** Kanban de work.delyra.app (Fase 4). */
@@ -10,6 +11,12 @@ export const CARD_PRIORITIES = ["none", "low", "medium", "high", "urgent"] as co
 export type CardPriority = (typeof CARD_PRIORITIES)[number];
 
 export const BOARD_TEMPLATES = ["personal", "sprint", "audit", "empty"] as const;
+
+/** Tableros compartidos (F7-04): papel de un miembro y papel de quien mira el tablero. */
+export const BOARD_MEMBER_ROLES = ["editor", "reader"] as const;
+export type BoardMemberRole = (typeof BOARD_MEMBER_ROLES)[number];
+export const BOARD_ROLES = ["owner", "editor", "reader"] as const;
+export type BoardRole = (typeof BOARD_ROLES)[number];
 export type BoardTemplate = (typeof BOARD_TEMPLATES)[number];
 
 export const LABEL_COLORS = [
@@ -147,6 +154,12 @@ export const boardSummarySchema = z.object({
   autoarchiveDays: z.number(),
   openCards: z.number(),
   createdAt: iso,
+  /** Papel de quien lo mira (F7-04). */
+  role: z.enum(BOARD_ROLES),
+  /** Nombre del dueño si es un tablero compartido contigo; null si es tuyo. */
+  ownerName: z.string().nullable(),
+  /** Personas con acceso además del dueño. */
+  members: z.number(),
 });
 export type BoardSummary = z.infer<typeof boardSummarySchema>;
 
@@ -194,7 +207,15 @@ export const cardDetailSchema = cardSummarySchema.extend({
   description: z.string(),
   checklistItems: z.array(z.object({ id: z.string(), text: z.string(), done: z.boolean() })),
   commentList: z.array(
-    z.object({ id: z.string(), body: z.string(), createdAt: iso, updatedAt: iso }),
+    z.object({
+      id: z.string(),
+      body: z.string(),
+      createdAt: iso,
+      updatedAt: iso,
+      authorName: z.string().nullable(),
+      /** Lo escribió quien mira: puede editarlo. */
+      mine: z.boolean(),
+    }),
   ),
   attachmentList: z.array(
     z.object({
@@ -211,6 +232,7 @@ export const cardDetailSchema = cardSummarySchema.extend({
       kind: z.string(),
       data: z.record(z.string(), z.unknown()),
       createdAt: iso,
+      actorName: z.string().nullable(),
     }),
   ),
   reminders: z.array(
@@ -250,3 +272,64 @@ export const archivedCardSchema = z.object({
 export type ArchivedCard = z.infer<typeof archivedCardSchema>;
 export const archivedCardsResponseSchema = z.object({ cards: z.array(archivedCardSchema) });
 export const dueCardsResponseSchema = z.object({ cards: z.array(dueCardSchema) });
+
+// ── Tableros compartidos y tiempo real (F7-04, F7-05) ────────────────────────
+
+export const BOARD_SHARING_LIMITS = { members: 20, invitationDays: 14 } as const;
+
+export const boardMemberSchema = z.object({
+  userId: z.string(),
+  name: z.string(),
+  role: z.enum(BOARD_ROLES),
+  /** Solo lo ve el dueño (a quien invitó por email). */
+  email: z.string().nullable(),
+  you: z.boolean(),
+});
+export type BoardMember = z.infer<typeof boardMemberSchema>;
+
+export const boardInvitationSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  role: z.enum(BOARD_MEMBER_ROLES),
+  createdAt: iso,
+  expiresAt: iso,
+});
+
+export const boardMembersResponseSchema = z.object({
+  role: z.enum(BOARD_ROLES),
+  members: z.array(boardMemberSchema),
+  /** Pendientes de aceptar (solo para el dueño). */
+  invitations: z.array(boardInvitationSchema),
+});
+export type BoardMembers = z.infer<typeof boardMembersResponseSchema>;
+
+export const inviteToBoardRequestSchema = z.object({
+  email: emailSchema,
+  role: z.enum(BOARD_MEMBER_ROLES),
+});
+export const updateBoardMemberRequestSchema = z.object({ role: z.enum(BOARD_MEMBER_ROLES) });
+
+export const pendingBoardInvitationSchema = z.object({
+  id: z.string(),
+  boardName: z.string(),
+  invitedBy: z.string().nullable(),
+  role: z.enum(BOARD_MEMBER_ROLES),
+  expiresAt: iso,
+});
+export type PendingBoardInvitation = z.infer<typeof pendingBoardInvitationSchema>;
+export const pendingBoardInvitationsResponseSchema = z.object({
+  invitations: z.array(pendingBoardInvitationSchema),
+});
+export const acceptedBoardInvitationSchema = z.object({ boardId: z.string() });
+
+/** Mensajes del canal en vivo de un tablero (no llevan datos del tablero, solo avisos). */
+export const boardLiveMessageSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("changed"), by: z.string() }),
+  z.object({
+    type: z.literal("presence"),
+    users: z.array(z.object({ id: z.string(), name: z.string() })),
+  }),
+  /** Se le ha quitado el acceso a quien lo recibe (justo antes de cerrar su conexión). */
+  z.object({ type: z.literal("revoked") }),
+]);
+export type BoardLiveMessage = z.infer<typeof boardLiveMessageSchema>;

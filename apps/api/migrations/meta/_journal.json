@@ -64,6 +64,20 @@
       "when": 1795359077776,
       "tag": "0008_feeds_holidays",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1795362750679,
+      "tag": "0009_board_sharing",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1795364126166,
+      "tag": "0010_backfill_authors",
+      "breakpoints": true
     }
   ]
 }

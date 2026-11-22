@@ -1,9 +1,10 @@
-import { newId } from "@delyra/shared";
+import { type BoardRole, newId } from "@delyra/shared";
 import { and, asc, count, desc, eq, gte, inArray, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import type { Database } from "../db/client";
 import {
   boardColumns,
+  boardMembers,
   boards,
   cardActivity,
   cardAttachments,
@@ -13,11 +14,16 @@ import {
   checklistItems,
   labels,
   reminders,
+  users,
 } from "../db/schema";
 
 /**
  * Kanban de un usuario (F4-03 a F4-06). Cada consulta lleva `owner_id`: no hay forma de leer
  * ni tocar el tablero de otra persona desde aquí (§3.5).
+ *
+ * Tableros compartidos (F7-04): `ownerId` es siempre el dueño de los datos; `actorId` y `role`
+ * son de quien hace la petición (lo decide `services/board-access.ts` antes de crear el
+ * repositorio). La actividad y los comentarios guardan `actorId` como autor.
  */
 
 type Insert<T extends { $inferInsert: unknown }> = Omit<
@@ -25,7 +31,12 @@ type Insert<T extends { $inferInsert: unknown }> = Omit<
   "id" | "ownerId" | "createdAt" | "updatedAt"
 >;
 
-export function kanbanRepository(db: Database, ownerId: string) {
+export function kanbanRepository(
+  db: Database,
+  ownerId: string,
+  actorId: string = ownerId,
+  role: BoardRole = "owner",
+) {
   const now = () => new Date();
   const mine = (table: { ownerId: AnySQLiteColumn; id: AnySQLiteColumn }, id: string) =>
     and(eq(table.ownerId, ownerId), eq(table.id, id));
@@ -33,6 +44,8 @@ export function kanbanRepository(db: Database, ownerId: string) {
   return {
     db,
     ownerId,
+    actorId,
+    role,
 
     // ── Tableros ─────────────────────────────────────────────────────────────
 
@@ -339,8 +352,39 @@ export function kanbanRepository(db: Database, ownerId: string) {
         cardId,
         kind,
         data: JSON.stringify(data),
+        actorId,
         createdAt: now(),
       });
+    },
+
+    /** Miembros de un tablero (sin contar al dueño). */
+    async memberCount(boardId: string) {
+      const [row] = await db
+        .select({ total: count() })
+        .from(boardMembers)
+        .where(eq(boardMembers.boardId, boardId));
+      return row?.total ?? 0;
+    },
+
+    async memberCounts() {
+      const rows = await db
+        .select({ boardId: boardMembers.boardId, total: count() })
+        .from(boardMembers)
+        .innerJoin(boards, eq(boards.id, boardMembers.boardId))
+        .where(eq(boards.ownerId, ownerId))
+        .groupBy(boardMembers.boardId);
+      return new Map(rows.map((r) => [r.boardId, r.total]));
+    },
+
+    /** Nombres de usuario por id (autores de comentarios y de la actividad). */
+    async namesOf(ids: readonly string[]) {
+      const unique = [...new Set(ids)];
+      if (unique.length === 0) return new Map<string, string>();
+      const rows = await db
+        .select({ id: users.id, name: users.name })
+        .from(users)
+        .where(inArray(users.id, unique.slice(0, 90)));
+      return new Map(rows.map((r) => [r.id, r.name]));
     },
 
     // ── Alertas de tarjetas (F4-07) ─────────────────────────────────────────

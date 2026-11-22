@@ -11,6 +11,7 @@ import { loadSession } from "./middleware/session";
 import { accountRoutes } from "./routes/account";
 import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
+import { boardInvitationRoutes } from "./routes/board-invitations";
 import { backupRoutes, restoreRoutes } from "./routes/backups";
 import { calendarRoutes } from "./routes/calendars";
 import { cspReportRoutes } from "./routes/csp-report";
@@ -99,6 +100,7 @@ export function createApp() {
   api.route("/restores", restoreRoutes);
   api.route("/feeds", feedRoutes);
   api.route("/holidays", holidayRoutes);
+  api.route("/board-invitations", boardInvitationRoutes);
   app.route("/api", api);
 
   app.notFound(notFoundHandler);

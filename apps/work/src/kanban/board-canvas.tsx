@@ -78,6 +78,8 @@ export interface BoardCanvasProps {
   onMoveColumn: (columnId: string, index: number) => void;
   onAddCard: (columnId: string, title: string) => Promise<unknown>;
   onEditColumn: (column: BoardColumn) => void;
+  /** Solo lectura (F7-04): sin arrastrar, sin añadir y sin ajustes de columna. */
+  readOnly?: boolean;
 }
 
 type Items = Record<string, string[]>;
@@ -372,6 +374,7 @@ function SortableColumn({
   board,
   onAddCard,
   onEditColumn,
+  readOnly = false,
   ...props
 }: BoardCanvasProps & {
   column: BoardColumn;
@@ -387,7 +390,7 @@ function SortableColumn({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: column.id });
+  } = useSortable({ id: column.id, disabled: readOnly });
   const style: CSSProperties = { transform: CSS.Translate.toString(transform), transition };
   const over = column.wipLimit !== null && total > column.wipLimit;
   const headingId = `columna-${column.id}`;
@@ -402,17 +405,19 @@ function SortableColumn({
         isDragging && "opacity-50",
       )}
     >
-      <div className="flex items-center gap-1 px-2 pt-2">
-        <button
-          type="button"
-          ref={setActivatorNodeRef}
-          {...attributes}
-          {...listeners}
-          aria-label={`Mover la columna ${column.name}`}
-          className="cursor-grab touch-manipulation rounded p-1 text-muted-foreground hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:cursor-grabbing pointer-coarse:p-2.5"
-        >
-          <GripVerticalIcon aria-hidden="true" className="size-4" />
-        </button>
+      <div className={cn("flex items-center gap-1 px-2 pt-2", readOnly && "min-h-10 pl-3")}>
+        {readOnly ? null : (
+          <button
+            type="button"
+            ref={setActivatorNodeRef}
+            {...attributes}
+            {...listeners}
+            aria-label={`Mover la columna ${column.name}`}
+            className="cursor-grab touch-manipulation rounded p-1 text-muted-foreground hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:cursor-grabbing pointer-coarse:p-2.5"
+          >
+            <GripVerticalIcon aria-hidden="true" className="size-4" />
+          </button>
+        )}
         <h2 id={headingId} className="min-w-0 flex-1 truncate text-sm font-semibold">
           {column.name}
         </h2>
@@ -426,15 +431,17 @@ function SortableColumn({
           {column.wipLimit !== null ? `${String(total)}/${String(column.wipLimit)}` : total}
           {over ? <span className="sr-only"> (supera el límite WIP)</span> : null}
         </span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7 pointer-coarse:size-10"
-          aria-label={`Ajustes de la columna ${column.name}`}
-          onClick={() => onEditColumn(column)}
-        >
-          <Settings2Icon aria-hidden="true" />
-        </Button>
+        {readOnly ? null : (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 pointer-coarse:size-10"
+            aria-label={`Ajustes de la columna ${column.name}`}
+            onClick={() => onEditColumn(column)}
+          >
+            <Settings2Icon aria-hidden="true" />
+          </Button>
+        )}
       </div>
       <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
         <ul
@@ -451,12 +458,15 @@ function SortableColumn({
                 onOpenCard={props.onOpenCard}
                 timeZone={props.timeZone}
                 now={props.now}
+                readOnly={readOnly}
               />
             ) : null;
           })}
         </ul>
       </SortableContext>
-      <AddCard columnName={column.name} onAdd={(title) => onAddCard(column.id, title)} />
+      {readOnly ? null : (
+        <AddCard columnName={column.name} onAdd={(title) => onAddCard(column.id, title)} />
+      )}
     </li>
   );
 }
@@ -473,13 +483,32 @@ function SortableCard({
   onOpenCard,
   timeZone,
   now,
+  readOnly,
 }: Pick<BoardCanvasProps, "onOpenCard" | "timeZone" | "now"> & {
   card: CardSummary;
   labels: readonly CardLabel[];
+  readOnly: boolean;
 }) {
   const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({
     id: card.id,
+    disabled: readOnly,
   });
+  if (readOnly) {
+    // Sin arrastre: un botón que abre la tarjeta.
+    return (
+      <li>
+        <button
+          type="button"
+          aria-label={card.title}
+          data-testid="card"
+          onClick={() => onOpenCard(card.id)}
+          className="w-full rounded-lg text-left focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
+          <CardView card={card} labels={labels} timeZone={timeZone} now={now} />
+        </button>
+      </li>
+    );
+  }
   const style: CSSProperties = { transform: CSS.Translate.toString(transform), transition };
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     listeners?.onKeyDown?.(event);
