@@ -52,3 +52,56 @@
 .fc-theme-standard .fc-list-day-cushion {
   background: var(--muted);
 }
+
+/* Lavado de cara: cabeceras más claras, eventos redondeados con relieve y animación suave. */
+.fc {
+  --fc-page-bg-color: var(--card);
+}
+
+.fc .fc-scrollgrid {
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.fc .fc-col-header-cell {
+  background: color-mix(in oklch, var(--muted) 60%, transparent);
+}
+
+.fc .fc-col-header-cell-cushion {
+  padding: 0.55rem 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.fc .fc-event {
+  border-radius: calc(var(--radius) - 2px);
+  padding: 1px 3px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px oklch(0 0 0 / 12%);
+  transition:
+    transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 160ms,
+    filter 160ms;
+}
+
+.fc .fc-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px -6px oklch(0 0 0 / 35%);
+  filter: saturate(1.08);
+}
+
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  margin: 0.25rem;
+  border-radius: 9999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.fc .fc-view-harness {
+  animation: delyra-rise 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}

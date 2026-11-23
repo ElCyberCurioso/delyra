@@ -44,6 +44,8 @@ export const userSettings = sqliteTable("user_settings", {
   locale: text("locale").notNull().default("es"),
   /** 0 = domingo … 6 = sábado. */
   weekStart: integer("week_start").notNull().default(1),
+  /** Gama de color de la interfaz (null = la de por defecto). */
+  palette: text("palette"),
   /** Copia automática de los datos del usuario (F6-03): `off`, `daily`, `weekly`, `monthly`. */
   backupFrequency: text("backup_frequency", { enum: BACKUP_FREQUENCIES })
     .notNull()

@@ -190,6 +190,12 @@ export const backupDataV1Schema = z.object({
         description: text(KANBAN_LIMITS.description),
         position,
         priority: z.enum(CARD_PRIORITIES),
+        /** Desde las tarjetas de colores: opcional para leer copias anteriores. */
+        color: z
+          .string()
+          .regex(/^#[0-9a-f]{6}$/i)
+          .nullable()
+          .optional(),
         dueAt: ms.nullable(),
         dueAllDay: z.boolean(),
         dueTz: timeZoneSchema.nullable(),

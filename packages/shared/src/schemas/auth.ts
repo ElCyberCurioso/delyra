@@ -88,7 +88,12 @@ export const meResponseSchema = z.object({
     })
     .nullable(),
   settings: z
-    .object({ timeZone: z.string(), locale: z.string(), weekStart: z.number() })
+    .object({
+      timeZone: z.string(),
+      locale: z.string(),
+      weekStart: z.number(),
+      palette: z.string().nullable().optional(),
+    })
     .nullable(),
 });
 

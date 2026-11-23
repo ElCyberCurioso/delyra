@@ -76,6 +76,8 @@ export const cards = sqliteTable(
     description: text("description").notNull().default(""),
     position: text("position").notNull(),
     priority: text("priority", { enum: CARD_PRIORITIES }).notNull().default("none"),
+    /** Color de la tarjeta (`#rrggbb`), opcional (F7: más colores). */
+    color: text("color"),
     /** Fecha límite: instante UTC, o medianoche UTC si `due_all_day`. */
     dueAt: integer("due_at"),
     dueAllDay: integer("due_all_day", { mode: "boolean" }).notNull().default(false),

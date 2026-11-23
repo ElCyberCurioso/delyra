@@ -1,7 +1,7 @@
 import { CALENDAR_COLORS, type CalendarInfo } from "@delyra/shared";
 import {
   Button,
-  cn,
+  ColorPicker,
   Dialog,
   DialogClose,
   DialogContent,
@@ -32,34 +32,20 @@ import {
 import { FeedDialog } from "./feed-dialog";
 import { calendarMessages } from "./messages";
 
-export function ColorPicker({
+/** Selector de color de un calendario (el común de `@delyra/ui`, sin «sin color»). */
+export function CalendarColorPicker({
   value,
   onChange,
 }: {
   value: string;
   onChange: (color: string) => void;
 }) {
-  const t = calendarMessages().list;
   return (
-    <fieldset>
-      <legend className="mb-1.5 text-sm font-medium">{t.color}</legend>
-      <div className="flex flex-wrap gap-2">
-        {CALENDAR_COLORS.map((color, index) => (
-          <button
-            key={color}
-            type="button"
-            aria-label={t.colorLabel(t.colorNames[index] ?? color)}
-            aria-pressed={value === color}
-            onClick={() => onChange(color)}
-            className={cn(
-              "size-7 rounded-full ring-offset-2 ring-offset-background",
-              value === color && "ring-2 ring-ring",
-            )}
-            style={{ backgroundColor: color }}
-          />
-        ))}
-      </div>
-    </fieldset>
+    <ColorPicker
+      legend={calendarMessages().list.color}
+      value={value}
+      onChange={(color) => onChange(color ?? value)}
+    />
   );
 }
 
@@ -69,7 +55,7 @@ function CalendarDialog({ editing, onClose }: { editing: Editing; onClose: () =>
   const queryClient = useQueryClient();
   const current = editing?.kind === "edit" ? editing.calendar : null;
   const [name, setName] = useState(current?.name ?? "");
-  const [color, setColor] = useState(current?.color ?? CALENDAR_COLORS[0]);
+  const [color, setColor] = useState<string>(current?.color ?? CALENDAR_COLORS[0]);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const t = calendarMessages().list;
@@ -109,7 +95,7 @@ function CalendarDialog({ editing, onClose }: { editing: Editing; onClose: () =>
             maxLength={60}
             autoFocus
           />
-          <ColorPicker value={color} onChange={setColor} />
+          <CalendarColorPicker value={color} onChange={setColor} />
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline">{t.cancel}</Button>

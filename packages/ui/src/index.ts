@@ -22,6 +22,7 @@ export {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./components/dropdown-menu";
+export { ColorPicker } from "./components/color-picker";
 export { Input } from "./components/input";
 export { clearOfflineData, forgetUser, rememberUser } from "./lib/offline";
 export { setupServiceWorker } from "./lib/register-sw";
@@ -35,7 +36,12 @@ export { Brand, BrandMark } from "./layout/brand";
 export { type CurrentUser, UserMenu } from "./layout/user-menu";
 export { useMediaQuery } from "./lib/use-media-query";
 export { cn } from "./lib/utils";
-export { THEME_STORAGE_KEY } from "./theme/theme-init-script";
+export {
+  type Palette,
+  PALETTE_STORAGE_KEY,
+  PALETTES,
+  THEME_STORAGE_KEY,
+} from "./theme/theme-init-script";
 export { type ResolvedTheme, type Theme, ThemeProvider, useTheme } from "./theme/theme-provider";
 export { ApiError, type ApiRequestOptions, apiFetch, errorMessage } from "./auth/api";
 export { AuthLayout, LanguageSwitch } from "./auth/auth-layout";
@@ -51,7 +57,9 @@ export {
   resolveNext,
   type SessionInfo,
   useAuthConfig,
+  useAccountPreferences,
   useChangeLocale,
+  useChangePalette,
   useLogout,
   useMe,
 } from "./auth/session";

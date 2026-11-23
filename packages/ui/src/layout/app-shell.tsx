@@ -4,6 +4,7 @@ import {
   type AppOrigins,
   findAppByOrigin,
   type Locale,
+  type Palette,
 } from "@delyra/shared";
 import type { ReactNode } from "react";
 import { Toaster } from "../components/toaster";
@@ -23,6 +24,8 @@ export interface AppShellProps {
   onSignOut?: () => void;
   /** Guarda el idioma en la cuenta; sin él, solo cambia en este navegador. */
   onLocaleChange?: (locale: Locale) => void;
+  /** Guarda la gama de color en la cuenta. */
+  onPaletteChange?: (palette: Palette) => void;
   origins?: AppOrigins;
   children: ReactNode;
 }
@@ -33,20 +36,21 @@ export function AppShell({
   user,
   onSignOut,
   onLocaleChange,
+  onPaletteChange,
   origins,
   children,
 }: AppShellProps) {
   const resolvedOrigins = origins ?? currentAppOrigins();
   return (
-    <div className="flex min-h-dvh flex-col bg-background text-foreground">
+    <div className="flex min-h-dvh flex-col text-foreground">
       <a
         href="#contenido"
         className="sr-only z-50 rounded-md bg-primary px-3 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
       >
         {ui().shell.skipToContent}
       </a>
-      <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-        <div className="mx-auto flex h-14 w-full max-w-screen-2xl items-center gap-3 px-4">
+      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/65">
+        <div className="mx-auto flex h-16 w-full max-w-screen-2xl items-center gap-4 px-4 sm:px-6">
           <Brand href={`${resolvedOrigins[app]}/`} />
           <AppSwitcher current={app} origins={resolvedOrigins} />
           <div className="ml-auto">
@@ -54,6 +58,7 @@ export function AppShell({
               user={user}
               onSignOut={onSignOut}
               onLocaleChange={onLocaleChange}
+              onPaletteChange={onPaletteChange}
               settingsHref={`${resolvedOrigins.calendar}/ajustes`}
               adminHref={`${resolvedOrigins.calendar}/admin`}
             />
@@ -63,7 +68,7 @@ export function AppShell({
       <main
         id="contenido"
         tabIndex={-1}
-        className="mx-auto w-full max-w-screen-2xl flex-1 px-4 py-6 outline-none"
+        className="mx-auto w-full max-w-screen-2xl flex-1 px-4 py-6 outline-none sm:px-6 sm:py-8"
       >
         {children}
       </main>

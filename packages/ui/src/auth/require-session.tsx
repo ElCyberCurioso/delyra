@@ -1,9 +1,10 @@
-import { localeSchema, type MeResponse } from "@delyra/shared";
+import { localeSchema, type MeResponse, paletteSchema } from "@delyra/shared";
 import { LoaderCircleIcon } from "lucide-react";
 import { type ReactNode, useEffect } from "react";
 import { Button } from "../components/button";
 import { getLocale, setLocale, ui } from "../i18n";
 import { rememberUser } from "../lib/offline";
+import { useOptionalTheme } from "../theme/theme-provider";
 import { errorMessage } from "./api";
 import { goTo, pendingStepUrl, useMe } from "./session";
 
@@ -55,6 +56,16 @@ export function RequireSession({
   useEffect(() => {
     if (accountLocale && accountLocale !== getLocale()) void setLocale(accountLocale);
   }, [accountLocale]);
+
+  // La gama de color también es de la cuenta: igual en las dos apps y en cualquier dispositivo.
+  const theme = useOptionalTheme();
+  const accountPalette = paletteSchema.safeParse(me.data?.settings?.palette).data;
+  const currentPalette = theme?.palette;
+  const setPalette = theme?.setPalette;
+  useEffect(() => {
+    if (accountPalette && setPalette && accountPalette !== currentPalette)
+      setPalette(accountPalette);
+  }, [accountPalette, currentPalette, setPalette]);
 
   if (me.isError) {
     return (

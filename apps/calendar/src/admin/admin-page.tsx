@@ -26,7 +26,7 @@ import {
   RequireSession,
   SelectField,
   toast,
-  useChangeLocale,
+  useAccountPreferences,
   useLogout,
 } from "@delyra/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -390,9 +390,9 @@ function AdminContent({ session }: { session: ActiveSession }) {
   const timeZone = session.settings.timeZone;
   const t = settingsMessages().admin;
   return (
-    <div className="mx-auto grid max-w-4xl gap-6">
+    <div className="mx-auto grid max-w-6xl items-start gap-5 xl:grid-cols-2 xl:[&>#invitar]:col-span-2 xl:[&>#usuarios]:col-span-2 xl:[&>div:first-child]:col-span-2 [&>:nth-child(2)]:[--i:1] [&>:nth-child(3)]:[--i:2] [&>:nth-child(4)]:[--i:3] [&>:nth-child(5)]:[--i:4] [&>:nth-child(6)]:[--i:5] [&>:nth-child(7)]:[--i:6] [&>:nth-child(8)]:[--i:7]">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t.title}</h1>
+        <h1 className="animate-rise text-3xl font-bold tracking-tight">{t.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t.intro}</p>
       </div>
       <Section id="invitar" title={t.inviteTitle} description={t.inviteDescription}>
@@ -414,7 +414,7 @@ function AdminContent({ session }: { session: ActiveSession }) {
 export function AdminPage() {
   const router = useRouter();
   const logout = useLogout();
-  const changeLocale = useChangeLocale();
+  const preferences = useAccountPreferences();
   const t = settingsMessages().admin;
   return (
     <RequireSession navigate={(path) => router.history.replace(path)}>
@@ -423,7 +423,7 @@ export function AdminPage() {
           app="calendar"
           user={session.user}
           onSignOut={() => logout.mutate()}
-          onLocaleChange={(locale) => changeLocale.mutate(locale)}
+          {...preferences}
         >
           {session.user.role === "admin" ? (
             <AdminContent session={session} />

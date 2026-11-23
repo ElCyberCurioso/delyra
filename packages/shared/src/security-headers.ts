@@ -63,6 +63,15 @@ export const SPA_CSP = [
 export const API_CSP =
   "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; sandbox";
 
+/**
+ * Las SPA pueden usar el micrófono propio (dictado del alta rápida); ningún iframe ni otro
+ * origen, y la API sigue sin él.
+ */
+export const SPA_PERMISSIONS_POLICY = PERMISSIONS_POLICY.replace(
+  "microphone=()",
+  "microphone=(self)",
+);
+
 const COMMON_HEADERS: Readonly<Record<string, string>> = {
   "Strict-Transport-Security": HSTS_VALUE,
   "X-Content-Type-Options": "nosniff",
@@ -74,6 +83,7 @@ const COMMON_HEADERS: Readonly<Record<string, string>> = {
 export function spaSecurityHeaders(): Record<string, string> {
   return {
     ...COMMON_HEADERS,
+    "Permissions-Policy": SPA_PERMISSIONS_POLICY,
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Content-Security-Policy": SPA_CSP,
     "Reporting-Endpoints": `${CSP_REPORT_GROUP}="${CSP_REPORT_PATH}"`,

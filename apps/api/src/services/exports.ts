@@ -195,6 +195,7 @@ export function boardExport(data: BackupDataV1, boardId: string) {
           title: card.title,
           description: card.description,
           priority: card.priority,
+          color: card.color,
           due:
             card.dueAt === null
               ? null

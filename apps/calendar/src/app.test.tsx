@@ -297,6 +297,42 @@ describe("App (calendario)", () => {
     }
   });
 
+  it("el alta rápida se puede dictar con el micrófono", async () => {
+    // Reconocedor de voz falso: al empezar «oye» una frase y termina.
+    class FakeRecognition extends EventTarget {
+      lang = "";
+      interimResults = false;
+      continuous = false;
+      maxAlternatives = 1;
+      start() {
+        const event = Object.assign(new Event("result"), {
+          results: [Object.assign([{ transcript: "Dentista mañana 17:30" }], { isFinal: true })],
+        });
+        queueMicrotask(() => {
+          this.dispatchEvent(event);
+          this.dispatchEvent(new Event("end"));
+        });
+      }
+      stop() {
+        this.dispatchEvent(new Event("end"));
+      }
+      abort() {
+        this.dispatchEvent(new Event("end"));
+      }
+    }
+    Object.assign(window, { webkitSpeechRecognition: FakeRecognition });
+    try {
+      sessionState = "active";
+      renderAt("/");
+      const user = userEvent.setup();
+      await user.click(await screen.findByRole("button", { name: "Dictar el alta rápida" }));
+      expect(await screen.findByDisplayValue("Dentista mañana 17:30")).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: "Añadir" })).toBeInTheDocument();
+    } finally {
+      Reflect.deleteProperty(window, "webkitSpeechRecognition");
+    }
+  });
+
   it("atajos de teclado: «?» abre la ayuda y no se disparan al escribir", async () => {
     sessionState = "active";
     renderAt("/");

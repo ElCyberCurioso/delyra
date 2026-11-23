@@ -62,7 +62,12 @@ describe("registro desde invitación y alta de TOTP", () => {
 
     const active = meResponseSchema.parse(await (await client.get("/api/auth/me")).json());
     expect(active).toMatchObject({ state: "active", user: { email, role: "member" } });
-    expect(active.settings).toEqual({ timeZone: "Europe/Madrid", locale: "es", weekStart: 1 });
+    expect(active.settings).toEqual({
+      timeZone: "Europe/Madrid",
+      locale: "es",
+      weekStart: 1,
+      palette: null,
+    });
 
     // Fijación de sesión: el token anterior al segundo factor ya no vale.
     const attacker = new TestClient();

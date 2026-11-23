@@ -25,6 +25,7 @@ function card(id: string, columnId: string, position: string, extra: Partial<Car
     title: id,
     position,
     priority: "none",
+    color: null,
     due: null,
     completedAt: null,
     archivedAt: null,

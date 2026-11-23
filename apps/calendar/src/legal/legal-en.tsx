@@ -61,6 +61,14 @@ export function PrivacyEn() {
         subscription at any time.
       </p>
 
+      <h2>Voice dictation</h2>
+      <p>
+        If you use the microphone for quick add, your browser&apos;s dictation service turns your
+        voice into text (in Chrome, Google&apos;s; in Safari, Apple&apos;s). Delyra doesn&apos;t
+        receive or store the audio: only the text that appears in the field, and only if you choose
+        to add the event.
+      </p>
+
       <h2>Where it&apos;s stored</h2>
       <p>
         On Cloudflare&apos;s infrastructure (database and storage in the European Union), with

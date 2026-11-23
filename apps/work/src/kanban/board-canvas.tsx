@@ -29,11 +29,12 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { BoardColumn, BoardDetail, CardLabel, CardSummary } from "@delyra/shared";
-import { Button, cn, Input } from "@delyra/ui";
+import { Button, cn, Input, useMediaQuery } from "@delyra/ui";
 import {
   AlignLeftIcon,
   CalendarClockIcon,
   CheckSquareIcon,
+  ChevronDownIcon,
   GripVerticalIcon,
   MessageSquareIcon,
   PaperclipIcon,
@@ -84,6 +85,9 @@ export interface BoardCanvasProps {
 }
 
 type Items = Record<string, string[]>;
+
+/** Por debajo de este ancho (móvil en vertical) las columnas se apilan. */
+const STACKED_QUERY = "(max-width: 639px)";
 
 const HORIZONTAL = ["ArrowLeft", "ArrowRight"];
 
@@ -140,6 +144,8 @@ export function BoardCanvas(props: BoardCanvasProps) {
   const itemsRef = useRef(items);
   const orderRef = useRef(columnOrder);
   const lastOver = useRef<UniqueIdentifier | null>(null);
+  // Móvil en vertical: las columnas se apilan (se ven todas sin desplazarse de lado).
+  const stacked = useMediaQuery(STACKED_QUERY);
   useEffect(() => {
     itemsRef.current = items;
     orderRef.current = columnOrder;
@@ -329,14 +335,19 @@ export function BoardCanvas(props: BoardCanvasProps) {
         },
       }}
     >
-      <SortableContext items={columnOrder} strategy={horizontalListSortingStrategy}>
+      <SortableContext
+        items={columnOrder}
+        strategy={stacked ? verticalListSortingStrategy : horizontalListSortingStrategy}
+      >
         <ol
           className={cn(
             // `relative`: los textos sr-only (posición absoluta) quedan dentro del scroll y no
             // ensanchan la página.
-            "relative flex min-h-[60vh] items-start gap-4 overflow-x-auto overscroll-x-contain pb-4",
-            // En el móvil las columnas encajan de una en una al deslizar (salvo al arrastrar).
-            active === null && "max-sm:snap-x max-sm:snap-mandatory",
+            "relative flex gap-5 pb-4",
+            // Escritorio y tableta: en fila, todas de la altura del tablero.
+            "sm:items-stretch sm:overflow-x-auto sm:overscroll-x-contain",
+            // Móvil en vertical: una debajo de otra.
+            "max-sm:flex-col max-sm:gap-4",
           )}
           aria-label={t.columns}
         >
@@ -356,7 +367,7 @@ export function BoardCanvas(props: BoardCanvasProps) {
         {activeCard ? (
           <CardView card={activeCard} labels={board.labels} {...props} overlay />
         ) : activeColumn ? (
-          <div className="w-72 rounded-xl border bg-muted/80 p-3 font-medium shadow-lg">
+          <div className="w-[min(21rem,90vw)] rounded-2xl border bg-muted/80 p-3 font-medium shadow-lg">
             {activeColumn.name}
           </div>
         ) : null}
@@ -393,7 +404,10 @@ function SortableColumn({
   const style: CSSProperties = { transform: CSS.Translate.toString(transform), transition };
   const over = column.wipLimit !== null && total > column.wipLimit;
   const headingId = `columna-${column.id}`;
+  const listId = `tarjetas-${column.id}`;
   const t = workMessages().canvas;
+  // En el móvil cada columna se puede plegar para ver el tablero de un vistazo.
+  const [collapsed, setCollapsed] = useState(false);
   return (
     <li
       ref={setNodeRef}
@@ -401,7 +415,10 @@ function SortableColumn({
       aria-labelledby={headingId}
       data-testid="column"
       className={cn(
-        "relative flex max-h-[calc(100dvh-12rem)] w-[min(18rem,85vw)] shrink-0 snap-center flex-col rounded-xl border bg-muted/40 max-sm:max-h-[calc(100dvh-10rem)]",
+        "animate-rise relative flex flex-col rounded-3xl border bg-muted/50 shadow-[var(--shadow-tile)] backdrop-blur-sm",
+        // Más anchas y de la altura del tablero; la lista se desplaza por dentro.
+        "sm:h-[calc(100dvh-15rem)] sm:min-h-[30rem] sm:w-[21rem] sm:shrink-0 xl:w-[22.5rem]",
+        "max-sm:w-full",
         isDragging && "opacity-50",
       )}
     >
@@ -418,12 +435,29 @@ function SortableColumn({
             <GripVerticalIcon aria-hidden="true" className="size-4" />
           </button>
         )}
-        <h2 id={headingId} className="min-w-0 flex-1 truncate text-sm font-semibold">
+        <h2
+          id={headingId}
+          className="min-w-0 flex-1 truncate text-[0.95rem] font-bold tracking-tight"
+        >
           {column.name}
         </h2>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-9 sm:hidden"
+          aria-expanded={!collapsed}
+          aria-controls={listId}
+          aria-label={t.toggleColumn(column.name)}
+          onClick={() => setCollapsed((value) => !value)}
+        >
+          <ChevronDownIcon
+            aria-hidden="true"
+            className={cn("transition-transform", collapsed && "-rotate-90")}
+          />
+        </Button>
         <span
           className={cn(
-            "rounded-full px-2 py-0.5 text-xs tabular-nums",
+            "rounded-full bg-card px-2.5 py-0.5 text-xs font-semibold tabular-nums shadow-xs",
             over ? "bg-destructive/15 font-medium text-destructive" : "text-muted-foreground",
           )}
           title={column.wipLimit !== null ? t.wipLimit(column.wipLimit) : undefined}
@@ -445,7 +479,11 @@ function SortableColumn({
       </div>
       <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
         <ul
-          className="flex min-h-16 flex-col gap-2 overflow-y-auto p-2"
+          id={listId}
+          className={cn(
+            "flex min-h-16 flex-1 flex-col gap-2.5 p-2.5 sm:overflow-y-auto",
+            collapsed && "max-sm:hidden",
+          )}
           aria-labelledby={headingId}
         >
           {cardIds.map((id) => {
@@ -464,7 +502,7 @@ function SortableColumn({
           })}
         </ul>
       </SortableContext>
-      {readOnly ? null : (
+      {readOnly || collapsed ? null : (
         <AddCard columnName={column.name} onAdd={(title) => onAddCard(column.id, title)} />
       )}
     </li>
@@ -502,7 +540,7 @@ function SortableCard({
           aria-label={card.title}
           data-testid="card"
           onClick={() => onOpenCard(card.id)}
-          className="w-full rounded-lg text-left focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="lift w-full rounded-2xl text-left focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
         >
           <CardView card={card} labels={labels} timeZone={timeZone} now={now} />
         </button>
@@ -525,7 +563,7 @@ function SortableCard({
         data-testid="card"
         onClick={() => onOpenCard(card.id)}
         // Sin menú contextual ni selección de texto al mantener pulsado para arrastrar.
-        className="cursor-pointer touch-manipulation rounded-lg select-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none [-webkit-touch-callout:none]"
+        className="lift cursor-pointer touch-manipulation rounded-2xl select-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none [-webkit-touch-callout:none]"
       >
         <CardView card={card} labels={labels} timeZone={timeZone} now={now} />
       </div>
@@ -581,10 +619,14 @@ export function CardView({ card, labels, timeZone, now, overlay = false }: CardV
   return (
     <div
       className={cn(
-        "grid gap-2 rounded-lg border bg-card p-3 text-sm shadow-xs",
+        "grid gap-2.5 rounded-2xl border bg-card p-3.5 text-sm shadow-[var(--shadow-tile)]",
+        // Las tarjetas nuevas aparecen con un pequeño rebote (no la que se arrastra).
+        !overlay && "animate-pop",
         overlay && "w-68 rotate-1 shadow-lg",
+        card.color && "pl-4",
         card.completedAt && "opacity-80",
       )}
+      style={card.color ? { boxShadow: `inset 5px 0 0 ${card.color}` } : undefined}
     >
       {cardLabels.length > 0 ? (
         <div className="flex flex-wrap gap-1">
@@ -603,7 +645,12 @@ export function CardView({ card, labels, timeZone, now, overlay = false }: CardV
           ))}
         </div>
       ) : null}
-      <p className={cn("break-words", card.completedAt && "line-through decoration-1")}>
+      <p
+        className={cn(
+          "leading-snug font-semibold break-words",
+          card.completedAt && "text-muted-foreground line-through decoration-1",
+        )}
+      >
         {card.title}
       </p>
       {card.priority !== "none" || card.due || meta.length > 0 ? (
@@ -664,7 +711,7 @@ function AddCard({
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-start text-muted-foreground"
+          className="w-full justify-start rounded-xl text-muted-foreground hover:bg-card"
           onClick={() => setOpen(true)}
         >
           <PlusIcon aria-hidden="true" />

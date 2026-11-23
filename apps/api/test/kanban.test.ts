@@ -204,6 +204,27 @@ describe("detalle de tarjeta (F4-05, F4-07)", () => {
     );
   });
 
+  it("cada tarjeta puede tener su color (cualquier #rrggbb) o ninguno", async () => {
+    const { client } = await registerUser();
+    const detail = await newBoard(client);
+    const card = await newCard(client, detail.columns[0]?.id ?? "", "Pintar");
+    expect(card.color).toBeNull();
+    const colored = await json<{ card: CardDetail }>(
+      await client.request("PATCH", `/api/cards/${card.id}`, { color: "#A855F7" }),
+      200,
+    );
+    expect(colored.card.color).toBe("#a855f7");
+    expect((await board(client, detail.board.id)).cards[0]?.color).toBe("#a855f7");
+    expect(
+      (await client.request("PATCH", `/api/cards/${card.id}`, { color: "morado" })).status,
+    ).toBe(422);
+    const cleared = await json<{ card: CardDetail }>(
+      await client.request("PATCH", `/api/cards/${card.id}`, { color: null }),
+      200,
+    );
+    expect(cleared.card.color).toBeNull();
+  });
+
   it("rechaza etiquetas de otro tablero", async () => {
     const { client } = await registerUser();
     const one = await newBoard(client);

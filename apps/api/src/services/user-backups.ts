@@ -175,6 +175,7 @@ export async function collectBackupData(db: Database, ownerId: string): Promise<
       description: c.description,
       position: c.position,
       priority: c.priority,
+      color: c.color,
       dueAt: c.dueAt,
       dueAllDay: c.dueAllDay,
       dueTz: c.dueTz,

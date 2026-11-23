@@ -5,6 +5,7 @@ import {
   findAppByOrigin,
   type Locale,
   type MeResponse,
+  type Palette,
   meResponseSchema,
   safeNext,
 } from "@delyra/shared";
@@ -117,6 +118,36 @@ export function useChangeLocale() {
       await setLocale(locale);
     },
   });
+}
+
+/** Guarda la gama de color en la cuenta (la aplica quien llama, al momento). */
+export function useChangePalette() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (palette: Palette) => {
+      const me = queryClient.getQueryData<SessionInfo>(ME_QUERY_KEY);
+      if (me?.state !== "active" || !me.settings) return;
+      const { timeZone, weekStart, locale } = me.settings;
+      await apiFetch("/api/me/settings", {
+        method: "PATCH",
+        body: { timeZone, weekStart, locale, palette },
+      });
+      queryClient.setQueryData<SessionInfo>(ME_QUERY_KEY, {
+        ...me,
+        settings: { ...me.settings, palette },
+      });
+    },
+  });
+}
+
+/** Idioma y gama de la cuenta para el menú de usuario (`<AppShell {...preferences}>`). */
+export function useAccountPreferences() {
+  const locale = useChangeLocale();
+  const palette = useChangePalette();
+  return {
+    onLocaleChange: (next: Locale) => locale.mutate(next),
+    onPaletteChange: (next: Palette) => palette.mutate(next),
+  };
 }
 
 export function useLogout() {

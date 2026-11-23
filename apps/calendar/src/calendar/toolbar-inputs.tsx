@@ -9,12 +9,13 @@ import {
 } from "@delyra/shared";
 import { Button, errorMessage, getLocale, Input, toast } from "@delyra/ui";
 import { useQuery } from "@tanstack/react-query";
-import { SearchIcon, SparklesIcon } from "lucide-react";
+import { MicIcon, SearchIcon, SparklesIcon, SquareIcon } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { createEvent, searchEvents, useInvalidateEvents } from "./api";
 import type { EditorTarget } from "./event-editor";
 import { calendarMessages } from "./messages";
 import { describeWhen, joinInstant } from "./time";
+import { useDictation } from "./use-dictation";
 
 let englishParser: QuickAddParser | null = null;
 
@@ -73,6 +74,13 @@ export function QuickAdd({
   );
   const t = calendarMessages().quickAdd;
   const times = draft ? draftTimes(draft, timeZone) : null;
+  const dictation = useDictation({
+    onText: (spoken) => setText(spoken.slice(0, 200)),
+    onError: (error) =>
+      toast.error(
+        error === "denied" ? t.micDenied : error === "no-speech" ? t.noSpeech : t.dictationFailed,
+      ),
+  });
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -101,16 +109,46 @@ export function QuickAdd({
         placeholder={t.placeholder}
         value={text}
         onChange={(e) => setText(e.target.value)}
-        className="pl-8"
+        className={dictation.supported ? "pr-11 pl-8" : "pl-8"}
         maxLength={200}
         aria-describedby="alta-rapida-vista-previa"
       />
+      {dictation.supported ? (
+        <Button
+          type="button"
+          variant={dictation.listening ? "destructive" : "ghost"}
+          size="icon"
+          className="absolute top-1/2 right-1 size-8 -translate-y-1/2 rounded-full"
+          aria-label={dictation.listening ? t.stopDictation : t.dictate}
+          aria-pressed={dictation.listening}
+          onClick={() => (dictation.listening ? dictation.stop() : dictation.start())}
+        >
+          {dictation.listening ? (
+            <>
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 animate-ping rounded-full bg-destructive/40 motion-reduce:hidden"
+              />
+              <SquareIcon aria-hidden="true" className="relative size-3.5 fill-current" />
+            </>
+          ) : (
+            <MicIcon aria-hidden="true" />
+          )}
+        </Button>
+      ) : null}
       <div
         id="alta-rapida-vista-previa"
         aria-live="polite"
         className="absolute top-full right-0 left-0 z-30 mt-1"
       >
-        {text.trim() && draft && times && calendar ? (
+        {dictation.listening ? (
+          <p
+            role="status"
+            className="rounded-md border bg-popover p-2 text-sm text-muted-foreground shadow-md"
+          >
+            {t.listening}
+          </p>
+        ) : text.trim() && draft && times && calendar ? (
           <div className="flex flex-wrap items-center gap-2 rounded-md border bg-popover p-2 text-sm text-popover-foreground shadow-md">
             <span className="min-w-0 flex-1 truncate">
               <strong>{draft.title}</strong> · {describeWhen(times, timeZone)} · {calendar.name}

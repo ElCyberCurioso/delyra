@@ -151,6 +151,7 @@ function summary(
     title: card.title,
     position: card.position,
     priority: card.priority,
+    color: card.color,
     due: dueOf(card),
     completedAt: iso(card.completedAt),
     archivedAt: iso(card.archivedAt),
@@ -407,6 +408,7 @@ export interface CardPatch {
   title?: string;
   description?: string;
   priority?: CardRow["priority"];
+  color?: string | null;
   due?: { allDay: boolean; at: string; tz: string } | null;
   labelIds?: string[];
   reminders?: ReminderInput[];
@@ -428,6 +430,9 @@ export async function updateCard(repo: KanbanRepository, cardId: string, patch: 
   if (patch.priority !== undefined && patch.priority !== card.priority) {
     set.priority = patch.priority;
     changes.push(["priority", { to: patch.priority }]);
+  }
+  if (patch.color !== undefined && patch.color?.toLowerCase() !== card.color) {
+    set.color = patch.color?.toLowerCase() ?? null;
   }
   let dueChanged = false;
   if (patch.due !== undefined) {

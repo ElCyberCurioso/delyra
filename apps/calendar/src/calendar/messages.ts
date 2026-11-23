@@ -69,6 +69,12 @@ const es = {
     moreOptions: "Más opciones",
     add: "Añadir",
     hint: "Añade cuándo: «mañana 17:30», «el viernes de 10 a 11», «3 de diciembre»…",
+    dictate: "Dictar el alta rápida",
+    stopDictation: "Dejar de dictar",
+    listening: "Escuchando… di, por ejemplo, «dentista mañana a las cinco y media»",
+    micDenied: "No hay permiso para usar el micrófono. Actívalo en los ajustes del navegador.",
+    noSpeech: "No se ha oído nada. Vuelve a intentarlo.",
+    dictationFailed: "No se ha podido dictar. Escríbelo o vuelve a intentarlo.",
   },
   search: {
     label: "Buscar eventos",
@@ -79,8 +85,6 @@ const es = {
   },
   list: {
     color: "Color",
-    colorNames: ["violeta", "azul", "turquesa", "verde", "naranja", "rojo", "rosa", "marrón"],
-    colorLabel: (name: string) => `Color ${name}`,
     needName: "Ponle un nombre.",
     edit: "Editar calendario",
     new: "Nuevo calendario",

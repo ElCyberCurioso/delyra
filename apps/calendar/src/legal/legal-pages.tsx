@@ -135,6 +135,14 @@ function PrivacyEs() {
         quitar la suscripción en cualquier momento.
       </p>
 
+      <h2>Dictado por voz</h2>
+      <p>
+        Si usas el micrófono para el alta rápida, la voz la convierte en texto el servicio de
+        dictado de tu navegador (en Chrome, el de Google; en Safari, el de Apple). Delyra no recibe
+        ni guarda el audio: solo el texto que aparece en el campo, y únicamente si decides añadir el
+        evento.
+      </p>
+
       <h2>Dónde se guardan</h2>
       <p>
         En la infraestructura de Cloudflare (base de datos y almacenamiento en la Unión Europea),

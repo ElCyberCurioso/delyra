@@ -10,8 +10,17 @@ import { registerNewUser, remote } from "./support/session";
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
 async function expectAccessible(page: Page, name: string) {
-  // Las animaciones de entrada de los diálogos dan falsos fallos de contraste a media opacidad.
+  // Las animaciones de entrada (mosaicos, diálogos) dan falsos fallos de contraste a media
+  // opacidad: se mide cuando han terminado todas las finitas (los indicadores de carga giran sin fin).
   await page.waitForTimeout(400);
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+        .map((a) => a.finished.catch(() => undefined)),
+    ),
+  );
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   // FullCalendar no deja enfocar sus zonas con scroll sin romper la semántica de su rejilla
   // (aria-required-children). Los eventos sí son enfocables y la vista Lista («L») es la
@@ -61,6 +70,9 @@ for (const scheme of ["light", "dark"] as const) {
     await expect(page.getByRole("heading", { level: 1, name: "Ajustes" })).toBeVisible();
     await expectAccessible(page, "ajustes");
     await page.goto(new URL("/importar", page.url()).href);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Importar desde Google Calendar" }),
+    ).toBeVisible();
     await expectAccessible(page, "importar");
 
     // Trabajo: lista, tablero, tarjeta y compartir.

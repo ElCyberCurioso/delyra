@@ -7,6 +7,11 @@ export type Locale = (typeof SUPPORTED_LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "es";
 export const localeSchema = z.enum(SUPPORTED_LOCALES);
 
+/** Gamas de color de la interfaz (docs/diseno/plan-ui.md); la primera es la de por defecto. */
+export const PALETTES = ["aurora", "bosque", "coral", "oceano", "grafito"] as const;
+export type Palette = (typeof PALETTES)[number];
+export const paletteSchema = z.enum(PALETTES);
+
 export const DEFAULT_TIME_ZONE = "Europe/Madrid";
 
 /** Zonas que se ofrecen primero en los selectores. Cualquier zona IANA válida es aceptable. */

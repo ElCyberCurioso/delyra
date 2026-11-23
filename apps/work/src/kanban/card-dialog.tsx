@@ -9,6 +9,7 @@ import {
 import {
   Button,
   cn,
+  ColorPicker,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -376,6 +377,12 @@ function CardBody({
                 ))}
               </select>
             </div>
+            <ColorPicker
+              legend={t.color}
+              value={card.color}
+              allowNone
+              onChange={(color) => save.mutate({ color })}
+            />
             <fieldset className="grid gap-1.5">
               <legend className="mb-1 text-sm font-medium">{t.labels}</legend>
               {board.labels.length === 0 ? (

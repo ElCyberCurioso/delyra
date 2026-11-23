@@ -17,7 +17,7 @@ import {
   SelectField,
   toast,
   translateServer,
-  useChangeLocale,
+  useAccountPreferences,
   useLogout,
 } from "@delyra/ui";
 import { useQueryClient } from "@tanstack/react-query";
@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { CALENDARS_KEY, EVENTS_KEY, useCalendars, useInvalidateEvents } from "../calendar/api";
-import { ColorPicker } from "../calendar/calendar-list";
+import { CalendarColorPicker } from "../calendar/calendar-list";
 import { Section } from "../settings/section";
 import { importMessages } from "./messages";
 import {
@@ -443,7 +443,10 @@ function CalendarChoice({
             maxLength={60}
             onChange={(e) => onChange({ ...choice, name: e.target.value })}
           />
-          <ColorPicker value={choice.color} onChange={(color) => onChange({ ...choice, color })} />
+          <CalendarColorPicker
+            value={choice.color}
+            onChange={(color) => onChange({ ...choice, color })}
+          />
         </div>
       ) : null}
     </li>
@@ -701,7 +704,7 @@ function ImportWizard({ id, onBack }: { id: string; onBack: () => void }) {
 export function ImportPage() {
   const router = useRouter();
   const logout = useLogout();
-  const changeLocale = useChangeLocale();
+  const preferences = useAccountPreferences();
   const { searchStr } = useLocation();
   const params = new URLSearchParams(searchStr);
   const importId = params.get("import");
@@ -716,7 +719,7 @@ export function ImportPage() {
           app="calendar"
           user={session.user}
           onSignOut={() => logout.mutate()}
-          onLocaleChange={(locale) => changeLocale.mutate(locale)}
+          {...preferences}
         >
           <div className="mx-auto grid max-w-3xl gap-6">
             <div>

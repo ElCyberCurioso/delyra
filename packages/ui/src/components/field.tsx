@@ -81,7 +81,7 @@ export function SelectField({
         aria-invalid={error ? true : undefined}
         aria-describedby={[hintId, errorId].filter(Boolean).join(" ") || undefined}
         className={cn(
-          "h-9 w-full rounded-md border border-input bg-background px-3 text-base shadow-xs outline-none md:text-sm",
+          "h-10 w-full rounded-xl border border-input bg-card px-3 text-base shadow-xs outline-none transition-[box-shadow,border-color] md:text-sm",
           "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
           "aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-50",
         )}

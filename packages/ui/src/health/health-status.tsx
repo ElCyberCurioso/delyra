@@ -53,7 +53,7 @@ export function HealthStatus({ className }: { className?: string }) {
   return (
     <section
       aria-labelledby="estado-plataforma"
-      className={cn("rounded-xl border bg-card p-5 text-card-foreground shadow-xs", className)}
+      className={cn("tile animate-rise p-5 sm:p-6", className)}
     >
       <div className="flex items-center justify-between gap-3">
         <h2 id="estado-plataforma" className="text-sm font-semibold">

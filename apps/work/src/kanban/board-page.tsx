@@ -8,6 +8,7 @@ import {
 import {
   Button,
   cn,
+  ColorPicker,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -269,7 +270,7 @@ function BoardView({
 
   return (
     // `minmax(0,1fr)`: el tablero se desplaza dentro de su caja, no estira la página.
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
         <div className="flex min-w-0 flex-1 basis-64 items-center gap-1">
           <Button asChild variant="ghost" size="icon" aria-label={workMessages().board.back}>
@@ -277,7 +278,7 @@ function BoardView({
               <ArrowLeftIcon aria-hidden="true" />
             </Link>
           </Button>
-          <h1 className="min-w-0 truncate text-xl font-semibold tracking-tight sm:text-2xl">
+          <h1 className="animate-rise min-w-0 truncate text-2xl font-bold tracking-tight sm:text-3xl">
             {board.board.name}
           </h1>
           {role !== "owner" ? (
@@ -857,26 +858,12 @@ function BoardSettings({ board, onClose }: { board: BoardDetail; onClose: () => 
             maxLength={KANBAN_LIMITS.labelName}
             className="w-44"
           />
-          <fieldset className="flex gap-1">
-            <legend className="sr-only">{t.color}</legend>
-            {LABEL_COLORS.map((color, index) => (
-              <label key={color} className="cursor-pointer">
-                <input
-                  type="radio"
-                  name="label-color"
-                  value={color}
-                  checked={labelColor === color}
-                  onChange={() => setLabelColor(color)}
-                  className="peer sr-only"
-                />
-                <span
-                  className="block size-6 rounded-full ring-offset-2 ring-offset-background peer-checked:ring-2 peer-checked:ring-ring peer-focus-visible:ring-2 peer-focus-visible:ring-ring"
-                  style={{ backgroundColor: color }}
-                />
-                <span className="sr-only">{t.colorNames[index] ?? color}</span>
-              </label>
-            ))}
-          </fieldset>
+          <ColorPicker
+            legend={t.color}
+            value={labelColor}
+            onChange={(color) => setLabelColor(color ?? labelColor)}
+            className="basis-full"
+          />
           <Button
             type="submit"
             variant="outline"

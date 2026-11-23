@@ -69,6 +69,7 @@ export async function getUserSettings(db: Database, userId: string) {
       timeZone: userSettings.timeZone,
       locale: userSettings.locale,
       weekStart: userSettings.weekStart,
+      palette: userSettings.palette,
     })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
@@ -109,7 +110,7 @@ export async function updateUserName(db: Database, userId: string, name: string)
 export async function updateUserSettings(
   db: Database,
   userId: string,
-  settings: { timeZone: string; locale: string; weekStart: number },
+  settings: { timeZone: string; locale: string; weekStart: number; palette?: string },
 ) {
   await db
     .update(userSettings)

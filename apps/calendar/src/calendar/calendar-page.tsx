@@ -9,6 +9,7 @@ import {
   holidayRegionSchema,
   instantToWall,
   type Occurrence,
+  readableColors,
   utcToDateOnly,
 } from "@delyra/shared";
 import {
@@ -28,7 +29,7 @@ import {
   type Shortcut,
   ShortcutsDialog,
   toast,
-  useChangeLocale,
+  useAccountPreferences,
   useLogout,
   useMediaQuery,
   useShortcuts,
@@ -51,7 +52,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { ChevronLeftIcon, ChevronRightIcon, PanelLeftIcon, PlusIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   fetchEvent,
   HOLIDAYS_KEY,
@@ -230,6 +231,7 @@ function Workspace({ session }: { session: ActiveSession }) {
       .map((o) => {
         const calendar = byId.get(o.calendarId);
         const color = calendar?.color ?? "#7c5cff";
+        const readable = readableColors(color);
         return {
           // Suscripción iCal (F5-06): se ve, pero no se arrastra ni se redimensiona.
           ...(calendar?.readOnly ? { editable: false } : {}),
@@ -238,9 +240,10 @@ function Workspace({ session }: { session: ActiveSession }) {
           start: toCalendarTime(o.start, o.allDay, timeZone),
           end: toCalendarTime(o.end, o.allDay, timeZone),
           allDay: o.allDay,
-          backgroundColor: color,
-          borderColor: color,
-          textColor: "#ffffff",
+          // Con cualquier color (también los claros o personalizados) el texto se lee.
+          backgroundColor: readable.background,
+          borderColor: readable.background,
+          textColor: readable.text,
           extendedProps: { occurrence: o },
         };
       });
@@ -418,98 +421,115 @@ function Workspace({ session }: { session: ActiveSession }) {
   }
 
   /** Mini mes, calendarios y filtros: en la barra lateral (escritorio) o en una hoja (móvil). */
+  // En la barra lateral cada bloque es un mosaico; en la hoja del móvil, una lista.
+  const box = (place: string, i: number, children: ReactNode) =>
+    place === "lateral" ? (
+      <div className="tile animate-rise p-4" style={{ "--i": i } as CSSProperties}>
+        {children}
+      </div>
+    ) : (
+      children
+    );
   const panel = (place: string) => (
     <>
-      <MiniMonth
-        key={selected.slice(0, 7)}
-        today={todayIn(timeZone)}
-        selected={selected}
-        weekStart={weekStart}
-        onSelect={(date) => {
-          goToDate(date);
-          setPanelOpen(false);
-        }}
-      />
-      <CalendarList calendars={calendarList} />
-      <fieldset>
-        <legend className="mb-1 text-sm font-medium">{t.page.show}</legend>
-        {(
-          [
-            ["all", t.page.all],
-            ["event", t.page.events],
-            ["birthday", t.page.birthdays],
-          ] as const
-        ).map(([value, label]) => (
-          <label key={value} className="flex items-center gap-2 py-1 text-sm">
+      {box(
+        place,
+        1,
+        <MiniMonth
+          key={selected.slice(0, 7)}
+          today={todayIn(timeZone)}
+          selected={selected}
+          weekStart={weekStart}
+          onSelect={(date) => {
+            goToDate(date);
+            setPanelOpen(false);
+          }}
+        />,
+      )}
+      {box(place, 2, <CalendarList calendars={calendarList} />)}
+      {box(
+        place,
+        3,
+        <fieldset>
+          <legend className="mb-1 text-sm font-medium">{t.page.show}</legend>
+          {(
+            [
+              ["all", t.page.all],
+              ["event", t.page.events],
+              ["birthday", t.page.birthdays],
+            ] as const
+          ).map(([value, label]) => (
+            <label key={value} className="flex items-center gap-2 py-1 text-sm">
+              <input
+                type="radio"
+                name={`tipo-${place}`}
+                checked={typeFilter === value}
+                onChange={() => setTypeFilter(value)}
+              />
+              {label}
+            </label>
+          ))}
+          <label className="flex items-center gap-2 py-1 text-sm">
             <input
-              type="radio"
-              name={`tipo-${place}`}
-              checked={typeFilter === value}
-              onChange={() => setTypeFilter(value)}
+              type="checkbox"
+              checked={showTasks}
+              onChange={(e) => {
+                setShowTasks(e.target.checked);
+                try {
+                  localStorage.setItem(TASKS_KEY, e.target.checked ? "on" : "off");
+                } catch {
+                  // Sin almacenamiento: se recuerda solo durante la visita.
+                }
+              }}
             />
-            {label}
-          </label>
-        ))}
-        <label className="flex items-center gap-2 py-1 text-sm">
-          <input
-            type="checkbox"
-            checked={showTasks}
-            onChange={(e) => {
-              setShowTasks(e.target.checked);
-              try {
-                localStorage.setItem(TASKS_KEY, e.target.checked ? "on" : "off");
-              } catch {
-                // Sin almacenamiento: se recuerda solo durante la visita.
-              }
-            }}
-          />
-          <span
-            aria-hidden="true"
-            className="size-2.5 rounded-sm"
-            style={{ backgroundColor: TASK_COLOR }}
-          />
-          {t.page.tasks}
-        </label>
-        <label className="grid gap-1 py-1 text-sm">
-          <span className="flex items-center gap-2">
             <span
               aria-hidden="true"
               className="size-2.5 rounded-sm"
-              style={{ backgroundColor: HOLIDAY_COLOR }}
+              style={{ backgroundColor: TASK_COLOR }}
             />
-            {t.page.holidays}
-          </span>
-          <select
-            aria-label={t.page.holidays}
-            className="h-9 w-full rounded-md border bg-background px-2 text-base sm:text-sm"
-            value={holidays.data?.region ?? DEFAULT_HOLIDAY_REGION}
-            onChange={(e) => {
-              const region = holidayRegionSchema.parse(e.target.value);
-              void setHolidayRegion(region)
-                .then(() => queryClient.invalidateQueries({ queryKey: HOLIDAYS_KEY }))
-                .catch((error: unknown) => toast.error(errorMessage(error)));
-            }}
-          >
-            {HOLIDAY_REGIONS.map((region) => (
-              <option key={region.code} value={region.code}>
-                {region.code === "off"
-                  ? t.page.regionOff
-                  : region.code === "ES"
-                    ? t.page.regionNational
-                    : region.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </fieldset>
+            {t.page.tasks}
+          </label>
+          <label className="grid gap-1 py-1 text-sm">
+            <span className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="size-2.5 rounded-sm"
+                style={{ backgroundColor: HOLIDAY_COLOR }}
+              />
+              {t.page.holidays}
+            </span>
+            <select
+              aria-label={t.page.holidays}
+              className="h-9 w-full rounded-md border bg-background px-2 text-base sm:text-sm"
+              value={holidays.data?.region ?? DEFAULT_HOLIDAY_REGION}
+              onChange={(e) => {
+                const region = holidayRegionSchema.parse(e.target.value);
+                void setHolidayRegion(region)
+                  .then(() => queryClient.invalidateQueries({ queryKey: HOLIDAYS_KEY }))
+                  .catch((error: unknown) => toast.error(errorMessage(error)));
+              }}
+            >
+              {HOLIDAY_REGIONS.map((region) => (
+                <option key={region.code} value={region.code}>
+                  {region.code === "off"
+                    ? t.page.regionOff
+                    : region.code === "ES"
+                      ? t.page.regionNational
+                      : region.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </fieldset>,
+      )}
     </>
   );
 
   return (
-    <div className="grid h-[calc(100dvh-7rem)] min-h-[36rem] gap-4 lg:grid-cols-[15rem_minmax(0,1fr)]">
+    <div className="grid h-[calc(100dvh-8.5rem)] min-h-[36rem] gap-5 lg:grid-cols-[17rem_minmax(0,1fr)]">
       <aside
         aria-label={t.page.navigation}
-        className="hidden flex-col gap-6 overflow-y-auto lg:flex"
+        className="hidden flex-col gap-4 overflow-y-auto p-0.5 lg:flex"
       >
         <Button
           onClick={() => setEditor({ kind: "create", allDay: false, ...nextHourSlot(timeZone) })}
@@ -543,7 +563,7 @@ function Workspace({ session }: { session: ActiveSession }) {
               <ChevronRightIcon aria-hidden="true" />
             </Button>
           </div>
-          <h1 className="mr-auto text-lg font-semibold tracking-tight first-letter:uppercase">
+          <h1 className="mr-auto text-xl font-bold tracking-tight first-letter:uppercase sm:text-2xl">
             {title}
           </h1>
           {desktop ? null : (
@@ -556,7 +576,11 @@ function Workspace({ session }: { session: ActiveSession }) {
               <PanelLeftIcon aria-hidden="true" />
             </Button>
           )}
-          <div role="radiogroup" aria-label={t.page.view} className="flex rounded-md border p-0.5">
+          <div
+            role="radiogroup"
+            aria-label={t.page.view}
+            className="flex rounded-2xl border bg-muted/70 p-1"
+          >
             {views.map((option) => (
               <button
                 key={option.id}
@@ -565,10 +589,10 @@ function Workspace({ session }: { session: ActiveSession }) {
                 aria-checked={view === option.id}
                 onClick={() => api()?.changeView(option.id)}
                 className={cn(
-                  "rounded px-2 py-1.5 text-sm whitespace-nowrap sm:px-2.5 sm:py-1",
+                  "press rounded-xl px-2.5 py-1.5 text-sm font-semibold whitespace-nowrap transition-[color,background-color,box-shadow] duration-200 sm:px-3",
                   view === option.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent",
+                    ? "bg-card text-foreground shadow-[var(--shadow-tile)]"
+                    : "text-muted-foreground hover:bg-card/60 hover:text-foreground",
                 )}
               >
                 {t.views[option.id]}
@@ -589,7 +613,7 @@ function Workspace({ session }: { session: ActiveSession }) {
             {errorMessage(occurrences.error)}
           </p>
         ) : null}
-        <div className="min-h-0 flex-1 rounded-xl border bg-card p-2">
+        <div className="tile animate-rise min-h-0 flex-1 p-2 sm:p-3">
           <FullCalendar
             ref={calendarRef}
             plugins={[
@@ -682,7 +706,7 @@ function todayFrom(iso: string, timeZone: string): string {
 export function CalendarPage() {
   const router = useRouter();
   const logout = useLogout();
-  const changeLocale = useChangeLocale();
+  const preferences = useAccountPreferences();
   return (
     <RequireSession navigate={(path) => router.history.replace(path)}>
       {(session) => (
@@ -690,7 +714,7 @@ export function CalendarPage() {
           app="calendar"
           user={session.user}
           onSignOut={() => logout.mutate()}
-          onLocaleChange={(locale) => changeLocale.mutate(locale)}
+          {...preferences}
         >
           <Workspace session={session} />
         </AppShell>

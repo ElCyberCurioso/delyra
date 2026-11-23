@@ -73,6 +73,12 @@ const en: Translation<CalendarMessages> = {
     moreOptions: "More options",
     add: "Add",
     hint: "Add when: “tomorrow 5:30pm”, “Friday from 10 to 11”, “December 3”…",
+    dictate: "Dictate a quick add",
+    stopDictation: "Stop dictating",
+    listening: "Listening… say, for example, “dentist tomorrow at half past five”",
+    micDenied: "There's no permission to use the microphone. Allow it in the browser settings.",
+    noSpeech: "Nothing was heard. Please try again.",
+    dictationFailed: "Couldn't dictate. Type it or try again.",
   },
   search: {
     label: "Search events",
@@ -83,8 +89,6 @@ const en: Translation<CalendarMessages> = {
   },
   list: {
     color: "Colour",
-    colorNames: ["violet", "blue", "teal", "green", "orange", "red", "pink", "brown"],
-    colorLabel: (name) => `Colour ${name}`,
     needName: "Give it a name.",
     edit: "Edit calendar",
     new: "New calendar",

@@ -18,11 +18,11 @@ export function Section({
     <section
       id={id}
       aria-labelledby={`${id}-titulo`}
-      className="scroll-mt-20 rounded-xl border bg-card p-5 text-card-foreground sm:p-6"
+      className="tile animate-rise min-w-0 scroll-mt-24 p-5 sm:p-6"
     >
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id={`${id}-titulo`} className="text-lg font-semibold tracking-tight">
+          <h2 id={`${id}-titulo`} className="text-lg font-bold tracking-tight">
             {title}
           </h2>
           {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
