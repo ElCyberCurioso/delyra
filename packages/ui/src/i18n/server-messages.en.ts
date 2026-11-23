@@ -77,6 +77,15 @@ const exact: Record<string, string> = {
   "Demasiados códigos incorrectos. Vuelve a iniciar sesión.":
     "Too many wrong codes. Sign in again.",
   "El código no es válido": "The code isn't valid",
+  // Llaves de acceso (F7-09).
+  "Ya tienes el máximo de llaves de acceso": "You already have the maximum number of passkeys",
+  "Esa llave de acceso ya está registrada": "That passkey is already registered",
+  "No se ha podido registrar la llave de acceso. Vuelve a intentarlo.":
+    "The passkey couldn't be registered. Please try again.",
+  "Llave de acceso no encontrada": "Passkey not found",
+  "Tu cuenta no tiene llaves de acceso": "Your account has no passkeys",
+  "La llave de acceso no es válida": "The passkey isn't valid",
+  "Ponle un nombre a la llave": "Give the passkey a name",
   "El código no es válido. Revisa la hora del móvil.":
     "The code isn't valid. Check the time on your phone.",
   "El enlace no es válido o ha caducado": "The link isn't valid or has expired",

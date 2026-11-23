@@ -79,6 +79,8 @@ export type SessionStateName = (typeof SESSION_STATES)[number];
 
 export const meResponseSchema = z.object({
   state: z.enum(SESSION_STATES),
+  /** Con la sesión pendiente del segundo factor: la cuenta tiene llaves de acceso (F7-09). */
+  passkey: z.boolean().optional(),
   user: z
     .object({
       id: z.string(),

@@ -9,6 +9,7 @@ import { createLogger } from "./lib/logger";
 import { ensureHolidays } from "./services/holidays";
 import { purgeStaleGoogleTokens } from "./services/imports";
 import { syncDueSubscriptions } from "./services/subscriptions";
+import { purgeExpiredChallenges } from "./services/passkeys";
 
 export { BoardRoom } from "./durable/board-room";
 export { BackupWorkflow } from "./jobs/backup-workflow";
@@ -39,6 +40,12 @@ export default {
       ctx.waitUntil(
         purgeStaleGoogleTokens(createDb(env.DB), Date.now()).catch((error: unknown) => {
           logger.error("google_token_purge_failed", { error });
+        }),
+      );
+      // F7-09: retos de llaves de acceso abandonados.
+      ctx.waitUntil(
+        purgeExpiredChallenges(createDb(env.DB), Date.now()).catch((error: unknown) => {
+          logger.error("webauthn_challenge_purge_failed", { error });
         }),
       );
       // F7-03: festivos del año en curso y del siguiente (se refrescan cada mes).

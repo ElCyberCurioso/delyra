@@ -3,13 +3,14 @@ import {
   forgotPasswordRequestSchema,
   invitationTokenRequestSchema,
   loginRequestSchema,
+  passkeyLoginRequestSchema,
   registerRequestSchema,
   resetPasswordRequestSchema,
   secondFactorRequestSchema,
   totpConfirmRequestSchema,
 } from "@delyra/shared";
 import { eq } from "drizzle-orm";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { createDb } from "../db/client";
 import { users } from "../db/schema";
 import {
@@ -44,8 +45,15 @@ import {
   passwordResetLink,
 } from "../services/password-resets";
 import {
+  countPasskeys,
+  finishPasskeyLogin,
+  relyingParty,
+  startPasskeyLogin,
+} from "../services/passkeys";
+import {
   confirmTotpEnrollment,
   remainingRecoveryCodes,
+  type SecondFactorMethod,
   startTotpEnrollment,
   verifySecondFactor,
 } from "../services/second-factor";
@@ -71,6 +79,52 @@ import { requestLocale } from "../lib/locale";
 /** Rutas de autenticación (F1-07, F1-08, F1-09, F1-11, F1-13). */
 
 const GENERIC_LOGIN_ERROR = "Email o contraseña incorrectos";
+const SECOND_FACTOR_REVOKED = "Demasiados códigos incorrectos. Vuelve a iniciar sesión.";
+
+/** Segundo factor fallido: cuenta el intento y, al quinto, revoca la sesión pendiente. */
+async function failSecondFactor(c: Context<AppEnv>, detail: string): Promise<never> {
+  const { session, user } = currentAuth(c);
+  const db = createDb(c.env.DB);
+  const meta = c.get("meta");
+  await recordAttempt(db, c.env, "second_factor", { account: user.email, ip: meta.ip }, false);
+  await audit(db, meta, "second_factor.failure", { userId: user.id });
+  const { revoked } = await registerSecondFactorFailure(db, session.id);
+  if (revoked) clearSessionCookie(c);
+  throw new AppError(401, { detail: revoked ? SECOND_FACTOR_REVOKED : detail });
+}
+
+/** Segundo factor correcto (código o llave): activa la sesión con un token nuevo y avisa. */
+async function completeSecondFactor(c: Context<AppEnv>, method: SecondFactorMethod) {
+  const { session, user } = currentAuth(c);
+  const db = createDb(c.env.DB);
+  const meta = c.get("meta");
+  await recordAttempt(db, c.env, "second_factor", { account: user.email, ip: meta.ip }, true);
+  const token = await rotateSession(db, session.id, "active");
+  await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, user.id));
+  await audit(db, meta, "login.success", { userId: user.id, metadata: { method } });
+  notifySecurity(c, user.id, "login");
+  let remaining: number | undefined;
+  if (method === "recovery_code") {
+    remaining = await remainingRecoveryCodes(db, user.id);
+    await audit(db, meta, "second_factor.recovery_code_used", {
+      userId: user.id,
+      metadata: { remaining },
+    });
+  }
+  setSessionCookie(c, token, "active");
+
+  const mailer = createMailer(c.env, c.get("logger"));
+  if (c.env.APP_ENV === "production" && mailer.available) {
+    const settings = await getUserSettings(db, user.id);
+    const locale = settings?.locale === "en" ? "en" : "es";
+    c.executionCtx.waitUntil(
+      mailer
+        .send(newLoginEmail(user.email, { at: new Date(), ...meta }, locale))
+        .catch(() => undefined),
+    );
+  }
+  return c.json({ next: "done", remainingRecoveryCodes: remaining ?? null });
+}
 const INVALID_INVITATION = "La invitación no es válida o ha caducado";
 
 export const authRoutes = new Hono<AppEnv>()
@@ -85,6 +139,10 @@ export const authRoutes = new Hono<AppEnv>()
         state: session.state,
         user: session.state === "pending_totp" ? publicUser(user) : null,
         settings: null,
+        // Solo tras la contraseña: el segundo paso ofrece la llave si la cuenta tiene alguna.
+        ...(session.state === "pending_2fa"
+          ? { passkey: (await countPasskeys(createDb(c.env.DB), user.id)) > 0 }
+          : {}),
       });
     }
     const settings = await getUserSettings(createDb(c.env.DB), user.id);
@@ -192,54 +250,53 @@ export const authRoutes = new Hono<AppEnv>()
 
   .post("/login/second-factor", requireSessionState("pending_2fa"), async (c) => {
     const { code } = await readBody(c, secondFactorRequestSchema);
-    const { session, user } = currentAuth(c);
+    const { user } = currentAuth(c);
     const db = createDb(c.env.DB);
-    const meta = c.get("meta");
-    const keys = { account: user.email, ip: meta.ip };
+    const keys = { account: user.email, ip: c.get("meta").ip };
 
     const lock = await checkLock(db, c.env, "second_factor", keys);
     if (lock.locked) tooManyAttempts(c, lock.retryAfterSeconds);
 
     const keyring = await keyringFromEnv(c.env);
     const method = await verifySecondFactor(db, keyring, user.id, code);
-    if (!method) {
-      await recordAttempt(db, c.env, "second_factor", keys, false);
-      await audit(db, meta, "second_factor.failure", { userId: user.id });
-      const { revoked } = await registerSecondFactorFailure(db, session.id);
-      if (revoked) clearSessionCookie(c);
-      throw new AppError(401, {
-        detail: revoked
-          ? "Demasiados códigos incorrectos. Vuelve a iniciar sesión."
-          : "El código no es válido",
-      });
-    }
+    if (!method) return failSecondFactor(c, "El código no es válido");
+    return completeSecondFactor(c, method);
+  })
 
-    await recordAttempt(db, c.env, "second_factor", keys, true);
-    const token = await rotateSession(db, session.id, "active");
-    await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, user.id));
-    await audit(db, meta, "login.success", { userId: user.id, metadata: { method } });
-    notifySecurity(c, user.id, "login");
-    let remaining: number | undefined;
-    if (method === "recovery_code") {
-      remaining = await remainingRecoveryCodes(db, user.id);
-      await audit(db, meta, "second_factor.recovery_code_used", {
-        userId: user.id,
-        metadata: { remaining },
-      });
-    }
-    setSessionCookie(c, token, "active");
+  // F7-09: la llave de acceso sustituye al código en el segundo paso.
+  .post("/login/passkey/options", requireSessionState("pending_2fa"), async (c) => {
+    const { session, user } = currentAuth(c);
+    const db = createDb(c.env.DB);
+    const lock = await checkLock(db, c.env, "second_factor", {
+      account: user.email,
+      ip: c.get("meta").ip,
+    });
+    if (lock.locked) tooManyAttempts(c, lock.retryAfterSeconds);
+    const options = await startPasskeyLogin(db, relyingParty(c.env.APP_ENV), session.id, user.id);
+    if (!options) throw new AppError(404, { detail: "Tu cuenta no tiene llaves de acceso" });
+    c.header("Cache-Control", "no-store");
+    return c.json({ options });
+  })
 
-    const mailer = createMailer(c.env, c.get("logger"));
-    if (c.env.APP_ENV === "production" && mailer.available) {
-      const settings = await getUserSettings(db, user.id);
-      const locale = settings?.locale === "en" ? "en" : "es";
-      c.executionCtx.waitUntil(
-        mailer
-          .send(newLoginEmail(user.email, { at: new Date(), ...meta }, locale))
-          .catch(() => undefined),
-      );
-    }
-    return c.json({ next: "done", remainingRecoveryCodes: remaining ?? null });
+  .post("/login/passkey", requireSessionState("pending_2fa"), async (c) => {
+    const { response } = await readBody(c, passkeyLoginRequestSchema);
+    const { session, user } = currentAuth(c);
+    const db = createDb(c.env.DB);
+    const lock = await checkLock(db, c.env, "second_factor", {
+      account: user.email,
+      ip: c.get("meta").ip,
+    });
+    if (lock.locked) tooManyAttempts(c, lock.retryAfterSeconds);
+
+    const passkeyId = await finishPasskeyLogin(
+      db,
+      relyingParty(c.env.APP_ENV),
+      session.id,
+      user.id,
+      response,
+    );
+    if (!passkeyId) return failSecondFactor(c, "La llave de acceso no es válida");
+    return completeSecondFactor(c, "passkey");
   })
 
   .post("/totp/setup", requireSessionState("pending_totp"), async (c) => {

@@ -90,6 +90,58 @@ export const recoveryCodes = sqliteTable(
   (t) => [index("recovery_codes_user_idx").on(t.userId)],
 );
 
+/**
+ * Llaves de acceso (WebAuthn, F7-09): segundo factor alternativo al TOTP. Solo se guarda la clave
+ * pública; la privada nunca sale del dispositivo o del gestor de contraseñas.
+ */
+export const passkeys = sqliteTable(
+  "passkeys",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Identificador de la credencial (base64url), único en todo el sistema. */
+    credentialId: text("credential_id").notNull(),
+    /** Clave pública COSE (base64url). */
+    publicKey: text("public_key").notNull(),
+    /** Contador de firmas: si baja, la llave podría estar clonada y se rechaza. */
+    counter: integer("counter").notNull().default(0),
+    /** Transportes que anunció el autenticador (`internal`, `hybrid`, `usb`…), en JSON. */
+    transports: text("transports"),
+    /** Nombre que le da la persona («Portátil», «iPhone»…). */
+    name: text("name").notNull(),
+    /** La llave se sincroniza entre dispositivos (gestor de contraseñas). */
+    backedUp: integer("backed_up", { mode: "boolean" }).notNull().default(false),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    lastUsedAt: integer("last_used_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    uniqueIndex("passkeys_credential_idx").on(t.credentialId),
+    index("passkeys_user_idx").on(t.userId),
+  ],
+);
+
+export const WEBAUTHN_PURPOSES = ["register", "login"] as const;
+export type WebAuthnPurpose = (typeof WEBAUTHN_PURPOSES)[number];
+
+/**
+ * Reto pendiente de una ceremonia WebAuthn: uno por sesión, de un solo uso y con caducidad de
+ * 5 minutos. Va ligado a la sesión, así que no sirve desde otro navegador.
+ */
+export const webauthnChallenges = sqliteTable(
+  "webauthn_challenges",
+  {
+    sessionId: text("session_id")
+      .primaryKey()
+      .references(() => sessions.id, { onDelete: "cascade" }),
+    purpose: text("purpose", { enum: WEBAUTHN_PURPOSES }).notNull(),
+    challenge: text("challenge").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  () => [check("webauthn_challenges_purpose_check", sql`"purpose" IN ('register', 'login')`)],
+);
+
 export const SESSION_STATES = ["pending_2fa", "pending_totp", "active"] as const;
 export type SessionState = (typeof SESSION_STATES)[number];
 

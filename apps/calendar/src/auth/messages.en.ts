@@ -41,6 +41,13 @@ const en: Translation<AuthMessages> = {
     verifying: "Verifying…",
     verify: "Verify",
     useApp: "Use the authenticator app",
+    passkeyDescription:
+      "Use your passkey (fingerprint, face or device PIN) or the code from your authenticator app.",
+    usePasskey: "Use a passkey",
+    passkeyWaiting: "Waiting for the passkey…",
+    orCode: "or with a code",
+    passkeyCancelled:
+      "The passkey wasn't used: it was cancelled or timed out. Try again or type a code.",
     useRecovery: "I don't have my phone: use a recovery code",
   },
   totp: {

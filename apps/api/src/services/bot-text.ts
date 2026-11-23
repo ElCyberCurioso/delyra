@@ -54,6 +54,8 @@ const es = {
     totp_changed: "Se ha cambiado la app autenticadora de tu cuenta",
     recovery_codes: "Se han generado códigos de recuperación nuevos",
     sessions_revoked: "Se han cerrado sesiones de tu cuenta",
+    passkey_added: "Se ha añadido una llave de acceso a tu cuenta",
+    passkey_removed: "Se ha quitado una llave de acceso de tu cuenta",
   },
   securityAdvice: (url: string) =>
     `Si no has sido tú, cambia la contraseña y cierra las demás sesiones: ${url}`,
@@ -126,6 +128,8 @@ const en: BotText = {
     totp_changed: "Your account's authenticator app was changed",
     recovery_codes: "New recovery codes were generated",
     sessions_revoked: "Sessions on your account were signed out",
+    passkey_added: "A passkey was added to your account",
+    passkey_removed: "A passkey was removed from your account",
   },
   securityAdvice: (url) =>
     `If it wasn't you, change your password and sign out the other sessions: ${url}`,

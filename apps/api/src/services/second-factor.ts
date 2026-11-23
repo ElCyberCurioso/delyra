@@ -1,7 +1,7 @@
 import { newId } from "@delyra/shared";
 import { and, eq, isNotNull, isNull, lt } from "drizzle-orm";
 import type { Database } from "../db/client";
-import { recoveryCodes, userTotp } from "../db/schema";
+import { passkeys, recoveryCodes, userTotp } from "../db/schema";
 import { randomBytes, sha256Hex } from "../lib/crypto";
 import { decryptField, encryptField, type Keyring } from "../lib/field-crypto";
 import { generateTotpSecret, otpauthUri, verifyTotp } from "../lib/totp";
@@ -121,7 +121,7 @@ export async function regenerateRecoveryCodes(
   return codes;
 }
 
-export type SecondFactorMethod = "totp" | "recovery_code";
+export type SecondFactorMethod = "totp" | "recovery_code" | "passkey";
 
 /** Verifica un código TOTP (6 dígitos) o un código de recuperación de un solo uso. */
 export async function verifySecondFactor(
@@ -220,10 +220,11 @@ export async function totpConfirmedAt(db: Database, userId: string): Promise<Dat
   return row?.confirmedAt ?? null;
 }
 
-/** Borra el TOTP y los códigos (reseteo de 2FA por un administrador, F1-17). */
+/** Borra el TOTP, los códigos y las llaves de acceso (reseteo de 2FA por un administrador, F1-17). */
 export async function resetSecondFactor(db: Database, userId: string): Promise<void> {
   await db.batch([
     db.delete(userTotp).where(eq(userTotp.userId, userId)),
     db.delete(recoveryCodes).where(eq(recoveryCodes.userId, userId)),
+    db.delete(passkeys).where(eq(passkeys.userId, userId)),
   ]);
 }

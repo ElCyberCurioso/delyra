@@ -13,7 +13,9 @@ export function PrivacyEn() {
       <h2>Data Delyra keeps</h2>
       <ul>
         <li>
-          Your account: name, email, password (only its hash) and the second factor (encrypted).
+          Your account: name, email, password (only its hash) and the second factor (encrypted). If
+          you add passkeys, only their public key and the name you give them: your fingerprint, face
+          or PIN never leave your device.
         </li>
         <li>What you create: calendars, events, alerts, boards, cards and attachments.</li>
         <li>If you link Telegram, your chat identifier (encrypted), to send you alerts.</li>

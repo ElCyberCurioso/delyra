@@ -38,6 +38,8 @@ export const securityOverviewResponseSchema = z.object({
   totpConfirmedAt: isoDate.nullable(),
   remainingRecoveryCodes: z.number().int().min(0),
   passwordChangedAt: isoDate.nullable(),
+  /** Llaves de acceso registradas (F7-09). */
+  passkeys: z.number().int().min(0),
 });
 export type SecurityOverview = z.infer<typeof securityOverviewResponseSchema>;
 

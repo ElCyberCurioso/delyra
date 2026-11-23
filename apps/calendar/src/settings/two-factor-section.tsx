@@ -23,68 +23,12 @@ import { type FormEvent, useState } from "react";
 import { formValues } from "../auth/form";
 import { RecoveryCodeList, SavedCodesConfirmation, TotpQr } from "../auth/totp-parts";
 import { formatDateTime } from "./format";
+import { PasskeysPanel } from "./passkeys-panel";
+import { ReauthForm } from "./reauth-form";
 import { Section } from "./section";
 import { settingsMessages } from "./messages";
 
 export const SECURITY_QUERY_KEY = ["account", "security"] as const;
-
-/** Formulario común: contraseña y código actual (TOTP o de recuperación). */
-function ReauthForm({
-  submitLabel,
-  onSubmit,
-}: {
-  submitLabel: string;
-  onSubmit: (values: { password: string; code: string }) => Promise<void>;
-}) {
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
-  const t = settingsMessages();
-
-  async function handle(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const values = formValues(event.currentTarget);
-    const password = values.password ?? "";
-    const code = (values.code ?? "").replace(/\s+/g, "");
-    if (!password || code.length < 6) {
-      setError(t.twoFactor.reauthMissing);
-      return;
-    }
-    setError(null);
-    setPending(true);
-    try {
-      await onSubmit({ password, code });
-    } catch (caught) {
-      setError(errorMessage(caught));
-    } finally {
-      setPending(false);
-    }
-  }
-
-  return (
-    <form noValidate onSubmit={(event) => void handle(event)} className="grid gap-4">
-      <FormError>{error}</FormError>
-      <Field
-        label={t.common.password}
-        name="password"
-        type="password"
-        autoComplete="current-password"
-        required
-        autoFocus
-      />
-      <Field
-        label={t.twoFactor.currentCode}
-        name="code"
-        autoComplete="one-time-code"
-        hint={t.twoFactor.currentCodeHint}
-        maxLength={11}
-        required
-      />
-      <Button type="submit" disabled={pending}>
-        {pending ? t.common.checking : submitLabel}
-      </Button>
-    </form>
-  );
-}
 
 function RegenerateCodesDialog({ onClose }: { onClose: () => void }) {
   const [codes, setCodes] = useState<string[] | null>(null);
@@ -252,6 +196,9 @@ export function TwoFactorSection({ session }: { session: ActiveSession }) {
         <Button variant="outline" onClick={() => setDialog("codes")}>
           {t.twoFactor.generate}
         </Button>
+      </div>
+      <div className="mt-5">
+        <PasskeysPanel timeZone={timeZone} />
       </div>
       {dialog === "codes" ? <RegenerateCodesDialog onClose={close} /> : null}
       {dialog === "totp" ? <ReconfigureTotpDialog onClose={close} /> : null}

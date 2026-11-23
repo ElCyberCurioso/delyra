@@ -129,7 +129,12 @@ describe("login en dos pasos", () => {
     });
     expect(await login.json()).toEqual({ next: "2fa" });
     const pending = meResponseSchema.parse(await (await client.get("/api/auth/me")).json());
-    expect(pending).toEqual({ state: "pending_2fa", user: null, settings: null });
+    expect(pending).toEqual({
+      state: "pending_2fa",
+      user: null,
+      settings: null,
+      passkey: false,
+    });
     expect((await client.get("/api/me/audit")).status).toBe(401);
 
     const ok = await client.post("/api/auth/login/second-factor", { code: await nextTotp(secret) });

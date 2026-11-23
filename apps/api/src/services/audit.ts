@@ -22,6 +22,8 @@ export type AuditEvent =
   | "settings.updated"
   | "reauth.failure"
   | "totp.reconfigured"
+  | "passkey.added"
+  | "passkey.removed"
   | "telegram.linked"
   | "telegram.unlinked"
   | "session.logout"

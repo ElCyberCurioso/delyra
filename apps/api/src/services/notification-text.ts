@@ -214,6 +214,8 @@ export const SECURITY_EVENTS = [
   "totp_changed",
   "recovery_codes",
   "sessions_revoked",
+  "passkey_added",
+  "passkey_removed",
 ] as const;
 export type SecurityEvent = (typeof SECURITY_EVENTS)[number];
 

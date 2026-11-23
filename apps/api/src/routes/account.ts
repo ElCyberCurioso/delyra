@@ -1,6 +1,8 @@
 import {
+  addPasskeyRequestSchema,
   changePasswordRequestSchema,
   idSchema,
+  MAX_PASSKEYS,
   PROBLEM_TYPES,
   reauthRequestSchema,
   totpConfirmRequestSchema,
@@ -19,6 +21,14 @@ import { hashPassword, verifyPassword } from "../lib/password";
 import { currentAuth, requireActiveSession, setSessionCookie } from "../middleware/session";
 import { checkLock, recordAttempt } from "../services/attempts";
 import { audit, listUserAudit } from "../services/audit";
+import {
+  countPasskeys,
+  deletePasskey,
+  finishPasskeyRegistration,
+  listPasskeys,
+  relyingParty,
+  startPasskeyRegistration,
+} from "../services/passkeys";
 import {
   confirmTotpReconfiguration,
   regenerateRecoveryCodes,
@@ -109,15 +119,83 @@ export const accountRoutes = new Hono<AppEnv>()
   .get("/security", async (c) => {
     const { user } = currentAuth(c);
     const db = createDb(c.env.DB);
-    const [confirmedAt, remaining] = await Promise.all([
+    const [confirmedAt, remaining, passkeyCount] = await Promise.all([
       totpConfirmedAt(db, user.id),
       remainingRecoveryCodes(db, user.id),
+      countPasskeys(db, user.id),
     ]);
     return c.json({
       totpConfirmedAt: confirmedAt?.toISOString() ?? null,
       remainingRecoveryCodes: remaining,
       passwordChangedAt: user.passwordChangedAt?.toISOString() ?? null,
+      passkeys: passkeyCount,
     });
+  })
+
+  // F7-09: llaves de acceso. Crear una pide la contraseña y el código actual.
+  .get("/passkeys", async (c) => {
+    const { user } = currentAuth(c);
+    return c.json({ passkeys: await listPasskeys(createDb(c.env.DB), user.id) });
+  })
+
+  .post("/passkeys/options", async (c) => {
+    const body = await readBody(c, reauthRequestSchema);
+    await reauthenticate(c, body);
+    const { session, user } = currentAuth(c);
+    const db = createDb(c.env.DB);
+    if ((await countPasskeys(db, user.id)) >= MAX_PASSKEYS) {
+      throw new AppError(409, { detail: "Ya tienes el máximo de llaves de acceso" });
+    }
+    const options = await startPasskeyRegistration(
+      db,
+      relyingParty(c.env.APP_ENV),
+      session.id,
+      user,
+    );
+    c.header("Cache-Control", "no-store");
+    return c.json({ options });
+  })
+
+  .post("/passkeys", async (c) => {
+    const body = await readBody(c, addPasskeyRequestSchema);
+    const { session, user } = currentAuth(c);
+    const db = createDb(c.env.DB);
+    const result = await finishPasskeyRegistration(
+      db,
+      relyingParty(c.env.APP_ENV),
+      session.id,
+      user.id,
+      { name: body.name, response: body.response },
+    );
+    if (!result.ok) {
+      throw new AppError(result.reason === "invalid" ? 400 : 409, {
+        detail:
+          result.reason === "limit"
+            ? "Ya tienes el máximo de llaves de acceso"
+            : result.reason === "duplicate"
+              ? "Esa llave de acceso ya está registrada"
+              : "No se ha podido registrar la llave de acceso. Vuelve a intentarlo.",
+      });
+    }
+    await audit(db, c.get("meta"), "passkey.added", {
+      userId: user.id,
+      metadata: { backedUp: result.passkey.backedUp },
+    });
+    notifySecurity(c, user.id, "passkey_added");
+    return c.json({ passkey: result.passkey }, 201);
+  })
+
+  .delete("/passkeys/:id", async (c) => {
+    const id = idSchema.safeParse(c.req.param("id"));
+    const { user } = currentAuth(c);
+    const db = createDb(c.env.DB);
+    // Una llave de otra persona responde igual que una inexistente.
+    if (!id.success || !(await deletePasskey(db, user.id, id.data))) {
+      throw new AppError(404, { detail: "Llave de acceso no encontrada" });
+    }
+    await audit(db, c.get("meta"), "passkey.removed", { userId: user.id });
+    notifySecurity(c, user.id, "passkey_removed");
+    return c.body(null, 204);
   })
 
   .post("/password", async (c) => {

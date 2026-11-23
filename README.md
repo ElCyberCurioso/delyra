@@ -1,7 +1,8 @@
 # Delyra
 
 Calendario (`delyra.app`) y kanban (`work.delyra.app`) multiusuario sobre Cloudflare Workers, con
-sesión común, 2FA obligatorio, alertas por Telegram y backups.
+sesión común, 2FA obligatorio (con llaves de acceso como alternativa al código), alertas por
+Telegram y backups.
 
 El plan de trabajo completo está en `docs/plan-de-trabajo.md` y las decisiones de arquitectura en
 [`docs/decisiones/`](docs/decisiones/).

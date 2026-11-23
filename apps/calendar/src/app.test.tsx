@@ -22,8 +22,16 @@ vi.mock("@delyra/ui", async (importOriginal) => {
   };
 });
 
+// La ceremonia WebAuthn necesita un autenticador real: aquí se simula el resultado (F7-09).
+const webauthn = vi.hoisted(() => ({
+  startAuthentication: vi.fn(),
+  startRegistration: vi.fn(),
+}));
+vi.mock("@simplewebauthn/browser", () => webauthn);
+
 type State = "anonymous" | "pending_2fa" | "pending_totp" | "active";
 let sessionState: State = "anonymous";
+let accountHasPasskey = false;
 const user = { id: "u1", email: "ana@example.com", name: "Ana", role: "admin" as const };
 
 function meResponse() {
@@ -36,6 +44,7 @@ function meResponse() {
   return HttpResponse.json({
     state: sessionState,
     user: sessionState === "pending_2fa" ? null : user,
+    ...(sessionState === "pending_2fa" ? { passkey: accountHasPasskey } : {}),
     settings:
       sessionState === "active" ? { timeZone: "Europe/Madrid", locale: "es", weekStart: 1 } : null,
   });
@@ -138,6 +147,9 @@ const server = setupServer(
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 beforeEach(() => {
   sessionState = "anonymous";
+  accountHasPasskey = false;
+  webauthn.startAuthentication.mockReset();
+  webauthn.startRegistration.mockReset();
   requests.length = 0;
   eventRanges.length = 0;
 });
@@ -414,5 +426,133 @@ describe("App (calendario)", () => {
     expect(
       await screen.findByRole("heading", { name: "Invitación no válida" }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("Llaves de acceso (F7-09)", () => {
+  const ASSERTION = { id: "cred", rawId: "cred", type: "public-key", response: {} };
+  const ATTESTATION = { id: "cred", rawId: "cred", type: "public-key", response: {} };
+
+  beforeEach(() => {
+    vi.stubGlobal("PublicKeyCredential", class {});
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("el segundo paso ofrece la llave y, si se cancela, deja reintentar", async () => {
+    sessionState = "pending_2fa";
+    accountHasPasskey = true;
+    server.use(
+      http.post("/api/auth/login/passkey/options", () =>
+        HttpResponse.json({ options: { challenge: "reto", rpId: "localhost" } }),
+      ),
+      http.post("/api/auth/login/passkey", async ({ request }) => {
+        requests.push({ path: "passkey", body: await request.json() });
+        sessionState = "active";
+        return HttpResponse.json({ next: "done", remainingRecoveryCodes: null });
+      }),
+    );
+    webauthn.startAuthentication
+      .mockRejectedValueOnce(Object.assign(new Error("cancelado"), { name: "NotAllowedError" }))
+      .mockResolvedValueOnce(ASSERTION);
+    const userEvents = userEvent.setup();
+    const router = renderAt("/login/verificar?next=%2Fajustes");
+
+    await userEvents.click(await screen.findByRole("button", { name: "Usar una llave de acceso" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("se canceló o se agotó el tiempo");
+    // El código sigue disponible como alternativa.
+    expect(screen.getByLabelText("Código")).toBeInTheDocument();
+
+    await userEvents.click(screen.getByRole("button", { name: "Usar una llave de acceso" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/ajustes"));
+    expect(webauthn.startAuthentication).toHaveBeenLastCalledWith({
+      optionsJSON: { challenge: "reto", rpId: "localhost" },
+    });
+    expect(requests).toEqual([{ path: "passkey", body: { response: ASSERTION } }]);
+  });
+
+  it("sin llaves en la cuenta solo pide el código", async () => {
+    sessionState = "pending_2fa";
+    renderAt("/login/verificar");
+    expect(await screen.findByLabelText("Código")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Usar una llave de acceso" })).toBeNull();
+  });
+
+  it("se añaden y se quitan desde Ajustes", async () => {
+    sessionState = "active";
+    const passkeys: { id: string; name: string }[] = [];
+    server.use(
+      http.get("/api/me/security", () =>
+        HttpResponse.json({
+          totpConfirmedAt: "2026-11-01T10:00:00.000Z",
+          remainingRecoveryCodes: 10,
+          passwordChangedAt: null,
+          passkeys: passkeys.length,
+        }),
+      ),
+      http.get("/api/me/passkeys", () =>
+        HttpResponse.json({
+          passkeys: passkeys.map((p) => ({
+            ...p,
+            createdAt: "2026-11-23T10:00:00.000Z",
+            lastUsedAt: null,
+            backedUp: true,
+          })),
+        }),
+      ),
+      http.post("/api/me/passkeys/options", async ({ request }) => {
+        requests.push({ path: "options", body: await request.json() });
+        return HttpResponse.json({ options: { challenge: "reto", rp: { id: "localhost" } } });
+      }),
+      http.post("/api/me/passkeys", async ({ request }) => {
+        const body = (await request.json()) as { name: string };
+        requests.push({ path: "add", body });
+        passkeys.push({ id: "01a1fa43-8aed-7103-b1ae-9ca51d830001", name: body.name });
+        return HttpResponse.json({}, { status: 201 });
+      }),
+      http.delete("/api/me/passkeys/:id", ({ params }) => {
+        requests.push({ path: "delete", body: params.id });
+        passkeys.length = 0;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    webauthn.startRegistration.mockResolvedValueOnce(ATTESTATION);
+    const userEvents = userEvent.setup();
+    renderAt("/ajustes");
+
+    const panel = await screen.findByRole("region", { name: "Llaves de acceso" });
+    expect(await within(panel).findByText("Todavía no tienes ninguna.")).toBeInTheDocument();
+    await userEvents.click(within(panel).getByRole("button", { name: "Añadir llave" }));
+    const dialog = await screen.findByRole("dialog", { name: "Añadir una llave de acceso" });
+    await userEvents.type(within(dialog).getByLabelText("Contraseña"), "una contraseña muy segura");
+    await userEvents.type(within(dialog).getByLabelText(/Código actual/), "123456");
+    await userEvents.click(within(dialog).getByRole("button", { name: "Continuar" }));
+
+    const name = await within(dialog).findByLabelText(/Nombre de la llave/);
+    await userEvents.clear(name);
+    await userEvents.type(name, "Portátil");
+    await userEvents.click(within(dialog).getByRole("button", { name: "Crear la llave" }));
+
+    expect(await within(panel).findByText("Portátil")).toBeInTheDocument();
+    expect(within(panel).getByText("Sincronizada")).toBeInTheDocument();
+    expect(webauthn.startRegistration).toHaveBeenCalledWith({
+      optionsJSON: { challenge: "reto", rp: { id: "localhost" } },
+    });
+    expect(requests.slice(0, 2)).toEqual([
+      { path: "options", body: { password: "una contraseña muy segura", code: "123456" } },
+      { path: "add", body: { name: "Portátil", response: ATTESTATION } },
+    ]);
+
+    await userEvents.click(
+      within(panel).getByRole("button", { name: "Quitar la llave «Portátil»" }),
+    );
+    const confirm = await screen.findByRole("dialog", { name: "¿Quitar la llave de acceso?" });
+    await userEvents.click(within(confirm).getByRole("button", { name: "Quitar" }));
+    expect(await within(panel).findByText("Todavía no tienes ninguna.")).toBeInTheDocument();
+    expect(requests.at(-1)).toEqual({
+      path: "delete",
+      body: "01a1fa43-8aed-7103-b1ae-9ca51d830001",
+    });
   });
 });

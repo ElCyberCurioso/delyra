@@ -87,7 +87,11 @@ function PrivacyEs() {
 
       <h2>Datos que guarda Delyra</h2>
       <ul>
-        <li>Tu cuenta: nombre, email, contraseña (solo su hash) y el segundo factor (cifrado).</li>
+        <li>
+          Tu cuenta: nombre, email, contraseña (solo su hash) y el segundo factor (cifrado). Si
+          añades llaves de acceso, solo su clave pública y el nombre que les pongas: la huella, la
+          cara o el PIN nunca salen de tu dispositivo.
+        </li>
         <li>Lo que creas: calendarios, eventos, alertas, tableros, tarjetas y adjuntos.</li>
         <li>
           Si vinculas Telegram, el identificador de tu chat (cifrado), para enviarte las alertas.

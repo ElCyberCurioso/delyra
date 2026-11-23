@@ -43,6 +43,13 @@ const es = {
     verify: "Verificar",
     useApp: "Usar la app autenticadora",
     useRecovery: "No tengo el móvil: usar un código de recuperación",
+    passkeyDescription:
+      "Usa tu llave de acceso (huella, cara o PIN del dispositivo) o el código de tu app autenticadora.",
+    usePasskey: "Usar una llave de acceso",
+    passkeyWaiting: "Esperando a la llave…",
+    orCode: "o con un código",
+    passkeyCancelled:
+      "No se ha usado la llave: se canceló o se agotó el tiempo. Vuelve a intentarlo o escribe un código.",
   },
   totp: {
     qrAlt: "Código QR para añadir Delyra a tu app autenticadora",
