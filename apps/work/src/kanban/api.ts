@@ -7,6 +7,7 @@ import {
   boardMembersResponseSchema,
   boardsResponseSchema,
   type CardDetail,
+  type CardKind,
   cardResponseSchema,
   labelResponseSchema,
   moveCardResponseSchema,
@@ -128,7 +129,7 @@ export const deleteBoard = (id: string) => apiFetch(`/api/boards/${id}`, { metho
 
 export const addColumn = (
   boardId: string,
-  body: { name: string; wipLimit: number | null; isDone: boolean },
+  body: { name: string; wipLimit: number | null; isDone: boolean; delegated: boolean },
 ) =>
   apiFetch(`/api/boards/${boardId}/columns`, {
     method: "POST",
@@ -138,7 +139,7 @@ export const addColumn = (
 
 export const updateColumn = (
   id: string,
-  body: { name?: string; wipLimit?: number | null; isDone?: boolean },
+  body: { name?: string; wipLimit?: number | null; isDone?: boolean; delegated?: boolean },
 ) => apiFetch(`/api/columns/${id}`, { method: "PATCH", body, schema: boardDetailSchema });
 
 export const moveColumn = (id: string, index: number) =>
@@ -161,10 +162,10 @@ export const deleteLabel = (id: string) => apiFetch(`/api/labels/${id}`, { metho
 
 // ── Tarjetas ─────────────────────────────────────────────────────────────────
 
-export const createCard = (columnId: string, title: string) =>
+export const createCard = (columnId: string, title: string, kind: CardKind = "task") =>
   apiFetch(`/api/columns/${columnId}/cards`, {
     method: "POST",
-    body: { title },
+    body: { title, kind },
     schema: cardResponseSchema,
   }).then((r) => r.card);
 
@@ -173,10 +174,11 @@ export const updateCard = (id: string, body: Record<string, unknown>) =>
     (r) => r.card,
   );
 
-export const moveCard = (id: string, columnId: string, index: number) =>
+/** `assignee`: a quién se le pasa al llevarla a una columna delegada. */
+export const moveCard = (id: string, columnId: string, index: number, assignee?: string) =>
   apiFetch(`/api/cards/${id}/move`, {
     method: "POST",
-    body: { columnId, index },
+    body: { columnId, index, ...(assignee !== undefined ? { assignee } : {}) },
     schema: moveCardResponseSchema,
   });
 

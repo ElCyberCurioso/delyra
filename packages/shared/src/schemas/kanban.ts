@@ -10,6 +10,10 @@ import { reminderInputSchema } from "./calendar";
 export const CARD_PRIORITIES = ["none", "low", "medium", "high", "urgent"] as const;
 export type CardPriority = (typeof CARD_PRIORITIES)[number];
 
+/** Tipo de tarjeta: qué representa (una tarea, una reunión pendiente, una llamada…). */
+export const CARD_KINDS = ["task", "meeting", "call", "email", "errand", "note"] as const;
+export type CardKind = (typeof CARD_KINDS)[number];
+
 export const BOARD_TEMPLATES = ["personal", "sprint", "audit", "empty"] as const;
 
 /** Tableros compartidos (F7-04): papel de un miembro y papel de quien mira el tablero. */
@@ -34,6 +38,8 @@ export const KANBAN_LIMITS = {
   boardName: 80,
   columnName: 60,
   cardTitle: 300,
+  /** Nombre de la persona a la que se ha pasado una tarjeta (columnas delegadas). */
+  assignee: 80,
   description: 20_000,
   labelName: 40,
   checklistText: 300,
@@ -89,6 +95,8 @@ export const columnRequestSchema = z.object({
   name: name(KANBAN_LIMITS.columnName, "Ponle un nombre"),
   wipLimit: z.number().int().min(1).max(999).nullable().default(null),
   isDone: z.boolean().default(false),
+  /** Tareas que dependen de otra persona: al llevar una tarjeta aquí se pide a quién se pasa. */
+  delegated: z.boolean().default(false),
 });
 export const updateColumnRequestSchema = columnRequestSchema.partial();
 
@@ -112,8 +120,17 @@ export const dueSchema = z
     if (!ok) ctx.addIssue({ code: "custom", path: ["at"], message: "Fecha no válida" });
   });
 
+/** Nombre libre (no tiene que ser alguien de Delyra); vacío = sin asignar. */
+const assigneeSchema = z
+  .string()
+  .trim()
+  .max(KANBAN_LIMITS.assignee, { error: `Máximo ${String(KANBAN_LIMITS.assignee)} caracteres` })
+  .transform((value) => (value === "" ? null : value))
+  .nullable();
+
 export const createCardRequestSchema = z.object({
   title: name(KANBAN_LIMITS.cardTitle, "Ponle un título"),
+  kind: z.enum(CARD_KINDS).default("task"),
 });
 
 export const updateCardRequestSchema = z
@@ -125,12 +142,16 @@ export const updateCardRequestSchema = z
     due: dueSchema.nullable(),
     labelIds: z.array(idSchema).max(KANBAN_LIMITS.labelsPerBoard),
     reminders: z.array(reminderInputSchema).max(10),
+    kind: z.enum(CARD_KINDS),
+    assignee: assigneeSchema,
   })
   .partial();
 
 export const moveCardRequestSchema = z.object({
   columnId: idSchema,
   index: z.number().int().min(0).max(10_000),
+  /** Al llevarla a una columna delegada: a quién se le ha pasado. */
+  assignee: assigneeSchema.optional(),
 });
 
 export const checklistItemRequestSchema = z.object({
@@ -170,6 +191,7 @@ export const columnSchema = z.object({
   position: z.string(),
   wipLimit: z.number().nullable(),
   isDone: z.boolean(),
+  delegated: z.boolean(),
 });
 export type BoardColumn = z.infer<typeof columnSchema>;
 
@@ -184,6 +206,9 @@ export const cardSummarySchema = z.object({
   title: z.string(),
   position: z.string(),
   priority: z.enum(CARD_PRIORITIES),
+  kind: z.enum(CARD_KINDS),
+  /** Persona a la que se ha pasado (columnas delegadas). */
+  assignee: z.string().nullable(),
   color: z.string().nullable(),
   due: dueInfoSchema.nullable(),
   completedAt: iso.nullable(),

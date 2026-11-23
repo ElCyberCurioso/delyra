@@ -51,6 +51,21 @@ const en: Translation<CalendarMessages> = {
     previous: "Previous month",
     next: "Next month",
   },
+  move: {
+    moveTitle: "Move the event?",
+    resizeTitle: "Change the duration?",
+    description: "Check the change before saving it.",
+    before: "Before",
+    after: "Now",
+    confirmMove: "Move",
+    confirmResize: "Change",
+    cancel: "Cancel",
+    allDay: "all day",
+  },
+  categories: {
+    task: "Task",
+    holiday: "Holiday",
+  },
   scope: {
     edit: {
       title: "Save changes",

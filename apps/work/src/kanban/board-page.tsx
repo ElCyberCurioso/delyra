@@ -1,6 +1,7 @@
 import {
   type BoardColumn,
   type BoardDetail,
+  type CardKind,
   CARD_PRIORITIES,
   KANBAN_LIMITS,
   LABEL_COLORS,
@@ -82,6 +83,7 @@ import {
 import { workMessages } from "./messages";
 import { roleLabel, ShareDialog } from "./share-dialog";
 import { TeamsSection } from "./teams-section";
+import { AssigneeDialog } from "./kinds";
 
 /** Tablero (F4-08 a F4-10). */
 export interface BoardPageProps {
@@ -219,9 +221,10 @@ function BoardView({
   };
 
   const moveCardMutation = useMutation({
-    mutationFn: (v: { cardId: string; columnId: string; index: number }) =>
-      moveCard(v.cardId, v.columnId, v.index),
-    onMutate: (v) => optimistic((b) => moveCardLocally(b, v.cardId, v.columnId, v.index)),
+    mutationFn: (v: { cardId: string; columnId: string; index: number; assignee?: string }) =>
+      moveCard(v.cardId, v.columnId, v.index, v.assignee),
+    onMutate: (v) =>
+      optimistic((b) => moveCardLocally(b, v.cardId, v.columnId, v.index, new Date(), v.assignee)),
     onError: (error, _v, context) => {
       rollback(context);
       toast.error(workMessages().board.moveCardFailed(errorMessage(error)));
@@ -248,8 +251,34 @@ function BoardView({
     onSuccess: (detail) => queryClient.setQueryData(key, detail),
   });
 
+  // Al llevar una tarjeta a una columna delegada se pregunta antes a quién se le pasa.
+  const [pendingMove, setPendingMove] = useState<{
+    cardId: string;
+    columnId: string;
+    index: number;
+  } | null>(null);
+  const requestMove = (v: { cardId: string; columnId: string; index: number }) => {
+    const card = board.cards.find((c) => c.id === v.cardId);
+    const target = board.columns.find((c) => c.id === v.columnId);
+    if (target?.delegated && card && card.columnId !== v.columnId) {
+      setPendingMove(v);
+      return;
+    }
+    moveCardMutation.mutate(v);
+  };
+  const pendingCard = pendingMove ? board.cards.find((c) => c.id === pendingMove.cardId) : null;
+  const pendingColumn = pendingMove
+    ? board.columns.find((c) => c.id === pendingMove.columnId)
+    : null;
+  const cancelPendingMove = () => {
+    setPendingMove(null);
+    // La tarjeta vuelve a su sitio (el lienzo se resincroniza con un tablero «nuevo»).
+    queryClient.setQueryData<BoardDetail>(key, (current) => (current ? { ...current } : current));
+  };
+
   const addCardMutation = useMutation({
-    mutationFn: (v: { columnId: string; title: string }) => createCard(v.columnId, v.title),
+    mutationFn: (v: { columnId: string; title: string; kind: CardKind }) =>
+      createCard(v.columnId, v.title, v.kind),
     onSuccess: (card) => applyCard(queryClient, card),
     onError: (error) => toast.error(errorMessage(error)),
   });
@@ -379,11 +408,11 @@ function BoardView({
           timeZone={timeZone}
           now={now}
           onOpenCard={(id) => setSearch({ tarjeta: id })}
-          onMoveCard={(cardId, columnId, index) =>
-            moveCardMutation.mutate({ cardId, columnId, index })
-          }
+          onMoveCard={(cardId, columnId, index) => requestMove({ cardId, columnId, index })}
           onMoveColumn={(columnId, index) => moveColumnMutation.mutate({ columnId, index })}
-          onAddCard={(columnId, title) => addCardMutation.mutateAsync({ columnId, title })}
+          onAddCard={(columnId, title, kind) =>
+            addCardMutation.mutateAsync({ columnId, title, kind })
+          }
           onEditColumn={setEditingColumn}
           readOnly={!canEdit}
         />
@@ -398,6 +427,23 @@ function BoardView({
       />
       <ColumnDialog board={board} column={editingColumn} onClose={() => setEditingColumn(null)} />
       <BoardSettingsDialog board={board} open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <AssigneeDialog
+        key={pendingMove ? `${pendingMove.cardId}:${pendingMove.columnId}` : "cerrado"}
+        request={
+          pendingMove && pendingCard && pendingColumn
+            ? {
+                cardTitle: pendingCard.title,
+                columnName: pendingColumn.name,
+                current: pendingCard.assignee,
+              }
+            : null
+        }
+        onCancel={cancelPendingMove}
+        onConfirm={(assignee) => {
+          if (pendingMove) moveCardMutation.mutate({ ...pendingMove, assignee });
+          setPendingMove(null);
+        }}
+      />
       <ShareDialog board={board} open={shareOpen} onOpenChange={setShareOpen} />
       <ArchivedDialog
         board={board}
@@ -605,10 +651,11 @@ function ColumnForm({
     editing?.wipLimit !== null && editing?.wipLimit !== undefined ? String(editing.wipLimit) : "",
   );
   const [isDone, setIsDone] = useState(editing?.isDone ?? false);
+  const [delegated, setDelegated] = useState(editing?.delegated ?? false);
   const key = boardKey(board.board.id);
   const save = useMutation({
     mutationFn: () => {
-      const body = { name: name.trim(), wipLimit: wip ? Number(wip) : null, isDone };
+      const body = { name: name.trim(), wipLimit: wip ? Number(wip) : null, isDone, delegated };
       return editing ? updateColumn(editing.id, body) : addColumn(board.board.id, body);
     },
     onSuccess: (detail) => {
@@ -673,6 +720,18 @@ function ColumnForm({
         <span>
           {t.done}
           <span className="block text-muted-foreground">{t.doneHint}</span>
+        </span>
+      </label>
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={delegated}
+          onChange={(e) => setDelegated(e.target.checked)}
+          className="mt-0.5"
+        />
+        <span>
+          {t.delegated}
+          <span className="block text-muted-foreground">{t.delegatedHint}</span>
         </span>
       </label>
       {editing && order.length > 1 ? (

@@ -1,8 +1,10 @@
 import {
   ATTACHMENT_TYPES,
   type BoardDetail,
+  CARD_KINDS,
   CARD_PRIORITIES,
   type CardDetail,
+  type CardKind,
   type CardPriority,
   KANBAN_LIMITS,
 } from "@delyra/shared";
@@ -63,6 +65,7 @@ import {
 } from "./logic";
 import { workMessages } from "./messages";
 import { Markdown } from "./markdown";
+import { AssigneeDialog, kindLabel, kindOptions } from "./kinds";
 
 /** Detalle de tarjeta (F4-05, F4-06, F4-07, F4-09). Se abre con `?tarjeta=<id>`. */
 
@@ -124,6 +127,46 @@ function allDayReminders() {
 const str = (value: unknown) => (typeof value === "string" ? value : "");
 
 const PRIORITIES = new Set<string>(CARD_PRIORITIES);
+const CARD_KIND_SET = new Set<string>(CARD_KINDS);
+
+/** A quién se le ha pasado la tarjeta: se guarda al salir del campo o con Intro (vacío = nadie). */
+function AssigneeField({
+  value,
+  onSave,
+}: {
+  value: string | null;
+  onSave: (assignee: string | null) => void;
+}) {
+  const [draft, setDraft] = useState(value ?? "");
+  const id = useId();
+  const t = workMessages().card;
+  const commit = () => {
+    const next = draft.trim();
+    if (next !== (value ?? "")) onSave(next === "" ? null : next);
+  };
+  return (
+    <div className="grid gap-1.5">
+      <label htmlFor={id} className="text-sm font-medium">
+        {t.assignee}
+      </label>
+      <input
+        id={id}
+        value={draft}
+        maxLength={KANBAN_LIMITS.assignee}
+        placeholder={t.assigneePlaceholder}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commit();
+          }
+        }}
+        className="h-10 rounded-md border bg-background px-2 text-base sm:h-9 sm:text-sm"
+      />
+    </div>
+  );
+}
 
 /** Una entrada del historial de la tarjeta en el idioma actual. */
 function describeActivity(kind: string, d: Record<string, unknown>): string {
@@ -141,6 +184,10 @@ function describeActivity(kind: string, d: Record<string, unknown>): string {
       return t.renamed(str(d.to));
     case "described":
       return t.described;
+    case "kind":
+      return t.kind(CARD_KIND_SET.has(str(d.to)) ? kindLabel(str(d.to) as CardKind) : str(d.to));
+    case "assigned":
+      return d.to ? t.assigned(str(d.to)) : t.unassigned;
     case "priority":
       return t.priority(
         PRIORITIES.has(str(d.to)) ? priorityLabel(str(d.to) as CardPriority) : str(d.to),
@@ -207,7 +254,13 @@ function CardBody({
 }) {
   const queryClient = useQueryClient();
   const columns = sortedColumns(board);
-  const ids = { column: useId(), priority: useId(), due: useId(), reminder: useId() };
+  const ids = {
+    column: useId(),
+    kind: useId(),
+    priority: useId(),
+    due: useId(),
+    reminder: useId(),
+  };
   // F7-04: permisos en el tablero y autoría (solo se muestra si el tablero está compartido).
   const { role } = board.board;
   const readOnly = role === "reader";
@@ -224,9 +277,12 @@ function CardBody({
     onSuccess: (updated) => applyCard(queryClient, updated),
     onError: (error) => toast.error(errorMessage(error)),
   });
+  const [askAssignee, setAskAssignee] = useState<string | null>(null);
   const move = useMutation({
-    mutationFn: (v: string | { columnId: string; index: number }) =>
-      typeof v === "string" ? moveCard(card.id, v, 10_000) : moveCard(card.id, v.columnId, v.index),
+    mutationFn: (v: string | { columnId: string; index: number; assignee?: string }) =>
+      typeof v === "string"
+        ? moveCard(card.id, v, 10_000)
+        : moveCard(card.id, v.columnId, v.index, v.assignee),
     onSuccess: ({ card: updated, wipExceeded }) => {
       applyCard(queryClient, updated);
       if (wipExceeded) toast.warning(workMessages().card.wipWarning);
@@ -276,8 +332,23 @@ function CardBody({
   const [allDayDraft, setAllDayDraft] = useState(false);
   const allDay = card.due ? card.due.allDay : allDayDraft;
 
+  const askColumn = askAssignee ? columns.find((c) => c.id === askAssignee) : null;
+
   return (
     <div className="grid gap-5">
+      <AssigneeDialog
+        key={askAssignee ?? "cerrado"}
+        request={
+          askColumn
+            ? { cardTitle: card.title, columnName: askColumn.name, current: card.assignee }
+            : null
+        }
+        onCancel={() => setAskAssignee(null)}
+        onConfirm={(assignee) => {
+          if (askColumn) move.mutate({ columnId: askColumn.id, index: 10_000, assignee });
+          setAskAssignee(null);
+        }}
+      />
       <DialogHeader className="pr-8 text-left">
         <DialogTitle className="sr-only">{card.title}</DialogTitle>
         <label className="sr-only" htmlFor={`${ids.column}-title`}>
@@ -325,7 +396,12 @@ function CardBody({
                 id={ids.column}
                 value={card.columnId}
                 disabled={Boolean(card.archivedAt) || move.isPending}
-                onChange={(e) => move.mutate(e.target.value)}
+                onChange={(e) => {
+                  const target = columns.find((c) => c.id === e.target.value);
+                  // A una columna delegada: antes, a quién se le pasa.
+                  if (target?.delegated) setAskAssignee(target.id);
+                  else move.mutate(e.target.value);
+                }}
                 className="h-10 rounded-md border bg-background px-2 text-base sm:h-9 sm:text-sm"
               >
                 {columns.map((column) => (
@@ -360,6 +436,28 @@ function CardBody({
                 </div>
               ) : null}
             </div>
+            <div className="grid gap-1.5">
+              <label htmlFor={ids.kind} className="text-sm font-medium">
+                {t.kind}
+              </label>
+              <select
+                id={ids.kind}
+                value={card.kind}
+                onChange={(e) => save.mutate({ kind: e.target.value })}
+                className="h-10 rounded-md border bg-background px-2 text-base sm:h-9 sm:text-sm"
+              >
+                {kindOptions().map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <AssigneeField
+              key={card.assignee ?? ""}
+              value={card.assignee}
+              onSave={(assignee) => save.mutate({ assignee })}
+            />
             <div className="grid gap-1.5">
               <label htmlFor={ids.priority} className="text-sm font-medium">
                 {t.priority}

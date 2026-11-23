@@ -28,8 +28,8 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { BoardColumn, BoardDetail, CardLabel, CardSummary } from "@delyra/shared";
-import { Button, cn, Input, useMediaQuery } from "@delyra/ui";
+import type { BoardColumn, BoardDetail, CardKind, CardLabel, CardSummary } from "@delyra/shared";
+import { Button, cn, Input, SelectField, useMediaQuery } from "@delyra/ui";
 import {
   AlignLeftIcon,
   CalendarClockIcon,
@@ -40,6 +40,7 @@ import {
   PaperclipIcon,
   PlusIcon,
   Settings2Icon,
+  UserRoundIcon,
 } from "lucide-react";
 import {
   type CSSProperties,
@@ -61,6 +62,7 @@ import {
   sortedColumns,
 } from "./logic";
 import { workMessages } from "./messages";
+import { AssigneeTag, KindBadge, kindOptions } from "./kinds";
 
 /**
  * Tablero con arrastrar y soltar (F4-08): tarjetas entre columnas y columnas entre sí, con
@@ -78,7 +80,7 @@ export interface BoardCanvasProps {
   onOpenCard: (id: string) => void;
   onMoveCard: (cardId: string, columnId: string, index: number) => void;
   onMoveColumn: (columnId: string, index: number) => void;
-  onAddCard: (columnId: string, title: string) => Promise<unknown>;
+  onAddCard: (columnId: string, title: string, kind: CardKind) => Promise<unknown>;
   onEditColumn: (column: BoardColumn) => void;
   /** Solo lectura (F7-04): sin arrastrar, sin añadir y sin ajustes de columna. */
   readOnly?: boolean;
@@ -437,9 +439,18 @@ function SortableColumn({
         )}
         <h2
           id={headingId}
-          className="min-w-0 flex-1 truncate text-[0.95rem] font-bold tracking-tight"
+          className="flex min-w-0 flex-1 items-center gap-1.5 text-[0.95rem] font-bold tracking-tight"
         >
-          {column.name}
+          <span className="truncate">{column.name}</span>
+          {column.delegated ? (
+            <span
+              title={t.delegatedColumn}
+              className="inline-flex shrink-0 items-center rounded-full bg-primary/12 p-1 text-primary"
+            >
+              <UserRoundIcon aria-hidden="true" className="size-3.5" />
+              <span className="sr-only">{t.delegatedColumnSr}</span>
+            </span>
+          ) : null}
         </h2>
         <Button
           variant="ghost"
@@ -503,7 +514,10 @@ function SortableColumn({
         </ul>
       </SortableContext>
       {readOnly || collapsed ? null : (
-        <AddCard columnName={column.name} onAdd={(title) => onAddCard(column.id, title)} />
+        <AddCard
+          columnName={column.name}
+          onAdd={(title, kind) => onAddCard(column.id, title, kind)}
+        />
       )}
     </li>
   );
@@ -537,7 +551,6 @@ function SortableCard({
       <li>
         <button
           type="button"
-          aria-label={card.title}
           data-testid="card"
           onClick={() => onOpenCard(card.id)}
           className="lift w-full rounded-2xl text-left focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
@@ -559,7 +572,6 @@ function SortableCard({
         {...listeners}
         onKeyDown={onKeyDown}
         aria-roledescription={workMessages().canvas.card}
-        aria-label={card.title}
         data-testid="card"
         onClick={() => onOpenCard(card.id)}
         // Sin menú contextual ni selección de texto al mantener pulsado para arrastrar.
@@ -628,23 +640,22 @@ export function CardView({ card, labels, timeZone, now, overlay = false }: CardV
       )}
       style={card.color ? { boxShadow: `inset 5px 0 0 ${card.color}` } : undefined}
     >
-      {cardLabels.length > 0 ? (
-        <div className="flex flex-wrap gap-1">
-          {cardLabels.map((label) => (
+      <div className="flex flex-wrap items-center gap-1">
+        <KindBadge kind={card.kind} />
+        {cardLabels.map((label) => (
+          <span
+            key={label.id}
+            className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs"
+          >
             <span
-              key={label.id}
-              className="inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-xs"
-            >
-              <span
-                aria-hidden="true"
-                className="size-2 rounded-full"
-                style={{ backgroundColor: label.color }}
-              />
-              {label.name}
-            </span>
-          ))}
-        </div>
-      ) : null}
+              aria-hidden="true"
+              className="size-2 rounded-full"
+              style={{ backgroundColor: label.color }}
+            />
+            {label.name}
+          </span>
+        ))}
+      </div>
       <p
         className={cn(
           "leading-snug font-semibold break-words",
@@ -679,6 +690,7 @@ export function CardView({ card, labels, timeZone, now, overlay = false }: CardV
           {meta}
         </div>
       ) : null}
+      {card.assignee ? <AssigneeTag name={card.assignee} /> : null}
     </div>
   );
 }
@@ -688,10 +700,11 @@ function AddCard({
   onAdd,
 }: {
   columnName: string;
-  onAdd: (title: string) => Promise<unknown>;
+  onAdd: (title: string, kind: CardKind) => Promise<unknown>;
 }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
+  const [kind, setKind] = useState<CardKind>("task");
   const [busy, setBusy] = useState(false);
   const t = workMessages().canvas;
   const submit = async (event: FormEvent) => {
@@ -699,7 +712,7 @@ function AddCard({
     if (!title.trim()) return;
     setBusy(true);
     try {
-      await onAdd(title.trim());
+      await onAdd(title.trim(), kind);
       setTitle("");
     } finally {
       setBusy(false);
@@ -733,6 +746,13 @@ function AddCard({
         placeholder={t.newCardPlaceholder}
         maxLength={300}
         autoFocus
+      />
+      <SelectField
+        label={t.kind}
+        value={kind}
+        onChange={(e) => setKind(e.target.value as CardKind)}
+        options={kindOptions()}
+        className="[&_select]:h-9"
       />
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={busy || !title.trim()}>

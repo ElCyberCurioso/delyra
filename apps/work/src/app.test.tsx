@@ -22,9 +22,16 @@ const detail: BoardDetail = {
     members: 0,
   },
   columns: [
-    { id: "c1", name: "Por hacer", position: "a0", wipLimit: null, isDone: false },
-    { id: "c2", name: "Haciendo", position: "a1", wipLimit: 1, isDone: false },
-    { id: "c3", name: "Hecho", position: "a2", wipLimit: null, isDone: true },
+    {
+      id: "c1",
+      name: "Por hacer",
+      position: "a0",
+      wipLimit: null,
+      isDone: false,
+      delegated: false,
+    },
+    { id: "c2", name: "Haciendo", position: "a1", wipLimit: 1, isDone: false, delegated: false },
+    { id: "c3", name: "Hecho", position: "a2", wipLimit: null, isDone: true, delegated: false },
   ],
   labels: [{ id: "l1", name: "Recados", color: "#27ae60" }],
   cards: [
@@ -35,6 +42,8 @@ const detail: BoardDetail = {
       position: "a0",
       priority: "high",
       color: null,
+      kind: "task",
+      assignee: null,
       due: null,
       completedAt: null,
       archivedAt: null,
@@ -51,6 +60,8 @@ const detail: BoardDetail = {
       position: "a0",
       priority: "none",
       color: null,
+      kind: "task",
+      assignee: null,
       due: null,
       completedAt: null,
       archivedAt: null,
@@ -67,6 +78,8 @@ const detail: BoardDetail = {
       position: "a1",
       priority: "none",
       color: null,
+      kind: "task",
+      assignee: null,
       due: null,
       completedAt: null,
       archivedAt: null,
@@ -195,7 +208,8 @@ describe("App (trabajo)", () => {
     expect(within(doing).getByText("2/1")).toBeInTheDocument();
     expect(within(doing).getByText("(supera el límite WIP)", { exact: false })).toBeInTheDocument();
     const first = within(columns[0]!).getByTestId("card");
-    expect(first).toHaveAccessibleName("Comprar pan");
+    // El nombre sale del contenido: tipo, título y el resto de lo que se ve.
+    expect(first).toHaveAccessibleName(/^Tarea\..*Comprar pan/);
     expect(first).toHaveTextContent("Recados");
     expect(first).toHaveTextContent("Alta");
     expect(first).toHaveTextContent("1/2");
@@ -204,7 +218,7 @@ describe("App (trabajo)", () => {
   it("filtra por texto desde la URL", async () => {
     renderAt("/tableros/b1?q=barn");
     await screen.findByRole("heading", { level: 1, name: "Casa" });
-    expect(screen.getAllByTestId("card").map((c) => c.getAttribute("aria-label"))).toEqual([
+    expect(screen.getAllByTestId("card").map((c) => c.querySelector("p")?.textContent)).toEqual([
       "Barnizar",
     ]);
     // (dnd-kit tiene su propia región viva con role="status").
@@ -214,7 +228,7 @@ describe("App (trabajo)", () => {
   it("abre el detalle con ?tarjeta= y muestra la descripción saneada", async () => {
     const router = renderAt("/tableros/b1");
     const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "Comprar pan" }));
+    await user.click(await screen.findByRole("button", { name: /Comprar pan/ }));
     expect(router.state.location.search).toEqual({ tarjeta: "k1" });
     const dialog = await screen.findByRole("dialog");
     expect(await within(dialog).findByText("horno")).toContainHTML("<strong>horno</strong>");
@@ -269,7 +283,7 @@ describe("tableros compartidos (F7-04, F7-05)", () => {
     expect(screen.getByRole("button", { name: /Personas/ })).toHaveTextContent("3");
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Comprar pan" }));
+    await user.click(screen.getByRole("button", { name: /Comprar pan/ }));
     const dialog = await screen.findByRole("dialog");
     expect(await within(dialog).findByText("Ya está pedido")).toBeInTheDocument();
     expect(within(dialog).getByText("Bea Ruiz")).toBeInTheDocument();
@@ -400,5 +414,50 @@ describe("Reuniones de Teams en el tablero", () => {
     expect(await within(section).findByText(/2 reuniones en el tablero/)).toBeInTheDocument();
     expect(requests).toEqual([{ columnId: detail.columns[1]?.id, onlyTeams: true, daysAhead: 7 }]);
     expect(within(section).getByRole("button", { name: "Actualizar ahora" })).toBeInTheDocument();
+  });
+});
+
+describe("Tipos de tarjeta y tareas que dependen de otra persona", () => {
+  it("al pasar una tarjeta a una columna delegada pide el nombre y lo muestra", async () => {
+    const waiting = {
+      id: "c4",
+      name: "Esperando a otros",
+      position: "a3",
+      wipLimit: null,
+      isDone: false,
+      delegated: true,
+    };
+    const withWaiting: BoardDetail = { ...detail, columns: [...detail.columns, waiting] };
+    const moves: unknown[] = [];
+    server.use(
+      http.get("/api/boards/b1", () => HttpResponse.json(withWaiting)),
+      http.post("/api/cards/k1/move", async ({ request }) => {
+        const body = (await request.json()) as { columnId: string; assignee?: string };
+        moves.push(body);
+        return HttpResponse.json({
+          card: { ...card, columnId: body.columnId, assignee: body.assignee ?? null },
+          wipExceeded: false,
+        });
+      }),
+    );
+    const user = userEvent.setup();
+    renderAt("/tableros/b1?tarjeta=k1");
+
+    // La tarjeta enseña su tipo de un vistazo.
+    const [column] = await screen.findAllByTestId("column");
+    if (!column) throw new Error("Sin columnas");
+    expect(within(column).getAllByText("Tarea").length).toBeGreaterThan(0);
+
+    const dialog = await screen.findByRole("dialog");
+    await user.selectOptions(within(dialog).getByLabelText("Columna"), "c4");
+    const ask = await screen.findByRole("dialog", { name: "¿A quién se la pasas?" });
+    await user.click(within(ask).getByRole("button", { name: "Pasar la tarea" }));
+    expect(within(ask).getByText("Escribe a quién se la pasas.")).toBeInTheDocument();
+    await user.type(within(ask).getByLabelText(/Nombre de la persona/), "Laura (gestoría)");
+    await user.click(within(ask).getByRole("button", { name: "Pasar la tarea" }));
+
+    await waitFor(() =>
+      expect(moves).toEqual([{ columnId: "c4", index: 10_000, assignee: "Laura (gestoría)" }]),
+    );
   });
 });

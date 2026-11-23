@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@delyra/ui";
-import { useCallback, useRef, useState } from "react";
+import { type ReactNode, useCallback, useRef, useState } from "react";
 import { calendarMessages } from "./messages";
 
 type Action = "edit" | "delete" | "move";
@@ -21,11 +21,17 @@ const SCOPES: readonly EditScope[] = ["this", "following", "all"];
 export function useScopeDialog() {
   const [action, setAction] = useState<Action | null>(null);
   const [scopes, setScopes] = useState<readonly EditScope[]>(["this", "following", "all"]);
+  const [detail, setDetail] = useState<ReactNode>(null);
   const resolver = useRef<((scope: EditScope | null) => void) | null>(null);
 
   const ask = useCallback(
-    (next: Action, allowed: readonly EditScope[] = ["this", "following", "all"]) => {
+    (
+      next: Action,
+      allowed: readonly EditScope[] = ["this", "following", "all"],
+      extra: ReactNode = null,
+    ) => {
       setScopes(allowed);
+      setDetail(extra);
       setAction(next);
       return new Promise<EditScope | null>((resolve) => {
         resolver.current = resolve;
@@ -49,6 +55,7 @@ export function useScopeDialog() {
           <DialogTitle>{copy?.title}</DialogTitle>
           <DialogDescription>{copy?.description}</DialogDescription>
         </DialogHeader>
+        {detail}
         <div className="grid gap-2">
           {SCOPES.filter((scope) => scopes.includes(scope)).map((scope) => (
             <Button

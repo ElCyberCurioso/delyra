@@ -47,3 +47,16 @@ hay que hacerlo antes de desplegar.
 Usan el mismo planificador que los eventos (ADR-0006). Si una alerta no llega, comprobar en
 `reminders` la fila con `target_type = 'card'` y su `next_fire_at`; una tarjeta terminada o
 archivada queda con `status = 'done'`.
+
+## Tipos de tarjeta y tareas que dependen de otra persona
+
+- Cada tarjeta tiene un **tipo** (tarea, reunión, llamada, correo, gestión o nota) que se elige al
+  crearla o en su detalle, y se ve con su icono en la tarjeta. Las reuniones de Teams entran como
+  «reunión».
+- Una columna puede marcarse como **«Tareas que dependen de otra persona»** (ajustes de la
+  columna). Al llevar una tarjeta a ella —arrastrando, con el teclado o desde el detalle— se pide
+  a quién se le pasa (un nombre libre, no tiene que usar Delyra) y la tarjeta muestra «Depende de
+  …». El nombre se puede cambiar o quitar desde el detalle.
+- Migración 0018: `cards.kind`, `cards.assignee` y `board_columns.delegated`, solo columnas nuevas
+  (sin reconstruir `cards`, cuyo borrado arrastraría en cascada checklists, comentarios y
+  adjuntos).

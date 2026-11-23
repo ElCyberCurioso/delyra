@@ -151,6 +151,8 @@ function summary(
     title: card.title,
     position: card.position,
     priority: card.priority,
+    kind: card.kind,
+    assignee: card.assignee,
     color: card.color,
     due: dueOf(card),
     completedAt: iso(card.completedAt),
@@ -269,6 +271,7 @@ export async function boardDetail(repo: KanbanRepository, board: Board): Promise
       position: c.position,
       wipLimit: c.wipLimit,
       isDone: c.isDone,
+      delegated: c.delegated,
     })),
     cards: cardRows.map((card) =>
       summary(card, {
@@ -285,7 +288,7 @@ export async function boardDetail(repo: KanbanRepository, board: Board): Promise
 export async function addColumn(
   repo: KanbanRepository,
   board: Board,
-  input: { name: string; wipLimit: number | null; isDone: boolean },
+  input: { name: string; wipLimit: number | null; isDone: boolean; delegated: boolean },
 ) {
   const columns = await repo.columnsOf(board.id);
   if (columns.length >= KANBAN_LIMITS.columnsPerBoard) {
@@ -329,7 +332,12 @@ export async function requireCard(repo: KanbanRepository, id: string): Promise<C
   return card;
 }
 
-export async function createCard(repo: KanbanRepository, columnId: string, title: string) {
+export async function createCard(
+  repo: KanbanRepository,
+  columnId: string,
+  title: string,
+  kind: CardRow["kind"] = "task",
+) {
   const column = await repo.getColumn(columnId);
   if (!column) throw new AppError(404);
   if ((await repo.countCards(column.boardId)) >= KANBAN_LIMITS.cardsPerBoard) {
@@ -342,6 +350,7 @@ export async function createCard(repo: KanbanRepository, columnId: string, title
     boardId: column.boardId,
     columnId: column.id,
     title,
+    kind,
     position: keyAt(
       siblings.map((c) => c.position),
       siblings.length,
@@ -363,7 +372,7 @@ export async function createCard(repo: KanbanRepository, columnId: string, title
 export async function moveCard(
   repo: KanbanRepository,
   cardId: string,
-  target: { columnId: string; index: number },
+  target: { columnId: string; index: number; assignee?: string | null },
   now = Date.now(),
 ) {
   const card = await requireCard(repo, cardId);
@@ -385,6 +394,8 @@ export async function moveCard(
         columnId: to.id,
         position: changes.get(card.id) ?? card.position,
         completedAt,
+        // Al pasarla a una columna delegada, a quién se le ha pasado.
+        ...(target.assignee !== undefined ? { assignee: target.assignee } : {}),
         updatedAt: new Date(now),
       })
       .where(mineCard(card.id)),
@@ -393,6 +404,9 @@ export async function moveCard(
       .map(([id, position]) => db.update(cards).set({ position }).where(mineCard(id))),
     ...(from?.id !== to.id
       ? [repo.activity(card.id, "moved", { from: from?.name ?? null, to: to.name })]
+      : []),
+    ...(target.assignee !== undefined && target.assignee !== card.assignee
+      ? [repo.activity(card.id, "assigned", { to: target.assignee })]
       : []),
     ...(to.isDone && !card.completedAt ? [repo.activity(card.id, "completed")] : []),
     ...(!to.isDone && card.completedAt ? [repo.activity(card.id, "reopened")] : []),
@@ -409,6 +423,8 @@ export interface CardPatch {
   description?: string;
   priority?: CardRow["priority"];
   color?: string | null;
+  kind?: CardRow["kind"];
+  assignee?: string | null;
   due?: { allDay: boolean; at: string; tz: string } | null;
   labelIds?: string[];
   reminders?: ReminderInput[];
@@ -433,6 +449,14 @@ export async function updateCard(repo: KanbanRepository, cardId: string, patch: 
   }
   if (patch.color !== undefined && patch.color?.toLowerCase() !== card.color) {
     set.color = patch.color?.toLowerCase() ?? null;
+  }
+  if (patch.kind !== undefined && patch.kind !== card.kind) {
+    set.kind = patch.kind;
+    changes.push(["kind", { to: patch.kind }]);
+  }
+  if (patch.assignee !== undefined && patch.assignee !== card.assignee) {
+    set.assignee = patch.assignee;
+    changes.push(["assigned", { to: patch.assignee }]);
   }
   let dueChanged = false;
   if (patch.due !== undefined) {

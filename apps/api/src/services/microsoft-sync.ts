@@ -566,7 +566,7 @@ export async function syncBoard(
       if (!link) {
         if (info.cancelled || info.startAt + DAY_MS < now) return;
         labelId ??= await ensureLabel(repo, row);
-        const card = await createCard(repo, row.columnId, info.title);
+        const card = await createCard(repo, row.columnId, info.title, "meeting");
         await updateCard(repo, card.id, {
           description,
           due: dueOf(info, timeZone),

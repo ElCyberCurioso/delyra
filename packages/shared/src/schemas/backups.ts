@@ -8,7 +8,7 @@ import {
   FEB29_RULES,
   REMINDER_CHANNELS,
 } from "./calendar";
-import { BOARD_TEMPLATES, CARD_PRIORITIES, KANBAN_LIMITS } from "./kanban";
+import { BOARD_TEMPLATES, CARD_KINDS, CARD_PRIORITIES, KANBAN_LIMITS } from "./kanban";
 
 /**
  * Copias de seguridad de usuario (Fase 6). Formato v1 (`docs/formato-backup.md`): un `.zip` con
@@ -164,6 +164,7 @@ export const backupDataV1Schema = z.object({
         position,
         wipLimit: z.number().int().min(1).max(999).nullable(),
         isDone: z.boolean(),
+        delegated: z.boolean().optional(),
         createdAt: ms,
         updatedAt: ms,
       }),
@@ -196,6 +197,9 @@ export const backupDataV1Schema = z.object({
           .regex(/^#[0-9a-f]{6}$/i)
           .nullable()
           .optional(),
+        /** Desde los tipos de tarjeta y las columnas delegadas: opcionales en copias anteriores. */
+        kind: z.enum(CARD_KINDS).optional(),
+        assignee: text(KANBAN_LIMITS.assignee).nullable().optional(),
         dueAt: ms.nullable(),
         dueAllDay: z.boolean(),
         dueTz: timeZoneSchema.nullable(),

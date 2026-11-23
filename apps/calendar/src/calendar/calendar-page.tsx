@@ -9,6 +9,7 @@ import {
   holidayRegionSchema,
   instantToWall,
   type Occurrence,
+  inkOnWhite,
   readableColors,
   utcToDateOnly,
 } from "@delyra/shared";
@@ -81,6 +82,8 @@ import {
   wallDelta,
 } from "./time";
 import { QuickAdd, SearchBox } from "./toolbar-inputs";
+import { type EventCategory, renderDayHeader, renderEventContent } from "./event-content";
+import { type MoveChange, MoveSummary, useMoveConfirm } from "./move-confirm";
 
 /** `narrow`: solo en pantallas estrechas; `wide`: solo en anchas. La semana no cabe en un móvil. */
 const VIEWS = [
@@ -137,7 +140,15 @@ function holidayEvent(holiday: Holiday): EventInput {
     backgroundColor: HOLIDAY_COLOR,
     borderColor: HOLIDAY_COLOR,
     textColor: "#ffffff",
-    extendedProps: { holiday },
+    extendedProps: {
+      holiday,
+      category: {
+        name: calendarMessages().categories.holiday,
+        background: HOLIDAY_COLOR,
+        text: "#ffffff",
+        ink: HOLIDAY_COLOR,
+      },
+    },
   };
 }
 
@@ -153,7 +164,15 @@ function taskEvent(card: DueCard, timeZone: string): EventInput {
     borderColor: TASK_COLOR,
     textColor: "#ffffff",
     classNames: card.completed ? ["opacity-60", "line-through"] : [],
-    extendedProps: { task: card },
+    extendedProps: {
+      task: card,
+      category: {
+        name: calendarMessages().categories.task,
+        background: TASK_COLOR,
+        text: "#ffffff",
+        ink: TASK_COLOR,
+      },
+    },
   };
 }
 
@@ -187,6 +206,7 @@ function Workspace({ session }: { session: ActiveSession }) {
   const holidays = useHolidays(range);
   const [editor, setEditor] = useState<EditorTarget | null>(null);
   const { ask, dialog: scopeDialog } = useScopeDialog();
+  const { confirm: confirmMove, dialog: moveDialog } = useMoveConfirm(timeZone);
 
   const calendarList = useMemo(() => calendars.data ?? [], [calendars.data]);
   const router = useRouter();
@@ -232,6 +252,12 @@ function Workspace({ session }: { session: ActiveSession }) {
         const calendar = byId.get(o.calendarId);
         const color = calendar?.color ?? "#7c5cff";
         const readable = readableColors(color);
+        const category: EventCategory = {
+          name: calendar?.name ?? "",
+          background: readable.background,
+          text: readable.text,
+          ink: inkOnWhite(color),
+        };
         return {
           // Suscripción iCal (F5-06): se ve, pero no se arrastra ni se redimensiona.
           ...(calendar?.readOnly ? { editable: false } : {}),
@@ -244,7 +270,7 @@ function Workspace({ session }: { session: ActiveSession }) {
           backgroundColor: readable.background,
           borderColor: readable.background,
           textColor: readable.text,
-          extendedProps: { occurrence: o },
+          extendedProps: { occurrence: o, ...(calendar ? { category } : {}) },
         };
       });
     const tasks = showTasks ? (dueCards.data ?? []).map((card) => taskEvent(card, timeZone)) : [];
@@ -356,11 +382,24 @@ function Workspace({ session }: { session: ActiveSession }) {
         ? utcToDateOnly(dateOnlyToUtc(start) + DAY_MS)
         : new Date(Date.parse(start) + 3_600_000).toISOString();
 
+    // Se confirma siempre: arrastrar sin querer no debe cambiar nada sin verlo antes.
+    const change: MoveChange = {
+      title: arg.event.title,
+      kind: "endDelta" in arg ? "resize" : "move",
+      before: { start: occurrence.start, end: occurrence.end, allDay: occurrence.allDay },
+      after: { start, end, allDay },
+    };
     let scope: EditScope = "all";
     if (occurrence.recurring && occurrence.type !== "birthday") {
-      const answer = await ask("move");
+      const answer = await ask(
+        "move",
+        undefined,
+        <MoveSummary change={change} timeZone={timeZone} />,
+      );
       if (!answer) return arg.revert();
       scope = answer;
+    } else if (!(await confirmMove(change))) {
+      return arg.revert();
     }
     if (scope === "all" && occurrence.recurring && allDay !== occurrence.allDay) {
       arg.revert();
@@ -641,6 +680,15 @@ function Workspace({ session }: { session: ActiveSession }) {
             dayMaxEvents
             scrollTime="08:00:00"
             eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
+            eventContent={renderEventContent}
+            dayHeaderContent={renderDayHeader}
+            // El nombre de cada día lo da su contenido (número y eventos): con `aria-labelledby`
+            // al número, el texto de los eventos quedaba fuera del nombre (WCAG 2.5.3).
+            dayCellDidMount={(arg) => arg.el.removeAttribute("aria-labelledby")}
+            eventDisplay="block"
+            // Hasta los eventos de 15 minutos tienen sitio para el título y el horario.
+            eventMinHeight={44}
+            eventShortHeight={30}
             slotLabelFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
             views={{
               multiMonthYear: { multiMonthMaxColumns: 3 },
@@ -681,6 +729,7 @@ function Workspace({ session }: { session: ActiveSession }) {
         onClose={() => setEditor(null)}
       />
       {scopeDialog}
+      {moveDialog}
     </div>
   );
 }

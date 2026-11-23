@@ -30,6 +30,16 @@ Objetivo: que Delyra deje de parecer una plantilla genérica sin perder lo que y
     abajo con desenfoque del fondo; el botón de cerrar gira; la marca se inclina al pasar.
   - Todo se desactiva con «reducir movimiento» (WCAG 2.3.3).
 
+## Calendario (rediseño de noviembre de 2026)
+
+- Cabeceras de día en dos niveles (día de la semana pequeño y número grande; hoy, en un círculo),
+  rejilla alta (una hora ≈ 96 px) y cifras tabulares.
+- Cada evento: título (de 1 a 3 líneas según su alto), horario compacto («09:30–11:00») y, en la
+  esquina inferior, la **etiqueta de su calendario** en blanco con el color del calendario (≥ 4,5:1,
+  `inkOnWhite`). Hasta las reuniones de 15 minutos dejan leer título y horario.
+- Arrastrar o redimensionar un evento **pide confirmación** con el «antes» y el «después»; en los
+  que se repiten, el diálogo de alcance enseña lo mismo.
+
 ## Pantallas
 
 | Pantalla                 | Cambio                                                                                                                                                                                                                                  |

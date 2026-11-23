@@ -65,6 +65,7 @@ export function moveCardLocally(
   columnId: string,
   index: number,
   now = new Date(),
+  assignee?: string,
 ): BoardDetail {
   const card = board.cards.find((c) => c.id === cardId);
   const column = board.columns.find((c) => c.id === columnId);
@@ -78,7 +79,9 @@ export function moveCardLocally(
   return {
     ...board,
     cards: board.cards.map((c) =>
-      c.id === cardId ? { ...c, columnId, position, completedAt } : c,
+      c.id === cardId
+        ? { ...c, columnId, position, completedAt, ...(assignee !== undefined ? { assignee } : {}) }
+        : c,
     ),
   };
 }

@@ -187,6 +187,7 @@ export function boardExport(data: BackupDataV1, boardId: string) {
     .map((column) => ({
       name: column.name,
       isDone: column.isDone,
+      delegated: column.delegated,
       wipLimit: column.wipLimit,
       cards: data.cards
         .filter((card) => card.columnId === column.id)
@@ -196,6 +197,8 @@ export function boardExport(data: BackupDataV1, boardId: string) {
           description: card.description,
           priority: card.priority,
           color: card.color,
+          kind: card.kind,
+          assignee: card.assignee,
           due:
             card.dueAt === null
               ? null

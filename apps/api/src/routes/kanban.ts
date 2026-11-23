@@ -349,10 +349,10 @@ export const columnRoutes = new Hono<AppEnv>()
   })
 
   .post("/:id/cards", async (c) => {
-    const { title } = await readBody(c, createCardRequestSchema);
+    const { title, kind } = await readBody(c, createCardRequestSchema);
     const id = idParam(c);
     const r = await access(c, { column: id }, "write");
-    const card = await createCard(r, id, title);
+    const card = await createCard(r, id, title, kind);
     return c.json({ card: await cardDetail(r, card) }, 201);
   });
 

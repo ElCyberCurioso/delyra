@@ -50,6 +50,21 @@ const es = {
     previous: "Mes anterior",
     next: "Mes siguiente",
   },
+  move: {
+    moveTitle: "¿Mover el evento?",
+    resizeTitle: "¿Cambiar la duración?",
+    description: "Revisa el cambio antes de guardarlo.",
+    before: "Antes",
+    after: "Ahora",
+    confirmMove: "Mover",
+    confirmResize: "Cambiar",
+    cancel: "Cancelar",
+    allDay: "todo el día",
+  },
+  categories: {
+    task: "Tarea",
+    holiday: "Festivo",
+  },
   scope: {
     edit: {
       title: "Guardar cambios",

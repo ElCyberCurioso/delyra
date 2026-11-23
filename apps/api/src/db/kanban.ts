@@ -1,4 +1,4 @@
-import { BOARD_MEMBER_ROLES, BOARD_TEMPLATES, CARD_PRIORITIES } from "@delyra/shared";
+import { BOARD_MEMBER_ROLES, BOARD_TEMPLATES, CARD_KINDS, CARD_PRIORITIES } from "@delyra/shared";
 import { sql } from "drizzle-orm";
 import {
   check,
@@ -55,6 +55,8 @@ export const boardColumns = sqliteTable(
     position: text("position").notNull(),
     wipLimit: integer("wip_limit"),
     isDone: integer("is_done", { mode: "boolean" }).notNull().default(false),
+    /** Tareas que dependen de otra persona: al entrar una tarjeta se pide a quién se pasa. */
+    delegated: integer("delegated", { mode: "boolean" }).notNull().default(false),
     ...timestamps,
   },
   (t) => [index("board_columns_board_idx").on(t.boardId, t.position)],
@@ -78,6 +80,14 @@ export const cards = sqliteTable(
     priority: text("priority", { enum: CARD_PRIORITIES }).notNull().default("none"),
     /** Color de la tarjeta (`#rrggbb`), opcional (F7: más colores). */
     color: text("color"),
+    /**
+     * Qué representa: tarea, reunión, llamada, correo, gestión o nota. Sin CHECK en la tabla:
+     * añadirlo obliga a reconstruir `cards` (y su borrado arrastraría en cascada checklists,
+     * comentarios y adjuntos); la API ya solo admite `CARD_KINDS`.
+     */
+    kind: text("kind", { enum: CARD_KINDS }).notNull().default("task"),
+    /** A quién se le ha pasado (nombre libre; columnas delegadas). */
+    assignee: text("assignee"),
     /** Fecha límite: instante UTC, o medianoche UTC si `due_all_day`. */
     dueAt: integer("due_at"),
     dueAllDay: integer("due_all_day", { mode: "boolean" }).notNull().default(false),

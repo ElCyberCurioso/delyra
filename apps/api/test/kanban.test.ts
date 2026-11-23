@@ -225,6 +225,77 @@ describe("detalle de tarjeta (F4-05, F4-07)", () => {
     expect(cleared.card.color).toBeNull();
   });
 
+  it("las tarjetas tienen tipo: tarea por defecto, reunión, llamada, correo…", async () => {
+    const { client } = await registerUser();
+    const detail = await newBoard(client);
+    const columnId = detail.columns[0]?.id ?? "";
+    expect((await newCard(client, columnId, "Revisar presupuesto")).kind).toBe("task");
+    const call = await json<{ card: CardDetail }>(
+      await client.post(`/api/columns/${columnId}/cards`, { title: "Llamar a Ana", kind: "call" }),
+      201,
+    );
+    expect(call.card.kind).toBe("call");
+    expect(
+      (await client.post(`/api/columns/${columnId}/cards`, { title: "X", kind: "fax" })).status,
+    ).toBe(422);
+    const email = await json<{ card: CardDetail }>(
+      await client.request("PATCH", `/api/cards/${call.card.id}`, { kind: "email" }),
+      200,
+    );
+    expect(email.card.kind).toBe("email");
+    expect((await board(client, detail.board.id)).cards.map((c) => c.kind).sort()).toEqual([
+      "email",
+      "task",
+    ]);
+  });
+
+  it("en una columna delegada la tarjeta guarda a quién se le ha pasado", async () => {
+    const { client } = await registerUser();
+    const detail = await newBoard(client);
+    const todo = detail.columns[0]?.id ?? "";
+    const withColumn = await json<BoardDetail>(
+      await client.post(`/api/boards/${detail.board.id}/columns`, {
+        name: "Esperando a otros",
+        delegated: true,
+      }),
+      201,
+    );
+    const column = withColumn.columns.find((c) => c.name === "Esperando a otros");
+    if (!column) throw new Error("Sin columna");
+    expect(column.delegated).toBe(true);
+    const card = await newCard(client, todo, "Firmar el contrato");
+    expect(card.assignee).toBeNull();
+
+    const moved = await json<{ card: CardDetail }>(
+      await client.post(`/api/cards/${card.id}/move`, {
+        columnId: column.id,
+        index: 0,
+        assignee: "  Laura (gestoría) ",
+      }),
+      200,
+    );
+    expect(moved.card.columnId).toBe(column.id);
+    expect(moved.card.assignee).toBe("Laura (gestoría)");
+    expect(moved.card.activity.some((a) => a.kind === "assigned")).toBe(true);
+    const after = await board(client, detail.board.id);
+    expect(after.columns.find((c) => c.id === column.id)?.delegated).toBe(true);
+    expect(after.cards[0]?.assignee).toBe("Laura (gestoría)");
+
+    // Se puede cambiar o quitar desde la tarjeta; vacío = sin asignar.
+    const cleared = await json<{ card: CardDetail }>(
+      await client.request("PATCH", `/api/cards/${card.id}`, { assignee: "" }),
+      200,
+    );
+    expect(cleared.card.assignee).toBeNull();
+    expect(
+      (await client.request("PATCH", `/api/cards/${card.id}`, { assignee: "x".repeat(81) })).status,
+    ).toBe(422);
+    // Mover sin indicar persona no toca la asignación.
+    await client.request("PATCH", `/api/cards/${card.id}`, { assignee: "Pedro" });
+    const back = await json<{ card: CardDetail }>(await move(client, card.id, todo, 0), 200);
+    expect(back.card.assignee).toBe("Pedro");
+  });
+
   it("rechaza etiquetas de otro tablero", async () => {
     const { client } = await registerUser();
     const one = await newBoard(client);

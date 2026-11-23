@@ -1,61 +1,30 @@
 @import "@delyra/ui/styles.css";
 
-/* FullCalendar con los colores del tema (claro y oscuro). */
+/*
+ * FullCalendar con el tema de Delyra (claro y oscuro): tipografía Plus Jakarta Sans con cifras
+ * tabulares, cabeceras de día en dos niveles (día de la semana pequeño y número grande), eje de
+ * horas discreto y eventos con título, horario y etiqueta de su calendario
+ * (calendar/event-content.tsx).
+ */
 .fc {
-  --fc-border-color: var(--border);
-  --fc-page-bg-color: var(--background);
+  --fc-border-color: color-mix(in oklch, var(--border) 85%, transparent);
+  --fc-page-bg-color: var(--card);
   --fc-neutral-bg-color: var(--muted);
   --fc-neutral-text-color: var(--muted-foreground);
   --fc-list-event-hover-bg-color: var(--accent);
-  --fc-today-bg-color: color-mix(in oklch, var(--primary) 8%, transparent);
+  --fc-today-bg-color: color-mix(in oklch, var(--primary) 7%, transparent);
   --fc-now-indicator-color: var(--destructive);
   --fc-highlight-color: color-mix(in oklch, var(--primary) 15%, transparent);
   --fc-event-border-color: transparent;
   --fc-small-font-size: 0.75rem;
   font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
   color: var(--foreground);
 }
 
-.fc .fc-col-header-cell-cushion,
-.fc .fc-daygrid-day-number,
-.fc .fc-list-day-text,
-.fc .fc-list-day-side-text {
-  color: var(--foreground);
+.fc a {
+  color: inherit;
   text-decoration: none;
-}
-
-.fc .fc-timegrid-slot-label,
-.fc .fc-daygrid-week-number,
-.fc .fc-timegrid-axis-cushion {
-  color: var(--muted-foreground);
-}
-
-.fc .fc-daygrid-week-number {
-  background: transparent;
-  font-size: 0.7rem;
-}
-
-.fc .fc-event {
-  border-radius: calc(var(--radius) - 4px);
-  cursor: pointer;
-}
-
-.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
-  font-weight: 700;
-  color: var(--primary);
-}
-
-.fc .fc-list-empty {
-  background: transparent;
-}
-
-.fc-theme-standard .fc-list-day-cushion {
-  background: var(--muted);
-}
-
-/* Lavado de cara: cabeceras más claras, eventos redondeados con relieve y animación suave. */
-.fc {
-  --fc-page-bg-color: var(--card);
 }
 
 .fc .fc-scrollgrid {
@@ -63,22 +32,141 @@
   overflow: hidden;
 }
 
+.fc .fc-view-harness {
+  animation: delyra-rise 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* ── Cabeceras de día ─────────────────────────────────────────────────────── */
+
 .fc .fc-col-header-cell {
-  background: color-mix(in oklch, var(--muted) 60%, transparent);
+  background: color-mix(in oklch, var(--muted) 55%, transparent);
+  vertical-align: middle;
 }
 
 .fc .fc-col-header-cell-cushion {
-  padding: 0.55rem 0.25rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  display: block;
+  padding: 0.5rem 0.25rem;
 }
 
-.fc .fc-event {
-  border-radius: calc(var(--radius) - 2px);
-  padding: 1px 3px;
+.delyra-dayhead {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  line-height: 1;
+}
+
+.delyra-dayhead-weekday {
+  font-size: 0.68rem;
   font-weight: 600;
-  box-shadow: 0 1px 2px oklch(0 0 0 / 12%);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.delyra-dayhead-day {
+  display: grid;
+  place-items: center;
+  min-width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 9999px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.delyra-dayhead-today {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* ── Eje de horas y día completo ──────────────────────────────────────────── */
+
+/* Rejilla alta (una hora ≈ 96 px): hasta las reuniones de 15 minutos dejan leer su título. */
+.fc .fc-timegrid-slot {
+  height: 3rem;
+}
+
+.fc .fc-timegrid-slot-minor {
+  border-top-style: dotted;
+}
+
+.fc .fc-timegrid-slot-label-cushion {
+  padding-inline: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+
+.fc .fc-timegrid-axis-cushion {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.fc .fc-daygrid-week-number,
+.fc .fc-timegrid-axis .fc-week-number {
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--muted) 80%, transparent);
+  padding: 0.05rem 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+/* ── Mes ──────────────────────────────────────────────────────────────────── */
+
+.fc .fc-daygrid-day-number {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* FullCalendar los deja al 30 % de opacidad, ilegibles: mejor el gris del tema (≥ 4,5:1). */
+.fc .fc-day-other .fc-daygrid-day-top {
+  opacity: 1;
+}
+
+.fc .fc-day-other .fc-daygrid-day-number {
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  margin: 0.25rem;
+  padding: 0;
+  border-radius: 9999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 700;
+}
+
+.fc .fc-daygrid-more-link {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.fc .fc-multimonth-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* ── Eventos ──────────────────────────────────────────────────────────────── */
+
+.fc .fc-event {
+  border: none;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  box-shadow: 0 1px 2px oklch(0 0 0 / 14%);
   transition:
     transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1),
     box-shadow 160ms,
@@ -91,17 +179,196 @@
   filter: saturate(1.08);
 }
 
-.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
-  display: inline-grid;
-  place-items: center;
-  min-width: 1.75rem;
-  height: 1.75rem;
-  margin: 0.25rem;
-  border-radius: 9999px;
-  background: var(--primary);
-  color: var(--primary-foreground);
+.fc .fc-timegrid-event .fc-event-main {
+  padding: 0.25rem 0.45rem;
+  /* El título usa más o menos líneas según el alto del evento (consultas de contenedor). */
+  container-type: size;
 }
 
-.fc .fc-view-harness {
-  animation: delyra-rise 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+.fc .fc-daygrid-block-event .fc-event-main,
+.fc .fc-daygrid-event .fc-event-main {
+  padding: 0.15rem 0.4rem;
+  container-type: inline-size;
+}
+
+/* En una celda estrecha del mes, la etiqueta solo dejaría «T…»: el color ya dice el calendario. */
+@container (max-width: 190px) {
+  .delyra-ev-row .delyra-chip {
+    display: none;
+  }
+}
+
+.fc .fc-daygrid-event {
+  margin-top: 2px;
+}
+
+.delyra-ev {
+  min-width: 0;
+}
+
+.delyra-ev-title {
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.005em;
+  overflow-wrap: anywhere;
+}
+
+.delyra-ev-time {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Etiqueta de la categoría (el calendario): destaca sobre el color del evento. */
+.delyra-chip {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 0.35rem;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 1px 1px oklch(0 0 0 / 15%);
+}
+
+/* Vistas por horas: título arriba; horario y etiqueta en la esquina inferior. */
+.delyra-ev-stack {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow: hidden;
+}
+
+.delyra-ev-stack .delyra-ev-title {
+  display: -webkit-box;
+  flex-shrink: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+@container (max-height: 72px) {
+  .delyra-ev-stack .delyra-ev-title {
+    -webkit-line-clamp: 2;
+  }
+}
+
+@container (max-height: 52px) {
+  .delyra-ev-stack {
+    gap: 0.1rem;
+  }
+
+  .delyra-ev-stack .delyra-ev-title {
+    -webkit-line-clamp: 1;
+  }
+}
+
+.delyra-ev-meta {
+  display: flex;
+  min-width: 0;
+  flex-shrink: 0;
+  margin-top: auto;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.3rem;
+}
+
+.delyra-ev-meta .delyra-chip {
+  max-width: 62%;
+}
+
+/* Columna estrecha pero evento alto: la etiqueta baja a su propia línea, en la esquina. */
+@container (max-width: 170px) and (min-height: 76px) {
+  .delyra-ev-meta {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.15rem;
+  }
+
+  .delyra-ev-meta .delyra-chip {
+    max-width: 100%;
+    align-self: flex-end;
+  }
+}
+
+/* Reuniones cortas: todo en una línea. */
+.fc .fc-timegrid-event-short .delyra-ev-stack {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.fc .fc-timegrid-event-short .delyra-ev-title {
+  -webkit-line-clamp: 1;
+}
+
+.fc .fc-timegrid-event-short .delyra-ev-meta {
+  margin-top: 0;
+  margin-left: auto;
+}
+
+/* Mes, año y día completo: una sola línea. */
+.delyra-ev-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.35rem;
+  overflow: hidden;
+}
+
+.delyra-ev-row .delyra-ev-title {
+  flex: 1 1 auto;
+  min-width: 2.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.delyra-ev-row .delyra-chip {
+  flex-shrink: 1;
+  max-width: 40%;
+}
+
+/* ── Lista ────────────────────────────────────────────────────────────────── */
+
+.fc .fc-list-empty {
+  background: transparent;
+}
+
+.fc-theme-standard .fc-list-day-cushion {
+  background: color-mix(in oklch, var(--muted) 70%, transparent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.fc .fc-list-event td {
+  padding-block: 0.6rem;
+}
+
+.fc .fc-list-event-time {
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+.delyra-ev-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.delyra-ev-list .delyra-ev-title {
+  font-size: 0.875rem;
+  font-weight: 600;
 }

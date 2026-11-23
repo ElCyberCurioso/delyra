@@ -57,6 +57,21 @@ function darken(hex: string, amount: number): string {
 }
 
 /**
+ * El mismo color, oscurecido lo justo para leerse como texto sobre blanco (≥ 4,5:1): etiquetas
+ * blancas con el nombre de un calendario encima de su color.
+ */
+export function inkOnWhite(color: string): string {
+  if (!HEX_COLOR.test(color)) return "#374151";
+  const base = color.toLowerCase();
+  if (contrast(relativeLuminance(base), 1) >= 4.5) return base;
+  for (let amount = 0.04; amount < 0.8; amount += 0.04) {
+    const darker = darken(base, amount);
+    if (contrast(relativeLuminance(darker), 1) >= 4.5) return darker;
+  }
+  return "#374151";
+}
+
+/**
  * Fondo y texto para pintar algo de un color con texto encima (eventos del calendario): si ni el
  * blanco ni el oscuro llegan a 4,5:1, el fondo se oscurece lo justo para que el blanco sí llegue.
  */
