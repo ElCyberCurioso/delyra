@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="loading">Loading…</string>
+
+    <string name="kind_task">Task</string>
+    <string name="kind_meeting">Meeting</string>
+    <string name="kind_call">Call</string>
+    <string name="kind_email">Email</string>
+    <string name="kind_errand">Errand</string>
+    <string name="kind_note">Note</string>
+    <string name="priority_none">No priority</string>
+    <string name="priority_low">Low</string>
+    <string name="priority_medium">Medium</string>
+    <string name="priority_high">High</string>
+    <string name="priority_urgent">Urgent</string>
+    <string name="template_personal">Personal</string>
+    <string name="template_personal_body">To do, doing and done.</string>
+    <string name="template_sprint">Sprint</string>
+    <string name="template_sprint_body">Backlog, in progress, in review and done.</string>
+    <string name="template_audit">Project / audit</string>
+    <string name="template_audit_body">Pending, analysis, findings, report and closed.</string>
+    <string name="template_empty">Empty</string>
+    <string name="template_empty_body">No columns: set it up your way.</string>
+    <string name="role_owner">Owner</string>
+    <string name="role_editor">Can edit</string>
+    <string name="role_reader">Read only</string>
+    <string name="due_today">Today</string>
+    <string name="due_tomorrow">Tomorrow</string>
+    <string name="due_yesterday">Yesterday</string>
+
+    <string name="boards_title">Boards</string>
+    <string name="boards_new">New board</string>
+    <string name="boards_stat_boards">Boards</string>
+    <string name="boards_stat_open">Open cards</string>
+    <string name="boards_stat_shared">Shared</string>
+    <string name="boards_empty_title">You don\'t have any boards yet</string>
+    <string name="boards_empty_body">Start with a template: Personal for everyday life, Sprint for a team or Project / audit for phased work.</string>
+    <string name="boards_create_first">Create the first one</string>
+    <string name="boards_owned_by">By %1$s · %2$s</string>
+    <plurals name="boards_open_cards">
+        <item quantity="one">%1$d open card</item>
+        <item quantity="other">%1$d open cards</item>
+    </plurals>
+    <string name="invitation_title">%1$s invites you to “%2$s”</string>
+    <string name="invitation_someone">Someone</string>
+    <string name="invitation_accept">Accept</string>
+    <string name="invitation_decline">Decline</string>
+
+    <string name="board_search">Search cards</string>
+    <string name="board_share">Share</string>
+    <string name="board_presence">Also here: %1$s</string>
+    <string name="board_new_column">New column</string>
+    <string name="board_labels">Labels</string>
+    <string name="board_archived">Archived cards</string>
+    <string name="board_export_json">Export (JSON)</string>
+    <string name="board_export_csv">Export (CSV)</string>
+    <string name="board_settings">Board settings</string>
+    <string name="board_add_card">Add card</string>
+    <string name="board_empty_title">This board has no columns</string>
+    <string name="board_empty_body">Create the first one to start adding cards.</string>
+    <string name="board_column_empty">No cards in this column.</string>
+    <string name="board_move_to">Move to</string>
+    <string name="board_move_top">To the top</string>
+    <string name="board_move_bottom">To the bottom</string>
+    <string name="board_move_up">Move up</string>
+    <string name="board_move_down">Move down</string>
+    <string name="board_revoked">You no longer have access to this board.</string>
+    <string name="board_wip_exceeded">“%1$s” is over its work-in-progress limit.</string>
+    <string name="board_autoarchive">Archive done cards after (days)</string>
+    <string name="board_autoarchive_hint">0 = never.</string>
+    <string name="board_delete_title">Delete the board</string>
+    <string name="board_delete_body">“%1$s” will be deleted with all its cards and attachments. This can\'t be undone.</string>
+
+    <string name="column_edit">Edit column</string>
+    <string name="column_wip">Card limit (WIP)</string>
+    <string name="column_wip_hint">Empty = no limit.</string>
+    <string name="column_done">Done column</string>
+    <string name="column_done_switch">Cards here count as done</string>
+    <string name="column_delegated">Waiting on someone else</string>
+    <string name="column_delegated_switch">Waiting on someone else (asks who it\'s passed to)</string>
+    <string name="column_move_left">Move left</string>
+    <string name="column_move_right">Move right</string>
+    <string name="column_delete_title">Delete the column?</string>
+    <plurals name="column_delete_body">
+        <item quantity="one">“%1$s” will be deleted with its %2$d card. This can\'t be undone.</item>
+        <item quantity="other">“%1$s” will be deleted with its %2$d cards. This can\'t be undone.</item>
+    </plurals>
+
+    <string name="labels_empty">No labels yet.</string>
+    <string name="labels_new">New label</string>
+    <string name="labels_edit">Edit label</string>
+    <string name="archived_empty">No archived cards.</string>
+
+    <string name="members_you">you</string>
+    <string name="members_remove">Remove from board</string>
+    <string name="members_pending">Pending invitations</string>
+    <string name="members_invite">Invite someone</string>
+    <string name="members_invite_hint">They need a Delyra account; they\'ll see the invitation when they sign in.</string>
+    <string name="members_send">Invite</string>
+    <string name="members_leave">Leave the board</string>
+    <string name="members_leave_body">You\'ll stop seeing this board until you\'re invited again.</string>
+
+    <string name="card_title">Card</string>
+    <string name="card_rename">Change the title</string>
+    <string name="card_archived">Archived</string>
+    <string name="card_column">Column</string>
+    <string name="card_kind">Type</string>
+    <string name="card_priority">Priority</string>
+    <string name="card_due">Due date</string>
+    <string name="card_no_due">No date</string>
+    <string name="card_remove_due">Remove</string>
+    <string name="card_color">Color</string>
+    <string name="card_no_color">No color</string>
+    <string name="card_labels">Labels</string>
+    <string name="card_assignee">Who was it passed to?</string>
+    <string name="card_assignee_to">With %1$s</string>
+    <string name="card_assignee_hint">Person\'s name</string>
+    <string name="card_delegate_title">Who are you passing it to?</string>
+    <string name="card_move">Move</string>
+    <string name="card_description">Description</string>
+    <string name="card_no_description">No description.</string>
+    <string name="card_markdown_hint">Supports Markdown: **bold**, *italic*, lists and links.</string>
+    <string name="card_checklist">Checklist</string>
+    <string name="card_checklist_add">New item</string>
+    <string name="card_attachments">Attachments</string>
+    <string name="card_attach">Attach</string>
+    <string name="card_no_attachments">No attachments.</string>
+    <string name="card_attachment_delete">Delete the attachment?</string>
+    <string name="card_attachment_too_large">The file is larger than 10 MB.</string>
+    <string name="card_comments">Comments</string>
+    <string name="card_comment_add">Write a comment</string>
+    <string name="card_comment_send">Comment</string>
+    <string name="card_someone">Someone</string>
+    <string name="card_activity">Activity</string>
+    <string name="card_show">Show</string>
+    <string name="card_hide">Hide</string>
+    <string name="card_archive">Archive</string>
+    <string name="card_restore">Restore</string>
+    <string name="card_delete_title">Delete the card?</string>
+    <string name="card_delete_body">“%1$s” will be deleted with its checklist, comments and attachments.</string>
+    <string name="activity_created">created the card</string>
+    <string name="activity_moved">moved it</string>
+    <string name="activity_commented">commented</string>
+    <string name="activity_attached">attached a file</string>
+    <string name="activity_detached">removed an attachment</string>
+    <string name="activity_archived">archived it</string>
+    <string name="activity_restored">restored it</string>
+    <string name="activity_completed">completed it</string>
+    <string name="activity_updated">changed it</string>
+</resources>

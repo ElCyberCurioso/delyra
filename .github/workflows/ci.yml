@@ -87,6 +87,32 @@ jobs:
       - name: Analizar el historial
         run: ./gitleaks git . --redact --verbose --exit-code 1
 
+  # F8-01: app de Android (apps/android). Lint de Android, tests JVM y APK de debug.
+  android:
+    name: App de Android (lint, tests y build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/android
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "21"
+      # Verifica el checksum del wrapper y cachea las dependencias de Gradle.
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      - run: ./gradlew --no-configuration-cache lintDebug testDebugUnitTest assembleDebug
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-reports
+          path: apps/android/app/build/reports/
+          retention-days: 7
+
   semgrep:
     name: SAST (Semgrep)
     runs-on: ubuntu-latest

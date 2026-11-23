@@ -7,3 +7,6 @@ pnpm-lock.yaml
 **/migrations/meta/**
 playwright-report/
 test-results/
+apps/android/**/build/
+apps/android/.gradle/
+apps/android/.kotlin/

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_saved">Saved</string>
+    <string name="settings_profile">Profile</string>
+    <string name="settings_admin">Administrator</string>
+    <string name="settings_rename">Change name</string>
+    <string name="settings_preferences">Preferences</string>
+    <string name="settings_time_zone">Time zone</string>
+    <string name="settings_use_device_zone">Use the phone\'s (%1$s)</string>
+    <string name="settings_week_start">The week starts on</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_hint">Also used for emails, alerts and default names.</string>
+    <string name="settings_security">Security</string>
+    <plurals name="settings_recovery_left">
+        <item quantity="one">You have %1$d recovery code left.</item>
+        <item quantity="other">You have %1$d recovery codes left.</item>
+    </plurals>
+    <string name="settings_password_changed_at">Password changed on %1$s</string>
+    <string name="settings_passkeys">Passkeys: %1$d</string>
+    <string name="settings_change_password">Change password</string>
+    <string name="settings_password_effect">Your other sessions will be signed out.</string>
+    <string name="settings_password_changed">Password changed. Your other sessions were signed out.</string>
+    <string name="settings_more_on_web">Recovery codes, authenticator app, passkeys, Telegram, backups and imports: for now, on delyra.app.</string>
+    <string name="settings_sessions">Open sessions</string>
+    <string name="settings_unknown_device">Unknown device</string>
+    <string name="settings_this_device">this device</string>
+    <string name="settings_last_seen">Last activity: %1$s</string>
+    <string name="settings_close_session">Sign out</string>
+    <string name="settings_close_others">Sign out other sessions</string>
+    <string name="settings_close_others_body">You\'ll need to sign in again on your other devices.</string>
+    <string name="settings_environment">Environment (debug only)</string>
+    <string name="settings_environment_hint">Local: start `pnpm dev` and run `adb reverse tcp:5173 tcp:5173`. Switching signs you out.</string>
+    <string name="settings_logout">Sign out</string>
+    <string name="settings_logout_body">You\'ll sign out of Delyra on this device.</string>
+</resources>

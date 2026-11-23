@@ -25,6 +25,7 @@ Tres Workers (ADR-0002). Solo las SPA tienen dominio; el `api` no es accesible d
 | `apps/api`        | Worker `api`: rutas Hono, consumidor de Queues, Workflows, Drizzle |
 | `apps/calendar`   | Worker `web-calendar`: SPA del calendario (login, ajustes, admin)  |
 | `apps/work`       | Worker `web-work`: SPA del kanban                                  |
+| `apps/android`    | App nativa de Android (Gradle, Kotlin y Compose), ADR-0016         |
 | `packages/shared` | `@delyra/shared`: esquemas Zod, tipos, constantes, utilidades      |
 | `packages/ui`     | `@delyra/ui`: componentes, tema y layout comunes (shadcn/ui)       |
 | `docs/`           | ADRs, runbooks, observabilidad                                     |
@@ -99,4 +100,6 @@ entorno están en `packages/shared/src/app-origins.json`.
 - [Runbook · Recursos de Cloudflare](docs/runbooks/recursos-cloudflare.md)
 - [Runbook · Dominios y acceso](docs/runbooks/dominios-y-acceso.md)
 - [Runbook · Backup diario del sistema](docs/runbooks/backup-sistema.md)
+- [ADR-0016 · App de Android](docs/decisiones/ADR-0016-app-android.md)
+- [Runbook · App de Android](docs/runbooks/android.md)
 - [Observabilidad y logs](docs/observabilidad.md)

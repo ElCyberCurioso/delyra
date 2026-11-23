@@ -23,6 +23,14 @@ playwright-report/
 test-results/
 blob-report/
 
+# App de Android (Gradle)
+apps/android/**/build/
+apps/android/.gradle/
+apps/android/.kotlin/
+apps/android/local.properties
+*.jks
+*.keystore
+
 # Editor y sistema
 .DS_Store
 Thumbs.db

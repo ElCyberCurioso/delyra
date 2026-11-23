@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="es">
+    <string name="loading">Cargando…</string>
+
+    <string name="kind_task">Tarea</string>
+    <string name="kind_meeting">Reunión</string>
+    <string name="kind_call">Llamada</string>
+    <string name="kind_email">Correo</string>
+    <string name="kind_errand">Gestión</string>
+    <string name="kind_note">Nota</string>
+    <string name="priority_none">Sin prioridad</string>
+    <string name="priority_low">Baja</string>
+    <string name="priority_medium">Media</string>
+    <string name="priority_high">Alta</string>
+    <string name="priority_urgent">Urgente</string>
+    <string name="template_personal">Personal</string>
+    <string name="template_personal_body">Por hacer, haciendo y hecho.</string>
+    <string name="template_sprint">Sprint</string>
+    <string name="template_sprint_body">Backlog, en curso, en revisión y hecho.</string>
+    <string name="template_audit">Proyecto / auditoría</string>
+    <string name="template_audit_body">Pendiente, en análisis, hallazgos, informe y cerrado.</string>
+    <string name="template_empty">Vacío</string>
+    <string name="template_empty_body">Sin columnas: lo montas a tu manera.</string>
+    <string name="role_owner">Propietario</string>
+    <string name="role_editor">Puede editar</string>
+    <string name="role_reader">Solo lectura</string>
+    <string name="due_today">Hoy</string>
+    <string name="due_tomorrow">Mañana</string>
+    <string name="due_yesterday">Ayer</string>
+
+    <string name="boards_title">Tableros</string>
+    <string name="boards_new">Nuevo tablero</string>
+    <string name="boards_stat_boards">Tableros</string>
+    <string name="boards_stat_open">Tarjetas abiertas</string>
+    <string name="boards_stat_shared">Compartidos</string>
+    <string name="boards_empty_title">Aún no tienes tableros</string>
+    <string name="boards_empty_body">Empieza con una plantilla: Personal para el día a día, Sprint para un equipo o Proyecto / auditoría para trabajos por fases.</string>
+    <string name="boards_create_first">Crear el primero</string>
+    <string name="boards_owned_by">De %1$s · %2$s</string>
+    <plurals name="boards_open_cards">
+        <item quantity="one">%1$d tarjeta abierta</item>
+        <item quantity="other">%1$d tarjetas abiertas</item>
+    </plurals>
+    <string name="invitation_title">%1$s te invita a «%2$s»</string>
+    <string name="invitation_someone">Alguien</string>
+    <string name="invitation_accept">Aceptar</string>
+    <string name="invitation_decline">Rechazar</string>
+
+    <string name="board_search">Buscar tarjetas</string>
+    <string name="board_share">Compartir</string>
+    <string name="board_presence">También aquí: %1$s</string>
+    <string name="board_new_column">Nueva columna</string>
+    <string name="board_labels">Etiquetas</string>
+    <string name="board_archived">Tarjetas archivadas</string>
+    <string name="board_export_json">Exportar (JSON)</string>
+    <string name="board_export_csv">Exportar (CSV)</string>
+    <string name="board_settings">Ajustes del tablero</string>
+    <string name="board_add_card">Añadir tarjeta</string>
+    <string name="board_empty_title">Este tablero no tiene columnas</string>
+    <string name="board_empty_body">Crea la primera para empezar a añadir tarjetas.</string>
+    <string name="board_column_empty">No hay tarjetas en esta columna.</string>
+    <string name="board_move_to">Mover a</string>
+    <string name="board_move_top">Arriba del todo</string>
+    <string name="board_move_bottom">Abajo del todo</string>
+    <string name="board_move_up">Subir una</string>
+    <string name="board_move_down">Bajar una</string>
+    <string name="board_revoked">Ya no tienes acceso a este tablero.</string>
+    <string name="board_wip_exceeded">«%1$s» supera su límite de tarjetas en curso.</string>
+    <string name="board_autoarchive">Archivar terminadas tras (días)</string>
+    <string name="board_autoarchive_hint">0 = nunca.</string>
+    <string name="board_delete_title">Borrar el tablero</string>
+    <string name="board_delete_body">Se borrará «%1$s» con todas sus tarjetas y adjuntos. No se puede deshacer.</string>
+
+    <string name="column_edit">Editar columna</string>
+    <string name="column_wip">Límite de tarjetas (WIP)</string>
+    <string name="column_wip_hint">Vacío = sin límite.</string>
+    <string name="column_done">Columna de terminadas</string>
+    <string name="column_done_switch">Las tarjetas aquí cuentan como terminadas</string>
+    <string name="column_delegated">Depende de otra persona</string>
+    <string name="column_delegated_switch">Depende de otra persona (pide a quién se pasa)</string>
+    <string name="column_move_left">Mover a la izquierda</string>
+    <string name="column_move_right">Mover a la derecha</string>
+    <string name="column_delete_title">¿Borrar la columna?</string>
+    <plurals name="column_delete_body">
+        <item quantity="one">Se borrará «%1$s» con su %2$d tarjeta. No se puede deshacer.</item>
+        <item quantity="other">Se borrará «%1$s» con sus %2$d tarjetas. No se puede deshacer.</item>
+    </plurals>
+
+    <string name="labels_empty">Aún no hay etiquetas.</string>
+    <string name="labels_new">Nueva etiqueta</string>
+    <string name="labels_edit">Editar etiqueta</string>
+    <string name="archived_empty">No hay tarjetas archivadas.</string>
+
+    <string name="members_you">tú</string>
+    <string name="members_remove">Quitar del tablero</string>
+    <string name="members_pending">Invitaciones pendientes</string>
+    <string name="members_invite">Invitar a alguien</string>
+    <string name="members_invite_hint">Debe tener cuenta en Delyra; verá la invitación al entrar.</string>
+    <string name="members_send">Invitar</string>
+    <string name="members_leave">Salir del tablero</string>
+    <string name="members_leave_body">Dejarás de ver este tablero hasta que te vuelvan a invitar.</string>
+
+    <string name="card_title">Tarjeta</string>
+    <string name="card_rename">Cambiar el título</string>
+    <string name="card_archived">Archivada</string>
+    <string name="card_column">Columna</string>
+    <string name="card_kind">Tipo</string>
+    <string name="card_priority">Prioridad</string>
+    <string name="card_due">Fecha límite</string>
+    <string name="card_no_due">Sin fecha</string>
+    <string name="card_remove_due">Quitar</string>
+    <string name="card_color">Color</string>
+    <string name="card_no_color">Sin color</string>
+    <string name="card_labels">Etiquetas</string>
+    <string name="card_assignee">¿A quién se ha pasado?</string>
+    <string name="card_assignee_to">Con %1$s</string>
+    <string name="card_assignee_hint">Nombre de la persona</string>
+    <string name="card_delegate_title">¿A quién se la pasas?</string>
+    <string name="card_move">Mover</string>
+    <string name="card_description">Descripción</string>
+    <string name="card_no_description">Sin descripción.</string>
+    <string name="card_markdown_hint">Admite Markdown: **negrita**, *cursiva*, listas y enlaces.</string>
+    <string name="card_checklist">Checklist</string>
+    <string name="card_checklist_add">Nuevo elemento</string>
+    <string name="card_attachments">Adjuntos</string>
+    <string name="card_attach">Adjuntar</string>
+    <string name="card_no_attachments">Sin adjuntos.</string>
+    <string name="card_attachment_delete">¿Borrar el adjunto?</string>
+    <string name="card_attachment_too_large">El fichero supera los 10 MB.</string>
+    <string name="card_comments">Comentarios</string>
+    <string name="card_comment_add">Escribe un comentario</string>
+    <string name="card_comment_send">Comentar</string>
+    <string name="card_someone">Alguien</string>
+    <string name="card_activity">Actividad</string>
+    <string name="card_show">Mostrar</string>
+    <string name="card_hide">Ocultar</string>
+    <string name="card_archive">Archivar</string>
+    <string name="card_restore">Restaurar</string>
+    <string name="card_delete_title">¿Borrar la tarjeta?</string>
+    <string name="card_delete_body">Se borrará «%1$s» con su checklist, comentarios y adjuntos.</string>
+    <string name="activity_created">creó la tarjeta</string>
+    <string name="activity_moved">la movió</string>
+    <string name="activity_commented">comentó</string>
+    <string name="activity_attached">adjuntó un fichero</string>
+    <string name="activity_detached">quitó un adjunto</string>
+    <string name="activity_archived">la archivó</string>
+    <string name="activity_restored">la restauró</string>
+    <string name="activity_completed">la terminó</string>
+    <string name="activity_updated">la cambió</string>
+</resources>
