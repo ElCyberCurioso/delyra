@@ -12,22 +12,14 @@ Objetivo: que Delyra deje de parecer una plantilla genérica sin perder lo que y
 - **Tipografía con carácter.** Plus Jakarta Sans variable, servida desde la propia app (la CSP no
   admite fuentes de otros orígenes). Títulos grandes y en negrita con tracking negativo; cifras
   tabulares en los contadores.
-- **Color.** Cinco gamas completas (claro y oscuro), elegibles desde el menú de usuario
-  («Gama de color») mientras se decide la definitiva. Cada gama define los mismos tokens
-  (`--primary`, `--accent`, `--background`, `--brand-1`, `--brand-2`…), así que los componentes no
-  saben cuál está activa; los contrastes se comprueban con axe-core en las cinco.
-  - **Aurora** (por defecto): violeta y fucsia sobre neutros fríos.
-  - **Bosque**: esmeralda y lima sobre arena.
-  - **Coral**: coral y ámbar sobre crema.
-  - **Océano**: azul profundo y cian sobre pizarra.
-  - **Grafito**: casi monocromo con un toque ámbar.
-
-  Comparativa de las cinco (claro y oscuro): [gamas.jpg](gamas.jpg).
-
-- **La gama sigue a la cuenta.** Se guarda en `user_settings.palette` (migración 0013), como el
-  idioma: es la misma en delyra.app y work.delyra.app y en cualquier dispositivo. El navegador la
-  recuerda también en `localStorage` para pintarla antes de cargar la sesión (`/theme-init.js`),
-  sin destellos.
+- **Color: gama «Bosque»** (esmeralda y lima sobre arena), en claro y oscuro. Se eligió el
+  23-11-2026 entre cinco propuestas (Aurora, Bosque, Coral, Océano y Grafito) que se pudieron
+  probar en la propia app; la comparativa está en [gamas.jpg](gamas.jpg). Las demás y el selector
+  del menú de usuario se retiraron. Los tokens (`--primary`, `--accent`, `--background`,
+  `--brand-1`, `--brand-2`…) viven en `packages/ui/src/styles.css`; los contrastes se comprueban con
+  axe-core. El verde de la marca (`#007145`) también va en `theme-color`, el manifiesto de la PWA,
+  los iconos y los correos. La columna `user_settings.palette` (migración 0013) queda en desuso y
+  se borrará más adelante (expand/contract).
 - **Más colores.** Paleta común de 18 colores con nombre (`packages/shared/src/colors.ts`) más un color libre,
   para calendarios, etiquetas y tarjetas. Los eventos oscurecen el fondo lo justo para que el texto
   blanco cumpla 4,5:1 con cualquier color.
@@ -50,6 +42,4 @@ Objetivo: que Delyra deje de parecer una plantilla genérica sin perder lo que y
 
 ## Pendiente de decidir
 
-- Gama definitiva: cuando se elija, se deja como la de por defecto y se puede quitar el selector
-  (o mantenerlo como preferencia personal).
 - Ilustraciones o iconos propios para los estados vacíos.

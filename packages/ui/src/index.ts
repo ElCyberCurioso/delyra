@@ -36,12 +36,7 @@ export { Brand, BrandMark } from "./layout/brand";
 export { type CurrentUser, UserMenu } from "./layout/user-menu";
 export { useMediaQuery } from "./lib/use-media-query";
 export { cn } from "./lib/utils";
-export {
-  type Palette,
-  PALETTE_STORAGE_KEY,
-  PALETTES,
-  THEME_STORAGE_KEY,
-} from "./theme/theme-init-script";
+export { THEME_STORAGE_KEY } from "./theme/theme-init-script";
 export { type ResolvedTheme, type Theme, ThemeProvider, useTheme } from "./theme/theme-provider";
 export { ApiError, type ApiRequestOptions, apiFetch, errorMessage } from "./auth/api";
 export { AuthLayout, LanguageSwitch } from "./auth/auth-layout";
@@ -59,7 +54,6 @@ export {
   useAuthConfig,
   useAccountPreferences,
   useChangeLocale,
-  useChangePalette,
   useLogout,
   useMe,
 } from "./auth/session";

@@ -1,10 +1,9 @@
-import { type Locale, type Palette, SUPPORTED_LOCALES } from "@delyra/shared";
+import { type Locale, SUPPORTED_LOCALES } from "@delyra/shared";
 import {
   LanguagesIcon,
   LogOutIcon,
   MonitorIcon,
   MoonIcon,
-  PaletteIcon,
   SettingsIcon,
   ShieldIcon,
   SunIcon,
@@ -22,7 +21,6 @@ import {
   DropdownMenuTrigger,
 } from "../components/dropdown-menu";
 import { getLocale, LOCALE_NAMES, setLocale, ui } from "../i18n";
-import { PALETTES } from "../theme/theme-init-script";
 import { type Theme, useTheme } from "../theme/theme-provider";
 
 export interface CurrentUser {
@@ -36,8 +34,6 @@ export interface UserMenuProps {
   onSignOut?: () => void;
   /** Guarda el idioma en la cuenta (si no se pasa, solo cambia en este navegador). */
   onLocaleChange?: (locale: Locale) => void;
-  /** Guarda la gama de color en la cuenta (además de aplicarla). */
-  onPaletteChange?: (palette: Palette) => void;
   /** Ajustes de cuenta (en el calendario, también desde trabajo). */
   settingsHref?: string;
   /** Solo se muestra a administradores. */
@@ -59,11 +55,10 @@ export function UserMenu({
   user,
   onSignOut,
   onLocaleChange,
-  onPaletteChange,
   settingsHref,
   adminHref,
 }: UserMenuProps) {
-  const { theme, setTheme, palette, setPalette } = useTheme();
+  const { theme, setTheme } = useTheme();
   const t = ui().userMenu;
   const changeLocale = onLocaleChange ?? ((locale: Locale) => void setLocale(locale));
 
@@ -118,32 +113,6 @@ export function UserMenu({
             <DropdownMenuRadioItem key={value} value={value}>
               <Icon aria-hidden="true" />
               {t[value]}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
-          <PaletteIcon aria-hidden="true" className="size-3.5" />
-          {t.palette}
-        </DropdownMenuLabel>
-        <DropdownMenuRadioGroup
-          value={palette}
-          onValueChange={(value) => {
-            const next = PALETTES.find((p) => p === value);
-            if (next) {
-              setPalette(next);
-              onPaletteChange?.(next);
-            }
-          }}
-        >
-          {PALETTES.map((value) => (
-            <DropdownMenuRadioItem key={value} value={value}>
-              <span
-                aria-hidden="true"
-                data-palette-swatch={value}
-                className="size-4 rounded-full ring-1 ring-border"
-              />
-              {t.palettes[value]}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

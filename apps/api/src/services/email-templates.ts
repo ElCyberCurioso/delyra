@@ -15,9 +15,9 @@ function escapeHtml(value: string): string {
 function layout(title: string, paragraphs: string[], action?: { label: string; url: string }) {
   const body = paragraphs.map((p) => `<p style="margin:0 0 16px">${escapeHtml(p)}</p>`).join("");
   const button = action
-    ? `<p style="margin:24px 0"><a href="${escapeHtml(action.url)}" style="background:#5b3fd6;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">${escapeHtml(action.label)}</a></p><p style="margin:0 0 16px;font-size:13px;color:#666;word-break:break-all">${escapeHtml(action.url)}</p>`
+    ? `<p style="margin:24px 0"><a href="${escapeHtml(action.url)}" style="background:#007145;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">${escapeHtml(action.label)}</a></p><p style="margin:0 0 16px;font-size:13px;color:#666;word-break:break-all">${escapeHtml(action.url)}</p>`
     : "";
-  return `<!doctype html><html><body style="margin:0;background:#f6f5fb;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#1f1a33"><div style="max-width:520px;margin:0 auto;padding:32px 24px"><p style="font-weight:700;font-size:18px;margin:0 0 24px">Delyra</p><h1 style="font-size:20px;margin:0 0 16px">${escapeHtml(title)}</h1>${body}${button}<p style="margin:32px 0 0;font-size:12px;color:#888">Delyra · delyra.app</p></div></body></html>`;
+  return `<!doctype html><html><body style="margin:0;background:#faf9f4;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#0e1c14"><div style="max-width:520px;margin:0 auto;padding:32px 24px"><p style="font-weight:700;font-size:18px;margin:0 0 24px">Delyra</p><h1 style="font-size:20px;margin:0 0 16px">${escapeHtml(title)}</h1>${body}${button}<p style="margin:32px 0 0;font-size:12px;color:#888">Delyra · delyra.app</p></div></body></html>`;
 }
 
 function message(

@@ -44,7 +44,11 @@ export const userSettings = sqliteTable("user_settings", {
   locale: text("locale").notNull().default("es"),
   /** 0 = domingo … 6 = sábado. */
   weekStart: integer("week_start").notNull().default(1),
-  /** Gama de color de la interfaz (null = la de por defecto). */
+  /**
+   * En desuso: gama de color elegida cuando había varias (migración 0013). Desde el 23-11-2026 la
+   * gama es única («Bosque») y nadie la lee; se borrará en una migración posterior, cuando no
+   * quede en producción ninguna versión que la use (expand/contract).
+   */
   palette: text("palette"),
   /** Copia automática de los datos del usuario (F6-03): `off`, `daily`, `weekly`, `monthly`. */
   backupFrequency: text("backup_frequency", { enum: BACKUP_FREQUENCIES })

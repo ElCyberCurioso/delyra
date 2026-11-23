@@ -94,7 +94,6 @@ export const meResponseSchema = z.object({
       timeZone: z.string(),
       locale: z.string(),
       weekStart: z.number(),
-      palette: z.string().nullable().optional(),
     })
     .nullable(),
 });

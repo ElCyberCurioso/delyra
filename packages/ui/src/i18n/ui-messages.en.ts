@@ -37,14 +37,6 @@ const en: Translation<UiMessages> = {
     system: "System",
     language: "Language",
     signOut: "Sign out",
-    palette: "Colour palette",
-    palettes: {
-      aurora: "Aurora",
-      bosque: "Forest",
-      coral: "Coral",
-      oceano: "Ocean",
-      grafito: "Graphite",
-    },
   },
   language: {
     switchTo: "Change language",

@@ -32,25 +32,7 @@ describe("perfil y preferencias", () => {
       timeZone: "America/Bogota",
       locale: "en",
       weekStart: 0,
-      palette: null,
     });
-  });
-
-  it("guarda la gama de color en la cuenta y no la pierde al cambiar otra preferencia", async () => {
-    const { client } = await registerUser();
-    const base = { timeZone: "Europe/Madrid", locale: "es", weekStart: 1 };
-    expect(
-      (await client.request("PATCH", "/api/me/settings", { ...base, palette: "oceano" })).status,
-    ).toBe(200);
-    // Ajustes que no envían la gama (p. ej. la página de ajustes) no la borran.
-    expect(
-      (await client.request("PATCH", "/api/me/settings", { ...base, weekStart: 0 })).status,
-    ).toBe(200);
-    const me = await (await client.get("/api/auth/me")).json<{ settings: { palette: unknown } }>();
-    expect(me.settings.palette).toBe("oceano");
-    expect(
-      (await client.request("PATCH", "/api/me/settings", { ...base, palette: "neon" })).status,
-    ).toBe(422);
   });
 
   it("valida zona horaria, idioma e inicio de semana", async () => {

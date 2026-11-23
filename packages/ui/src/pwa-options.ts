@@ -43,8 +43,8 @@ export function pwaOptions(app: "calendar" | "work") {
       start_url: "/",
       scope: "/",
       display: "standalone" as const,
-      theme_color: "#5b3fd6",
-      background_color: "#ffffff",
+      theme_color: "#007145",
+      background_color: "#faf9f4",
       icons: [
         { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
         { src: "/icon-512.png", sizes: "512x512", type: "image/png" },

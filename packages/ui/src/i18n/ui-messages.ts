@@ -35,14 +35,6 @@ export const uiEs = {
     system: "Sistema",
     language: "Idioma",
     signOut: "Cerrar sesión",
-    palette: "Gama de color",
-    palettes: {
-      aurora: "Aurora",
-      bosque: "Bosque",
-      coral: "Coral",
-      oceano: "Océano",
-      grafito: "Grafito",
-    },
   },
   language: {
     switchTo: "Cambiar el idioma",

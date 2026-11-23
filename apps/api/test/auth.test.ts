@@ -66,7 +66,6 @@ describe("registro desde invitación y alta de TOTP", () => {
       timeZone: "Europe/Madrid",
       locale: "es",
       weekStart: 1,
-      palette: null,
     });
 
     // Fijación de sesión: el token anterior al segundo factor ya no vale.

@@ -1,7 +1,7 @@
 import { APP_ORIGINS } from "@delyra/shared";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ThemeProvider } from "../theme/theme-provider";
 import { AppShell } from "./app-shell";
 
@@ -58,31 +58,5 @@ describe("AppShell", () => {
     await user.click(await screen.findByRole("menuitemradio", { name: /Oscuro/ }));
     expect(document.documentElement).toHaveClass("dark");
     expect(localStorage.getItem("delyra-theme")).toBe("dark");
-  });
-
-  it("cambia la gama de color, la recuerda y avisa para guardarla en la cuenta", async () => {
-    const onPaletteChange = vi.fn();
-    render(
-      <ThemeProvider>
-        <AppShell
-          app="work"
-          user={{ name: "Ana López", email: "ana@example.com" }}
-          origins={APP_ORIGINS.production}
-          onPaletteChange={onPaletteChange}
-        >
-          <p>contenido</p>
-        </AppShell>
-      </ThemeProvider>,
-    );
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /Menú de usuario/ }));
-    await user.click(await screen.findByRole("menuitemradio", { name: "Océano" }));
-    expect(document.documentElement).toHaveAttribute("data-palette", "oceano");
-    expect(localStorage.getItem("delyra-palette")).toBe("oceano");
-    expect(onPaletteChange).toHaveBeenCalledWith("oceano");
-    // La de por defecto no deja atributo.
-    await user.click(screen.getByRole("button", { name: /Menú de usuario/ }));
-    await user.click(await screen.findByRole("menuitemradio", { name: "Aurora" }));
-    expect(document.documentElement).not.toHaveAttribute("data-palette");
   });
 });

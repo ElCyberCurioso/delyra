@@ -4,7 +4,6 @@ import {
   type AppOrigins,
   findAppByOrigin,
   type Locale,
-  type Palette,
 } from "@delyra/shared";
 import type { ReactNode } from "react";
 import { Toaster } from "../components/toaster";
@@ -24,8 +23,6 @@ export interface AppShellProps {
   onSignOut?: () => void;
   /** Guarda el idioma en la cuenta; sin él, solo cambia en este navegador. */
   onLocaleChange?: (locale: Locale) => void;
-  /** Guarda la gama de color en la cuenta. */
-  onPaletteChange?: (palette: Palette) => void;
   origins?: AppOrigins;
   children: ReactNode;
 }
@@ -36,7 +33,6 @@ export function AppShell({
   user,
   onSignOut,
   onLocaleChange,
-  onPaletteChange,
   origins,
   children,
 }: AppShellProps) {
@@ -58,7 +54,6 @@ export function AppShell({
               user={user}
               onSignOut={onSignOut}
               onLocaleChange={onLocaleChange}
-              onPaletteChange={onPaletteChange}
               settingsHref={`${resolvedOrigins.calendar}/ajustes`}
               adminHref={`${resolvedOrigins.calendar}/admin`}
             />

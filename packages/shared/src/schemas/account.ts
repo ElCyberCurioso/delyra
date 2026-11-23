@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { localeSchema, paletteSchema, ROLES, timeZoneSchema } from "../constants";
+import { localeSchema, ROLES, timeZoneSchema } from "../constants";
 import { nameSchema, PASSWORD_MAX_LENGTH, passwordSchema } from "./auth";
 
 /** Ajustes de cuenta (F1-15), historial (F1-16) y administración (F1-17). */
@@ -14,8 +14,6 @@ export const updateSettingsRequestSchema = z.object({
   timeZone: timeZoneSchema,
   locale: localeSchema,
   weekStart: z.number().int().min(0).max(6),
-  /** Gama de color: sigue a la cuenta en las dos apps y en todos los dispositivos. */
-  palette: paletteSchema.optional(),
 });
 
 /** Confirmación de identidad para acciones sensibles: contraseña y código actual. */
