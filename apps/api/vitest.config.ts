@@ -22,6 +22,9 @@ export default defineConfig({
             // Cliente OAuth ficticio: accounts.google.com y googleapis.com se simulan (F5-07).
             GOOGLE_CLIENT_ID: "cliente-de-prueba.apps.googleusercontent.com",
             GOOGLE_CLIENT_SECRET: "secreto-oauth-de-prueba",
+            // App de Microsoft ficticia: login.microsoftonline.com y Graph se simulan.
+            MICROSOFT_CLIENT_ID: "00000000-0000-0000-0000-000000000000",
+            MICROSOFT_CLIENT_SECRET: "secreto-microsoft-de-prueba",
           },
         },
       };

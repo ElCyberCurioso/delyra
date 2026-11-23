@@ -100,6 +100,25 @@ export function PrivacyEn() {
         <li>Your account&apos;s security history (sign-ins and changes): 1 year.</li>
       </ul>
 
+      <h2>Microsoft 365 data</h2>
+      <p>
+        Only if you turn it on for a board, Delyra reads your Microsoft 365 calendar with{" "}
+        <strong>read-only</strong> permission (<code>Calendars.Read</code>) to turn your meetings
+        into cards. From each meeting it only takes the subject, time, location, the
+        organiser&apos;s name and the Teams link; never the content or the attendee list.
+      </p>
+      <ul>
+        <li>
+          It stores, encrypted, the access permission (which Microsoft renews periodically) and the
+          email of the connected account, and deletes them when you press “Disconnect Microsoft
+          365”.
+        </li>
+        <li>
+          The cards it creates are part of your board: the people you share it with can see them,
+          and they stay even if you disconnect.
+        </li>
+      </ul>
+
       <h2>Your rights</h2>
       <p>
         You can delete what you imported at any time (by deleting the calendar), revoke

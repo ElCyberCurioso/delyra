@@ -351,3 +351,54 @@ describe("tableros compartidos (F7-04, F7-05)", () => {
     expect(sent).toEqual({ email: "bea@example.com", role: "reader" });
   });
 });
+
+describe("Reuniones de Teams en el tablero", () => {
+  it("al volver de Microsoft abre los ajustes y vuelca las reuniones en la columna elegida", async () => {
+    const requests: unknown[] = [];
+    let info = {
+      enabled: true,
+      connection: { email: "ana@contoso.com", status: "ok" },
+      sync: null as Record<string, unknown> | null,
+    };
+    server.use(
+      http.get("/api/microsoft/boards/b1", () => HttpResponse.json(info)),
+      http.put("/api/microsoft/boards/b1", async ({ request }) => {
+        requests.push(await request.json());
+        info = {
+          ...info,
+          sync: {
+            mine: true,
+            columnId: detail.columns[1]?.id,
+            onlyTeams: true,
+            daysAhead: 7,
+            status: "ok",
+            error: null,
+            cards: 2,
+            lastSyncedAt: "2027-01-02T10:00:00.000Z",
+            nextSyncAt: "2027-01-02T10:15:00.000Z",
+          },
+        };
+        return HttpResponse.json(info);
+      }),
+    );
+    const user = userEvent.setup();
+    const router = renderAt("/tableros/b1?microsoft=conectada");
+
+    const dialog = await screen.findByRole("dialog", { name: "Ajustes del tablero" });
+    const section = await within(dialog).findByRole("region", { name: "Reuniones de Teams" });
+    expect(within(section).getByText("Conectado como ana@contoso.com.")).toBeInTheDocument();
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
+
+    await user.selectOptions(
+      within(section).getByLabelText("Columna para las reuniones nuevas"),
+      detail.columns[1]?.id ?? "",
+    );
+    await user.selectOptions(within(section).getByLabelText("Con antelación"), "7");
+    expect(within(section).getByLabelText(/Solo reuniones de Teams/)).toBeChecked();
+    await user.click(within(section).getByRole("button", { name: "Volcar las reuniones" }));
+
+    expect(await within(section).findByText(/2 reuniones en el tablero/)).toBeInTheDocument();
+    expect(requests).toEqual([{ columnId: detail.columns[1]?.id, onlyTeams: true, daysAhead: 7 }]);
+    expect(within(section).getByRole("button", { name: "Actualizar ahora" })).toBeInTheDocument();
+  });
+});

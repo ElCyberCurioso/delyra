@@ -21,6 +21,8 @@ export interface BoardSearch {
   etiqueta?: string;
   prioridad?: CardPriority;
   vence?: "vencidas" | "semana";
+  /** Vuelta de Microsoft tras conectar las reuniones de Teams. */
+  microsoft?: "conectada" | "denied" | "state" | "error";
 }
 
 const text = (value: unknown, max = 200) =>
@@ -38,6 +40,10 @@ export function boardSearch(search: Record<string, unknown>): BoardSearch {
   if (etiqueta) result.etiqueta = etiqueta;
   if (prioridad) result.prioridad = prioridad;
   if (vence) result.vence = vence;
+  const microsoft = (["conectada", "denied", "state", "error"] as const).find(
+    (v) => v === search.microsoft,
+  );
+  if (microsoft) result.microsoft = microsoft;
   return result;
 }
 

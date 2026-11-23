@@ -14,6 +14,7 @@ export * from "./schemas/health";
 export * from "./schemas/holidays";
 export * from "./schemas/imports";
 export * from "./schemas/kanban";
+export * from "./schemas/microsoft";
 export * from "./schemas/passkeys";
 export * from "./schemas/telegram";
 export * from "./security-headers";

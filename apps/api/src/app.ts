@@ -33,6 +33,7 @@ import {
 import { subscriptionRoutes } from "./routes/subscriptions";
 import { telegramWebhookRoutes } from "./routes/telegram";
 import type { AppEnv } from "./types";
+import { microsoftRoutes } from "./routes/microsoft";
 
 /**
  * Las SPA reenvían `/api/*` por Service Binding conservando la URL original, así que
@@ -95,6 +96,7 @@ export function createApp() {
   api.route("/attachments", attachmentRoutes);
   api.route("/imports", importRoutes);
   api.route("/google", googleRoutes);
+  api.route("/microsoft", microsoftRoutes);
   api.route("/subscriptions", subscriptionRoutes);
   api.route("/backups", backupRoutes);
   api.route("/restores", restoreRoutes);

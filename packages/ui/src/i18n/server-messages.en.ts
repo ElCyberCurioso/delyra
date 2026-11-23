@@ -283,6 +283,27 @@ const exact: Record<string, string> = {
   "No se pudo crear la sesión": "Couldn't create the session",
   "No se pudo crear la suscripción": "Couldn't create the subscription",
   "No se pudo guardar la conexión con Google": "Couldn't save the Google connection",
+  // Reuniones de Teams en un tablero.
+  "La conexión con Microsoft 365 no está configurada":
+    "The Microsoft 365 connection isn't configured",
+  "Se acaba de actualizar. Espera unos minutos.": "It was just updated. Wait a few minutes.",
+  "Microsoft ha retirado el permiso de Delyra. Vuelve a conectar tu cuenta.":
+    "Microsoft has withdrawn Delyra's permission. Connect your account again.",
+  "Ya no puedes editar este tablero: se ha dejado de volcar.":
+    "You can no longer edit this board, so meetings are no longer added.",
+  "No se ha podido actualizar desde Microsoft 365. Se volverá a intentar más tarde.":
+    "Couldn't update from Microsoft 365. It will be retried later.",
+  "No se pudo guardar la conexión con Microsoft": "Couldn't save the Microsoft connection",
+  "Conecta primero tu cuenta de Microsoft 365": "Connect your Microsoft 365 account first",
+  "Este tablero ya recibe las reuniones de otra persona":
+    "This board already receives someone else's meetings",
+  "No se pudo guardar el volcado": "Couldn't save the meeting sync",
+  "Solo puede quitarlo quien lo configuró o el dueño del tablero":
+    "Only whoever set it up or the board owner can remove it",
+  "Respuesta de Microsoft sin tokens": "Microsoft's response had no tokens",
+  "Enlace de Microsoft Graph no válido": "Invalid Microsoft Graph link",
+  "Token no válido": "Invalid token",
+  "Elige 7, 14 o 30 días": "Choose 7, 14 or 30 days",
   "No se pudo crear la sincronización": "Couldn't create the sync",
   // Sincronización continua con Google (F7-09).
   "Google ha retirado el permiso de Delyra. Vuelve a conectar tu cuenta.":
@@ -334,6 +355,11 @@ const patterns: ServerMessages["patterns"] = [
   [/^Propiedad no admitida: (.+)$/s, (key = "") => `Unsupported property: ${key}`],
   [/^Google Calendar respondió (\d+)$/, (n = "") => `Google Calendar responded ${n}`],
   [/^Google respondió (\d+)$/, (n = "") => `Google responded ${n}`],
+  [
+    /^Microsoft rechazó la petición \((\d+)\)$/,
+    (n = "") => `Microsoft rejected the request (${n})`,
+  ],
+  [/^Microsoft Graph respondió (\d+)$/, (n = "") => `Microsoft Graph responded ${n}`],
   [/^Google rechazó el código \((\d+)\)$/, (n = "") => `Google rejected the code (${n})`],
   [/^Tiempo de espera agotado \((\d+) ms\)$/, (n = "") => `Timed out (${n} ms)`],
   [

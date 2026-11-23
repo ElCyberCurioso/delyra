@@ -24,6 +24,8 @@ export type AuditEvent =
   | "totp.reconfigured"
   | "passkey.added"
   | "google.connected"
+  | "microsoft.connected"
+  | "microsoft.disconnected"
   | "google.disconnected"
   | "passkey.removed"
   | "telegram.linked"

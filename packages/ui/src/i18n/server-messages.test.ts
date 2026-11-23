@@ -37,6 +37,13 @@ const INTERNAL = new Set([
   "no-store",
   "no-referrer",
   "sin-uid-7",
+  // Textos de las tarjetas de reuniones de Teams: se escriben en el idioma de la cuenta.
+  "Reunión de Teams",
+  "todo el día",
+  "Unirse a la reunión",
+  "Desde tu calendario de Microsoft 365.",
+  "(Sin asunto)",
+  "(No subject)",
   // Nombres de columnas y etiquetas de las plantillas: se crean en el idioma de la petición.
   "Crítica",
   "Deuda técnica",

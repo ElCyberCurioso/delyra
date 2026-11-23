@@ -176,6 +176,24 @@ function PrivacyEs() {
         <li>Historial de seguridad de tu cuenta (accesos y cambios): 1 año.</li>
       </ul>
 
+      <h2>Datos de Microsoft 365</h2>
+      <p>
+        Solo si lo activas en un tablero, Delyra lee tu calendario de Microsoft 365 con permiso de{" "}
+        <strong>solo lectura</strong> (<code>Calendars.Read</code>) para convertir tus reuniones en
+        tarjetas. De cada reunión toma únicamente el asunto, el horario, el lugar, el nombre de
+        quien la organiza y el enlace de Teams; nunca el contenido ni la lista de asistentes.
+      </p>
+      <ul>
+        <li>
+          Guarda cifrados el permiso de acceso (que Microsoft renueva periódicamente) y el email de
+          la cuenta conectada, y los borra al pulsar «Desconectar Microsoft 365».
+        </li>
+        <li>
+          Las tarjetas creadas son parte de tu tablero: las ven las personas con las que lo
+          compartes y se quedan aunque desconectes.
+        </li>
+      </ul>
+
       <h2>Tus derechos</h2>
       <p>
         Puedes borrar en cualquier momento lo importado (borrando el calendario), revocar el acceso

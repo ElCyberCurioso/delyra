@@ -13,6 +13,9 @@ import { purgeExpiredChallenges } from "./services/passkeys";
 import { googleConfig } from "./services/google";
 import { syncDueGoogleCalendars } from "./services/google-sync";
 import { purgeExpiredData } from "./services/retention";
+import { notifyBoard } from "./services/board-live";
+import { microsoftConfig } from "./services/microsoft";
+import { syncDueMicrosoftBoards } from "./services/microsoft-sync";
 
 export { BoardRoom } from "./durable/board-room";
 export { BackupWorkflow } from "./jobs/backup-workflow";
@@ -78,6 +81,23 @@ export default {
         .then((keyring) => syncDueSubscriptions(createDb(env.DB), keyring, Date.now(), logger))
         .catch((error: unknown) => {
           logger.error("subscriptions_sync_failed", { error });
+        }),
+    );
+    // Reuniones de Teams en tableros, cada 15 minutos cada uno (ADR-0015).
+    ctx.waitUntil(
+      keyringFromEnv(env)
+        .then((keyring) =>
+          syncDueMicrosoftBoards(
+            createDb(env.DB),
+            keyring,
+            microsoftConfig(env),
+            Date.now(),
+            logger,
+            (boardId, by) => notifyBoard(env, boardId, by, logger),
+          ),
+        )
+        .catch((error: unknown) => {
+          logger.error("microsoft_sync_failed", { error });
         }),
     );
     // F7-09: calendarios de Google sincronizados, cada 15 minutos cada uno.

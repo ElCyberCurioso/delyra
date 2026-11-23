@@ -20,6 +20,11 @@ interface Env {
   /** Cliente OAuth web de Google (P-11). Sin los dos, la conexión con Google no aparece. */
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  /** App de Microsoft Entra ID (P-12). Sin las dos, la conexión con Teams no aparece. */
+  MICROSOFT_CLIENT_ID?: string;
+  MICROSOFT_CLIENT_SECRET?: string;
+  /** Inquilino de Entra ID si la app es de una sola organización (por defecto `common`). */
+  MICROSOFT_TENANT_ID?: string;
 }
 
 declare namespace Cloudflare {
@@ -33,5 +38,8 @@ declare namespace Cloudflare {
     TELEGRAM_WEBHOOK_SECRET?: string;
     GOOGLE_CLIENT_ID?: string;
     GOOGLE_CLIENT_SECRET?: string;
+    MICROSOFT_CLIENT_ID?: string;
+    MICROSOFT_CLIENT_SECRET?: string;
+    MICROSOFT_TENANT_ID?: string;
   }
 }

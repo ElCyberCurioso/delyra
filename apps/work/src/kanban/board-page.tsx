@@ -81,6 +81,7 @@ import {
 } from "./logic";
 import { workMessages } from "./messages";
 import { roleLabel, ShareDialog } from "./share-dialog";
+import { TeamsSection } from "./teams-section";
 
 /** Tablero (F4-08 a F4-10). */
 export interface BoardPageProps {
@@ -187,8 +188,24 @@ function BoardView({
   );
   const filtered = hasFilters(filters);
   const [editingColumn, setEditingColumn] = useState<BoardColumn | "new" | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  // Al volver de conectar Microsoft 365, los ajustes ya abiertos para elegir dónde volcar.
+  const [settingsOpen, setSettingsOpen] = useState(search.microsoft === "conectada");
   const [archivedOpen, setArchivedOpen] = useState(false);
+
+  // Vuelta de Microsoft (reuniones de Teams): aviso y fuera el parámetro de la URL.
+  const microsoft = search.microsoft;
+  useEffect(() => {
+    if (!microsoft) return;
+    const t = workMessages().teams;
+    if (microsoft === "conectada") {
+      toast.success(t.connected);
+    } else {
+      toast.error(
+        microsoft === "denied" ? t.denied : microsoft === "state" ? t.stateError : t.error,
+      );
+    }
+    setSearch({ microsoft: undefined });
+  }, [microsoft, setSearch]);
 
   /** Cambio optimista con vuelta atrás si la API falla (F4-08). */
   async function optimistic(change: (current: BoardDetail) => BoardDetail) {
@@ -874,6 +891,8 @@ function BoardSettings({ board, onClose }: { board: BoardDetail; onClose: () => 
           </Button>
         </form>
       </section>
+
+      {board.board.role !== "reader" ? <TeamsSection board={board} /> : null}
 
       {board.board.role === "owner" ? (
         <section className="grid gap-2 border-t pt-4">
