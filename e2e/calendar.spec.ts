@@ -116,6 +116,10 @@ test("arrastrar un evento con el ratón pide confirmación antes de moverlo", as
 
   // Arrastrar desde el borde superior (10:00) hasta la franja de las 12:00.
   async function dragToNoon() {
+    // Un diálogo que se cierra (el de crear, el de confirmar) sigue montado, con su fondo por
+    // encima de todo, hasta acabar la animación de salida. En CI puede tardar y el ratón pulsaría
+    // sobre ese fondo en vez de sobre el evento (y seleccionaría texto en lugar de arrastrar).
+    await expect(page.locator('[data-slot="dialog-overlay"]')).toHaveCount(0);
     // La rejilla es alta: primero, que se vean el evento y la franja de las 12:00.
     const noonSlot = page.locator('td.fc-timegrid-slot-lane[data-time="12:00:00"]');
     await noonSlot.scrollIntoViewIfNeeded();
