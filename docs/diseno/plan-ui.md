@@ -18,8 +18,8 @@ Objetivo: que Delyra deje de parecer una plantilla genérica sin perder lo que y
   del menú de usuario se retiraron. Los tokens (`--primary`, `--accent`, `--background`,
   `--brand-1`, `--brand-2`…) viven en `packages/ui/src/styles.css`; los contrastes se comprueban con
   axe-core. El verde de la marca (`#007145`) también va en `theme-color`, el manifiesto de la PWA,
-  los iconos y los correos. La columna `user_settings.palette` (migración 0013) queda en desuso y
-  se borrará más adelante (expand/contract).
+  los iconos y los correos. La columna `user_settings.palette` (migración 0013) se borró con la
+  0016, en un despliegue posterior al que dejó de usarla (expand/contract).
 - **Más colores.** Paleta común de 18 colores con nombre (`packages/shared/src/colors.ts`) más un color libre,
   para calendarios, etiquetas y tarjetas. Los eventos oscurecen el fondo lo justo para que el texto
   blanco cumpla 4,5:1 con cualquier color.

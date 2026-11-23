@@ -113,6 +113,13 @@
       "when": 1795421543419,
       "tag": "0015_google_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1795428400245,
+      "tag": "0016_drop_user_palette",
+      "breakpoints": true
     }
   ]
 }
