@@ -1,4 +1,9 @@
-import { IMPORT_SOURCES, IMPORT_STATUSES, SUBSCRIPTION_STATUSES } from "@delyra/shared";
+import {
+  GOOGLE_CONNECTION_STATUSES,
+  IMPORT_SOURCES,
+  IMPORT_STATUSES,
+  SUBSCRIPTION_STATUSES,
+} from "@delyra/shared";
 import { sql } from "drizzle-orm";
 import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { calendars } from "./calendar";
@@ -90,3 +95,77 @@ export const calendarSubscriptions = sqliteTable(
 
 export type ImportRow = typeof imports.$inferSelect;
 export type SubscriptionRow = typeof calendarSubscriptions.$inferSelect;
+
+/**
+ * Sincronización continua con Google (F7-09, ADR-0014): una conexión por persona con el token de
+ * actualización cifrado, y los calendarios de Google que se reflejan en calendarios de solo
+ * lectura de Delyra.
+ */
+export const googleConnections = sqliteTable(
+  "google_connections",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Token de actualización cifrado (AAD `google-refresh:<ownerId>:<id>`). Nunca sale del servidor. */
+    refreshTokenEnc: text("refresh_token_enc").notNull(),
+    /** Último token de acceso (~1 h), cifrado, para no pedir uno nuevo en cada calendario. */
+    accessTokenEnc: text("access_token_enc"),
+    accessExpiresAt: integer("access_expires_at"),
+    /** Cuenta de Google conectada (id del calendario principal), para mostrarla. */
+    accountEmail: text("account_email"),
+    status: text("status", { enum: GOOGLE_CONNECTION_STATUSES }).notNull().default("ok"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => [
+    uniqueIndex("google_connections_owner_idx").on(t.ownerId),
+    check(
+      "google_connections_status_check",
+      sql`"status" IN (${quoted(GOOGLE_CONNECTION_STATUSES)})`,
+    ),
+  ],
+);
+
+export const googleSyncedCalendars = sqliteTable(
+  "google_synced_calendars",
+  {
+    id: text("id").primaryKey(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    connectionId: text("connection_id")
+      .notNull()
+      .references(() => googleConnections.id, { onDelete: "cascade" }),
+    /** Calendario de solo lectura donde se refleja (se borra con él). */
+    calendarId: text("calendar_id")
+      .notNull()
+      .references(() => calendars.id, { onDelete: "cascade" }),
+    googleCalendarId: text("google_calendar_id").notNull(),
+    /** Convertir sus recordatorios en alertas. */
+    reminders: integer("reminders", { mode: "boolean" }).notNull().default(true),
+    /** Token de sincronización incremental de Google (`nextSyncToken`). */
+    syncToken: text("sync_token"),
+    status: text("status", { enum: SUBSCRIPTION_STATUSES }).notNull().default("pending"),
+    lastError: text("last_error"),
+    failures: integer("failures").notNull().default(0),
+    lastSyncedAt: integer("last_synced_at"),
+    nextSyncAt: integer("next_sync_at").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (t) => [
+    uniqueIndex("google_synced_calendars_calendar_idx").on(t.calendarId),
+    uniqueIndex("google_synced_calendars_google_idx").on(t.connectionId, t.googleCalendarId),
+    index("google_synced_calendars_owner_idx").on(t.ownerId),
+    index("google_synced_calendars_due_idx").on(t.nextSyncAt),
+    check(
+      "google_synced_calendars_status_check",
+      sql`"status" IN (${quoted(SUBSCRIPTION_STATUSES)})`,
+    ),
+  ],
+);
+
+export type GoogleConnectionRow = typeof googleConnections.$inferSelect;
+export type GoogleSyncedCalendarRow = typeof googleSyncedCalendars.$inferSelect;

@@ -282,6 +282,16 @@ const exact: Record<string, string> = {
   "No se pudo crear la restauración": "Couldn't create the restore",
   "No se pudo crear la sesión": "Couldn't create the session",
   "No se pudo crear la suscripción": "Couldn't create the subscription",
+  "No se pudo guardar la conexión con Google": "Couldn't save the Google connection",
+  "No se pudo crear la sincronización": "Couldn't create the sync",
+  // Sincronización continua con Google (F7-09).
+  "Google ha retirado el permiso de Delyra. Vuelve a conectar tu cuenta.":
+    "Google has withdrawn Delyra's permission. Connect your account again.",
+  "Este calendario ya no está en tu cuenta de Google o has perdido el acceso a él.":
+    "This calendar is no longer in your Google account or you've lost access to it.",
+  "Conecta primero tu cuenta de Google": "Connect your Google account first",
+  "Ese calendario no está en tu cuenta de Google": "That calendar isn't in your Google account",
+  "Ya sincronizas ese calendario": "You already sync that calendar",
   "Informe CSP no reconocido": "Unrecognised CSP report",
   "Base32 no válido": "Invalid Base32",
 };
@@ -323,6 +333,7 @@ const patterns: ServerMessages["patterns"] = [
   [/^Fecha no válida: (.+)$/s, (date = "") => `Invalid date: ${date}`],
   [/^Propiedad no admitida: (.+)$/s, (key = "") => `Unsupported property: ${key}`],
   [/^Google Calendar respondió (\d+)$/, (n = "") => `Google Calendar responded ${n}`],
+  [/^Google respondió (\d+)$/, (n = "") => `Google responded ${n}`],
   [/^Google rechazó el código \((\d+)\)$/, (n = "") => `Google rejected the code (${n})`],
   [/^Tiempo de espera agotado \((\d+) ms\)$/, (n = "") => `Timed out (${n} ms)`],
   [

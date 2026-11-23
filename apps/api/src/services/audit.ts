@@ -23,6 +23,8 @@ export type AuditEvent =
   | "reauth.failure"
   | "totp.reconfigured"
   | "passkey.added"
+  | "google.connected"
+  | "google.disconnected"
   | "passkey.removed"
   | "telegram.linked"
   | "telegram.unlinked"

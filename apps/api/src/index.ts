@@ -10,6 +10,8 @@ import { ensureHolidays } from "./services/holidays";
 import { purgeStaleGoogleTokens } from "./services/imports";
 import { syncDueSubscriptions } from "./services/subscriptions";
 import { purgeExpiredChallenges } from "./services/passkeys";
+import { googleConfig } from "./services/google";
+import { syncDueGoogleCalendars } from "./services/google-sync";
 
 export { BoardRoom } from "./durable/board-room";
 export { BackupWorkflow } from "./jobs/backup-workflow";
@@ -65,6 +67,16 @@ export default {
         .then((keyring) => syncDueSubscriptions(createDb(env.DB), keyring, Date.now(), logger))
         .catch((error: unknown) => {
           logger.error("subscriptions_sync_failed", { error });
+        }),
+    );
+    // F7-09: calendarios de Google sincronizados, cada 15 minutos cada uno.
+    ctx.waitUntil(
+      keyringFromEnv(env)
+        .then((keyring) =>
+          syncDueGoogleCalendars(createDb(env.DB), keyring, googleConfig(env), Date.now(), logger),
+        )
+        .catch((error: unknown) => {
+          logger.error("google_sync_failed", { error });
         }),
     );
     ctx.waitUntil(

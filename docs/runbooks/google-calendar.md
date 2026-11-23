@@ -3,11 +3,12 @@
 Tres vías (ADR-0008), todas desde **delyra.app/importar** (o «Importar desde Google» en la barra
 lateral del calendario):
 
-| Vía                             | Necesita configuración      | Qué hace                                       |
-| ------------------------------- | --------------------------- | ---------------------------------------------- |
-| Archivo `.zip`/`.ics` exportado | Nada                        | Importación puntual, sin duplicados al repetir |
-| Cuenta de Google (OAuth)        | P-11 y dos secretos (abajo) | Importación puntual desde la API, con colores  |
-| Dirección iCal secreta          | Nada                        | Calendario de solo lectura, al día cada hora   |
+| Vía                             | Necesita configuración        | Qué hace                                                   |
+| ------------------------------- | ----------------------------- | ---------------------------------------------------------- |
+| Archivo `.zip`/`.ics` exportado | Nada                          | Importación puntual, sin duplicados al repetir             |
+| Cuenta de Google (OAuth)        | P-11 y dos secretos (abajo)   | Importación puntual desde la API, con colores              |
+| Dirección iCal secreta          | Nada                          | Calendario de solo lectura, al día cada hora               |
+| Sincronización con Google       | P-11, secretos y verificación | Calendarios de solo lectura, al día cada 15 min (ADR-0014) |
 
 ## P-11 · Proyecto de Google Cloud (solo para la vía OAuth)
 
@@ -20,8 +21,9 @@ lateral del calendario):
      `https://delyra.app/privacidad` y condiciones `https://delyra.app/terminos`.
    - _Acceso a datos_ → añade el scope `https://www.googleapis.com/auth/calendar.readonly`.
    - _Público_: mientras la app esté «en pruebas», añade como **usuarios de prueba** las cuentas
-     de Google que vayan a importar (máximo 100). No hace falta publicarla ni verificarla: no se
-     piden refresh tokens.
+     de Google que vayan a importar (máximo 100). Para importar no hace falta publicarla ni
+     verificarla. Para la **sincronización continua** sí (abajo): en pruebas, Google caduca los
+     tokens de actualización a los 7 días.
 3. _Clientes → Crear cliente_ → **Aplicación web**:
    - Orígenes autorizados de JavaScript: no hacen falta.
    - URI de redirección autorizados: `https://delyra.app/api/google/callback` (y, para probar en
@@ -36,6 +38,29 @@ pnpm --filter @delyra/api exec wrangler secret put GOOGLE_CLIENT_SECRET --env pr
 
 En cuanto estén los dos, el botón «Conectar con Google» aparece (no hace falta desplegar). En
 local, ponlos en `apps/api/.dev.vars` (no se sube al repositorio).
+
+## Sincronización continua (F7-09)
+
+Desde _Importar → Sincronizar con Google_: «Conectar para sincronizar» pide el mismo scope con
+acceso permanente; luego se eligen los calendarios uno a uno. El planificador (cada minuto)
+consulta cada calendario cada 15 minutos con el `syncToken` de Google y solo lo descarga entero si
+hay cambios.
+
+**Publicar y verificar la app** (para que la conexión no caduque cada semana):
+
+1. _Google Auth Platform → Público_ → **Publicar app** (pasa a «En producción»).
+2. _Centro de verificación_ → enviar a verificación. Google pide:
+   - el dominio `delyra.app` verificado en Search Console con la misma cuenta;
+   - página principal, política de privacidad (`/privacidad`, ya explica la sincronización y la
+     revocación) y condiciones accesibles sin iniciar sesión;
+   - justificación del scope `calendar.readonly`: «Importar y mantener sincronizada una copia de
+     solo lectura de los calendarios que elija la persona»;
+   - un vídeo corto: conectar desde `delyra.app/importar`, la pantalla de consentimiento con el
+     ID de cliente visible en la URL, elegir un calendario y verlo en Delyra.
+3. Mientras se revisa, la sincronización funciona para los usuarios de prueba (reconectando cada
+   7 días).
+
+No se usan notificaciones push de Google, así que no hace falta registrar webhooks.
 
 ## Cómo funciona una importación
 
@@ -59,14 +84,20 @@ terminar (o a los 7 días por la regla del bucket). Una vista previa caduca a lo
 | Vuelve con «la respuesta de Google no era válida» | Cookie caducada (más de 10 min) o bloqueada, o se abrió el enlace en otro navegador: repetir. |
 | Importación «interrumpida»                        | Sin avances en 2 h: ver la instancia en _Workers → Workflows → delyra-import_ y repetir.      |
 | Suscripción en error «no reconoce la dirección»   | Se restableció la dirección secreta en Google: quitar la suscripción y añadir la nueva.       |
+| Sincronización «Google ha retirado el permiso»    | Token caducado (app en pruebas, 7 días) o permiso quitado en Google: «Volver a conectar».     |
+| Vuelve con «no ha dado permiso permanente»        | Google no entregó token de actualización: reconectar y aceptar todos los permisos.            |
 
 Logs útiles (Workers Logs del `api`): `import_phase_succeeded`, `import_phase_failed`,
 `google_oauth_state_rejected`, `google_oauth_exchange_failed`, `subscription_synced`,
-`subscription_sync_failed`. Ninguno incluye tokens, direcciones iCal ni contenido de eventos.
+`subscription_sync_failed`, `google_calendar_synced`, `google_calendar_sync_failed`. Ninguno
+incluye tokens, direcciones iCal ni contenido de eventos.
 
 ## Revocar el acceso
 
 Cada usuario puede quitar el permiso de Delyra en
-[myaccount.google.com/permissions](https://myaccount.google.com/permissions); como no se guarda
-ningún token, no hay nada más que borrar en Delyra. Para retirar la vía OAuth a todos, borra los
-dos secretos (`wrangler secret delete … --env production`).
+[myaccount.google.com/permissions](https://myaccount.google.com/permissions). Si tenía la
+sincronización conectada, Delyra lo detecta en la siguiente consulta, borra el token de acceso y
+deja la conexión «revocada»; «Desconectar Google» en Delyra revoca el permiso y borra la conexión.
+Para retirar la vía OAuth a todos, borra los dos secretos
+(`wrangler secret delete … --env production`): la sincronización se detiene (sin cliente OAuth el
+planificador no la ejecuta).

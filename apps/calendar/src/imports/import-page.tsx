@@ -36,6 +36,7 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { CALENDARS_KEY, EVENTS_KEY, useCalendars, useInvalidateEvents } from "../calendar/api";
 import { CalendarColorPicker } from "../calendar/calendar-list";
 import { Section } from "../settings/section";
+import { GoogleSync } from "./google-sync";
 import { importMessages } from "./messages";
 import {
   authorizeGoogle,
@@ -56,7 +57,8 @@ import {
 
 /**
  * Asistente de importación desde Google Calendar (F5-03): exportación en `.zip`/`.ics`,
- * conexión con la cuenta (OAuth, F5-04) y suscripción a la dirección iCal secreta (F5-06).
+ * conexión con la cuenta (OAuth, F5-04), sincronización continua (F7-09) y suscripción a la
+ * dirección iCal secreta (F5-06).
  */
 
 function googleMessage(code: string): string | null {
@@ -712,6 +714,13 @@ export function ImportPage() {
   const open = (id: string | null) =>
     router.history.push(id ? `/importar?import=${encodeURIComponent(id)}` : "/importar");
 
+  // Vuelta de Google tras conectar la sincronización (F7-09).
+  useEffect(() => {
+    if (google !== "conectada") return;
+    toast.success(importMessages().sync.connected);
+    router.history.replace("/importar#sincronizar");
+  }, [google, router]);
+
   return (
     <RequireSession navigate={(path) => router.history.replace(path)}>
       {(session) => (
@@ -742,6 +751,7 @@ export function ImportPage() {
               <>
                 <FileImport onStarted={open} />
                 <GoogleConnect />
+                <GoogleSync />
                 <Subscriptions />
                 <RecentImports onOpen={open} />
               </>

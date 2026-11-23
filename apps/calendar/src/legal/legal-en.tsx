@@ -27,13 +27,19 @@ export function PrivacyEn() {
         Only if you ask for it, Delyra connects to your Google account with{" "}
         <strong>read-only calendar</strong> permission (<code>calendar.readonly</code>) to import,
         once, your calendars (name, colour and time zone), their events (with their repeats) and
-        their reminders.
+        their reminders, or to keep the ones you choose in sync.
       </p>
       <ul>
         <li>
-          No permanent permission is kept: Delyra doesn&apos;t receive or store a refresh token. The
-          temporary access token (one hour at most) is stored encrypted only while the calendars are
-          downloaded and is deleted afterwards.
+          To import once, no permanent permission is kept: the temporary access token (one hour at
+          most) is stored encrypted only while the calendars are downloaded and is deleted
+          afterwards.
+        </li>
+        <li>
+          If you turn on syncing, Delyra stores an encrypted read-only refresh token and the email
+          of that Google account, and checks the calendars you chose for changes every 15 minutes.
+          It&apos;s deleted as soon as you press “Disconnect Google” (which also revokes the
+          permission in Google) or if Google withdraws it.
         </li>
         <li>
           The downloaded data is kept temporarily (7 days at most) until you choose what to import,
@@ -104,8 +110,8 @@ export function TermsEn() {
         <li>Your account is personal: protect your password and your second factor.</li>
         <li>Don&apos;t upload illegal content or try to access other people&apos;s data.</li>
         <li>
-          Imports from Google happen at your request and only read the calendars of the account you
-          connect with.
+          Imports and syncing with Google happen at your request and only read the calendars of the
+          account you connect with.
         </li>
       </ul>
       <h2>Service</h2>

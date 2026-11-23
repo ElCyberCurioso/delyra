@@ -10,6 +10,8 @@ const en: Translation<ImportMessages> = {
     state: "Google's response wasn't valid or had expired. Press “Connect with Google” again.",
     busy: "You already have an import running. Wait for it to finish.",
     error: "Couldn't connect with Google. Please try again.",
+    "offline-denied":
+      "Google didn't give permanent permission, so syncing isn't possible. Connect again and accept all the permissions.",
   },
   counts: {
     events: (n) => count(n, "event", "events"),
@@ -40,6 +42,38 @@ const en: Translation<ImportMessages> = {
     privacy: "privacy policy",
     and: "and the",
     terms: "terms",
+  },
+  sync: {
+    title: "Sync with Google",
+    description:
+      "Keeps the Google calendars you choose up to date every 15 minutes. In Delyra they're read-only: edit them in Google.",
+    connect: "Connect to sync",
+    reconnect: "Connect again",
+    permanentNote:
+      "To sync, Delyra stores (encrypted) a permanent read-only permission. You can disconnect whenever you like and it's revoked in Google.",
+    connected: "Google account connected. Choose which calendars to sync.",
+    connectedAs: (email) => `Connected as ${email}.`,
+    yourAccount: "your Google account",
+    revoked:
+      "Google has withdrawn Delyra's permission (or it expired). Syncing is paused until you connect again.",
+    listLabel: "Synced calendars",
+    syncing: "Syncing…",
+    loadingCalendars: "Loading your Google calendars…",
+    allSynced: "You already sync all your Google calendars.",
+    calendar: "Google calendar",
+    notRecommended: (name) => `${name} (not recommended)`,
+    reminders: "Turn its reminders into Delyra alerts",
+    add: "Sync this calendar",
+    added: "Sync added. You'll see its events in a moment.",
+    remove: (name) => `Stop syncing ${name}`,
+    confirmRemove: (name) =>
+      `Stop syncing “${name}”? Its copy in Delyra will be deleted (not the Google calendar).`,
+    disconnect: "Disconnect Google",
+    confirmDisconnect: (n) =>
+      n === 0
+        ? "Disconnect your Google account? Delyra's permission will be revoked."
+        : `Disconnect your Google account? The permission will be revoked and ${String(n)} synced ${n === 1 ? "calendar" : "calendars"} will be deleted from Delyra (they stay in Google).`,
+    disconnected: "Google account disconnected",
   },
   subscriptions: {
     updated: (when) => ` · updated ${when}`,

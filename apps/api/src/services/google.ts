@@ -30,14 +30,17 @@ import {
  *
  * - OAuth 2.0 con authorization code + PKCE (S256). El `state` y el `code_verifier` viajan en
  *   una cookie cifrada y autenticada (AES-GCM), ligada al usuario y válida 10 minutos.
- * - Scope `calendar.readonly` y `access_type=online`: Google no entrega refresh token y el
- *   token de acceso (~1 h) solo se usa durante el análisis, cifrado, y se borra al terminar.
+ * - Scope `calendar.readonly`. Para importar, `access_type=online`: Google no entrega refresh
+ *   token y el token de acceso (~1 h) solo se usa durante el análisis, cifrado, y se borra al
+ *   terminar. Para la sincronización continua (F7-09, ADR-0014), `access_type=offline`: el token
+ *   de actualización se guarda cifrado en `google_connections` (services/google-sync.ts).
  * - `calendarList` y `events.list` paginados con `singleEvents=false`: se conservan las RRULE,
  *   las excepciones y las ocurrencias canceladas (que llegan como `status: cancelled`).
  */
 
 export const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 export const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+export const GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke";
 export const GOOGLE_API = "https://www.googleapis.com/calendar/v3";
 export const GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
 export const OAUTH_COOKIE = "__Secure-delyra-google";
@@ -68,19 +71,28 @@ export function googleConfig(env: {
 
 // ── OAuth ────────────────────────────────────────────────────────────────────
 
+/** `import`: una importación puntual. `sync`: conexión para la sincronización continua. */
+export type OAuthPurpose = "import" | "sync";
+
 export interface OAuthState {
   state: string;
   verifier: string;
   userId: string;
   expiresAt: number;
+  purpose: OAuthPurpose;
 }
 
-export function newOAuthState(userId: string, now: number): OAuthState {
+export function newOAuthState(
+  userId: string,
+  now: number,
+  purpose: OAuthPurpose = "import",
+): OAuthState {
   return {
     state: randomToken(32),
     verifier: randomToken(48),
     userId,
     expiresAt: now + OAUTH_TTL_MS,
+    purpose,
   };
 }
 
@@ -98,7 +110,13 @@ export async function openOAuthState(value: string, keyring: Keyring): Promise<O
       typeof parsed.userId === "string" &&
       typeof parsed.expiresAt === "number"
     ) {
-      return parsed as OAuthState;
+      return {
+        state: parsed.state,
+        verifier: parsed.verifier,
+        userId: parsed.userId,
+        expiresAt: parsed.expiresAt,
+        purpose: parsed.purpose === "sync" ? "sync" : "import",
+      };
     }
   } catch {
     // Cookie manipulada o cifrada con otra clave.
@@ -113,9 +131,11 @@ export async function authorizeUrl(config: GoogleConfig, state: OAuthState): Pro
     redirect_uri: config.redirectUri,
     response_type: "code",
     scope: GOOGLE_SCOPE,
-    access_type: "online",
+    // Solo la sincronización pide acceso permanente; `consent` hace que Google lo vuelva a dar
+    // aunque la cuenta ya hubiera autorizado a Delyra antes.
+    access_type: state.purpose === "sync" ? "offline" : "online",
     include_granted_scopes: "false",
-    prompt: "select_account",
+    prompt: state.purpose === "sync" ? "consent select_account" : "select_account",
     state: state.state,
     code_challenge: await sha256Base64Url(state.verifier),
     code_challenge_method: "S256",
@@ -127,13 +147,21 @@ export class GoogleAuthError extends Error {
   override name = "GoogleAuthError";
 }
 
-/** Canjea el código por un token de acceso. Un refresh token, si llegara, se descarta. */
+/**
+ * Canjea el código por los tokens. Quien importa ignora el de actualización; solo la
+ * sincronización continua lo guarda (cifrado).
+ */
 export async function exchangeCode(
   config: GoogleConfig,
   code: string,
   verifier: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<{ accessToken: string; scope: string }> {
+): Promise<{
+  accessToken: string;
+  refreshToken: string | null;
+  expiresIn: number;
+  scope: string;
+}> {
   const response = await fetchImpl(GOOGLE_TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -149,7 +177,12 @@ export async function exchangeCode(
   });
   if (!response.ok)
     throw new GoogleAuthError(`Google rechazó el código (${String(response.status)})`);
-  const body = await response.json<{ access_token?: unknown; scope?: unknown }>();
+  const body = await response.json<{
+    access_token?: unknown;
+    refresh_token?: unknown;
+    expires_in?: unknown;
+    scope?: unknown;
+  }>();
   if (typeof body.access_token !== "string" || body.access_token.length > 4096) {
     throw new GoogleAuthError("Respuesta de Google sin token de acceso");
   }
@@ -157,7 +190,77 @@ export async function exchangeCode(
   if (!scope.split(" ").includes(GOOGLE_SCOPE)) {
     throw new GoogleAuthError("No se concedió acceso de lectura al calendario");
   }
-  return { accessToken: body.access_token, scope };
+  return {
+    accessToken: body.access_token,
+    refreshToken:
+      typeof body.refresh_token === "string" && body.refresh_token.length <= 4096
+        ? body.refresh_token
+        : null,
+    expiresIn: typeof body.expires_in === "number" ? body.expires_in : 3600,
+    scope,
+  };
+}
+
+/** Google ha retirado el permiso (o ha caducado): hace falta volver a conectar. */
+export class GoogleRevokedError extends Error {
+  override name = "GoogleRevokedError";
+  constructor() {
+    super("Google ha retirado el permiso de Delyra. Vuelve a conectar tu cuenta.");
+  }
+}
+
+/** Pide un token de acceso nuevo con el de actualización. */
+export async function refreshAccessToken(
+  config: GoogleConfig,
+  refreshToken: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<{ accessToken: string; expiresIn: number }> {
+  const response = await fetchImpl(GOOGLE_TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: config.clientId,
+      client_secret: config.clientSecret,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (response.status === 400 || response.status === 401) {
+    const body = await response.json<{ error?: unknown }>().catch(() => ({ error: undefined }));
+    if (body.error === "invalid_grant" || body.error === "unauthorized_client") {
+      throw new GoogleRevokedError();
+    }
+  }
+  if (!response.ok) {
+    throw new GoogleApiError(response.status, `Google respondió ${String(response.status)}`);
+  }
+  const body = await response.json<{ access_token?: unknown; expires_in?: unknown }>();
+  if (typeof body.access_token !== "string" || body.access_token.length > 4096) {
+    throw new GoogleApiError(502, "Respuesta de Google sin token de acceso");
+  }
+  return {
+    accessToken: body.access_token,
+    expiresIn: typeof body.expires_in === "number" ? body.expires_in : 3600,
+  };
+}
+
+/** Revoca el permiso en Google (al desconectar). Si falla, el token ya no se guarda igualmente. */
+export async function revokeGoogleToken(
+  token: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean> {
+  try {
+    const response = await fetchImpl(GOOGLE_REVOKE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ token }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 export const tokenAad = (ownerId: string, importId: string) =>
@@ -233,11 +336,19 @@ export class GoogleApiError extends Error {
   }
 }
 
+/** El token de acceso ya no vale (401). */
+export class GoogleUnauthorizedError extends ImportFormatError {
+  override name = "GoogleUnauthorizedError";
+}
+
 const EVENT_FIELDS =
-  "nextPageToken,items(id,iCalUID,status,summary,description,location,start,end,recurrence," +
-  "recurringEventId,originalStartTime,reminders,eventType)";
+  "nextPageToken,nextSyncToken,items(id,iCalUID,status,summary,description,location,start,end," +
+  "recurrence,recurringEventId,originalStartTime,reminders,eventType)";
 
 export class GoogleCalendarClient {
+  /** `nextSyncToken` de la última descarga completa de eventos (para la sincronización). */
+  nextSyncToken: string | null = null;
+
   constructor(
     private readonly token: string,
     private readonly fetchImpl: typeof fetch = fetch,
@@ -253,7 +364,9 @@ export class GoogleCalendarClient {
       signal: AbortSignal.timeout(30_000),
     });
     if (response.status === 401) {
-      throw new ImportFormatError("La autorización de Google ha caducado. Vuelve a conectar.");
+      throw new GoogleUnauthorizedError(
+        "La autorización de Google ha caducado. Vuelve a conectar.",
+      );
     }
     if (!response.ok) {
       throw new GoogleApiError(
@@ -283,22 +396,64 @@ export class GoogleCalendarClient {
     return result;
   }
 
+  /** Un calendario de la lista de la cuenta (404 si ya no está o no hay acceso). */
+  async calendarEntry(calendarId: string): Promise<GoogleCalendarEntry> {
+    return this.get<GoogleCalendarEntry>(
+      `/users/me/calendarList/${encodeURIComponent(calendarId)}`,
+      {},
+    );
+  }
+
   async *events(calendarId: string): AsyncGenerator<GoogleEvent[]> {
+    this.nextSyncToken = null;
     let pageToken: string | undefined;
     do {
-      const page = await this.get<{ items?: GoogleEvent[]; nextPageToken?: string }>(
-        `/calendars/${encodeURIComponent(calendarId)}/events`,
-        {
-          maxResults: "2500",
-          singleEvents: "false",
-          showDeleted: "false",
-          fields: EVENT_FIELDS,
-          ...(pageToken ? { pageToken } : {}),
-        },
-      );
+      const page = await this.get<{
+        items?: GoogleEvent[];
+        nextPageToken?: string;
+        nextSyncToken?: string;
+      }>(`/calendars/${encodeURIComponent(calendarId)}/events`, {
+        maxResults: "2500",
+        singleEvents: "false",
+        showDeleted: "false",
+        fields: EVENT_FIELDS,
+        ...(pageToken ? { pageToken } : {}),
+      });
       yield page.items ?? [];
       pageToken = page.nextPageToken;
+      if (page.nextSyncToken) this.nextSyncToken = page.nextSyncToken.slice(0, 1024);
     } while (pageToken);
+  }
+
+  /**
+   * Cuántos eventos han cambiado desde `syncToken` (sincronización incremental). Lanza
+   * `GoogleApiError` 410 si el token ya no vale y hay que descargarlo todo.
+   */
+  async changesSince(
+    calendarId: string,
+    syncToken: string,
+  ): Promise<{ changed: number; nextSyncToken: string | null }> {
+    let changed = 0;
+    let next: string | null = null;
+    let pageToken: string | undefined;
+    do {
+      const page = await this.get<{
+        items?: unknown[];
+        nextPageToken?: string;
+        nextSyncToken?: string;
+      }>(`/calendars/${encodeURIComponent(calendarId)}/events`, {
+        maxResults: "2500",
+        singleEvents: "false",
+        showDeleted: "false",
+        syncToken,
+        fields: "nextPageToken,nextSyncToken,items(id)",
+        ...(pageToken ? { pageToken } : {}),
+      });
+      changed += page.items?.length ?? 0;
+      pageToken = page.nextPageToken;
+      if (page.nextSyncToken) next = page.nextSyncToken.slice(0, 1024);
+    } while (pageToken);
+    return { changed, nextSyncToken: next };
   }
 }
 

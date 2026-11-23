@@ -11,6 +11,8 @@ const es = {
       "La respuesta de Google no era válida o había caducado. Vuelve a pulsar «Conectar con Google».",
     busy: "Ya tienes una importación en marcha. Espera a que termine.",
     error: "No se ha podido conectar con Google. Vuelve a intentarlo.",
+    "offline-denied":
+      "Google no ha dado permiso permanente, así que no se puede sincronizar. Vuelve a conectar y acepta todos los permisos.",
   },
   counts: {
     events: (n: number) => count(n, "evento", "eventos", "es-ES"),
@@ -42,6 +44,38 @@ const es = {
     privacy: "política de privacidad",
     and: "y las",
     terms: "condiciones",
+  },
+  sync: {
+    title: "Sincronizar con Google",
+    description:
+      "Mantiene al día, cada 15 minutos, los calendarios de Google que elijas. En Delyra son de solo lectura: se editan en Google.",
+    connect: "Conectar para sincronizar",
+    reconnect: "Volver a conectar",
+    permanentNote:
+      "Para sincronizar, Delyra guarda (cifrado) un permiso permanente de solo lectura. Puedes desconectar cuando quieras y se revoca en Google.",
+    connected: "Cuenta de Google conectada. Elige qué calendarios sincronizar.",
+    connectedAs: (email: string) => `Conectada como ${email}.`,
+    yourAccount: "tu cuenta de Google",
+    revoked:
+      "Google ha retirado el permiso de Delyra (o ha caducado). La sincronización está en pausa hasta que vuelvas a conectar.",
+    listLabel: "Calendarios sincronizados",
+    syncing: "Sincronizando…",
+    loadingCalendars: "Cargando tus calendarios de Google…",
+    allSynced: "Ya sincronizas todos tus calendarios de Google.",
+    calendar: "Calendario de Google",
+    notRecommended: (name: string) => `${name} (no recomendado)`,
+    reminders: "Convertir sus recordatorios en alertas de Delyra",
+    add: "Sincronizar este calendario",
+    added: "Sincronización añadida. En un momento verás sus eventos.",
+    remove: (name: string) => `Dejar de sincronizar ${name}`,
+    confirmRemove: (name: string) =>
+      `¿Dejar de sincronizar «${name}»? Se borrará su copia en Delyra (no el calendario de Google).`,
+    disconnect: "Desconectar Google",
+    confirmDisconnect: (n: number) =>
+      n === 0
+        ? "¿Desconectar tu cuenta de Google? Se revocará el permiso de Delyra."
+        : `¿Desconectar tu cuenta de Google? Se revocará el permiso y se borrarán de Delyra ${String(n)} ${n === 1 ? "calendario sincronizado" : "calendarios sincronizados"} (siguen en Google).`,
+    disconnected: "Cuenta de Google desconectada",
   },
   subscriptions: {
     updated: (when: string) => ` · actualizado ${when}`,

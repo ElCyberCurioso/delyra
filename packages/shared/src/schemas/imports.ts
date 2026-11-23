@@ -176,3 +176,59 @@ export const subscriptionResponseSchema = z.object({ subscription: subscriptionS
 export const subscriptionsResponseSchema = z.object({
   subscriptions: z.array(subscriptionSchema),
 });
+
+// ── Sincronización continua con Google (F7-09) ───────────────────────────────
+
+export const GOOGLE_CONNECTION_STATUSES = ["ok", "revoked"] as const;
+export type GoogleConnectionStatus = (typeof GOOGLE_CONNECTION_STATUSES)[number];
+
+/** Un calendario de Google que se refleja (solo lectura) en un calendario de Delyra. */
+export const googleSyncedCalendarSchema = z.object({
+  id: z.string(),
+  calendarId: z.string(),
+  name: z.string(),
+  color: z.string(),
+  /** Sus recordatorios se convierten en alertas. */
+  reminders: z.boolean(),
+  status: z.enum(SUBSCRIPTION_STATUSES),
+  error: z.string().nullable(),
+  events: z.number(),
+  lastSyncedAt: z.string().nullable(),
+  nextSyncAt: z.string().nullable(),
+});
+export type GoogleSyncedCalendar = z.infer<typeof googleSyncedCalendarSchema>;
+
+export const googleSyncResponseSchema = z.object({
+  /** Falso si el servidor no tiene configurado el cliente OAuth (P-11). */
+  enabled: z.boolean(),
+  connection: z
+    .object({
+      /** Cuenta de Google conectada (el id de su calendario principal). */
+      email: z.string().nullable(),
+      /** `revoked`: Google retiró el permiso o caducó; hay que volver a conectar. */
+      status: z.enum(GOOGLE_CONNECTION_STATUSES),
+      connectedAt: z.string(),
+    })
+    .nullable(),
+  calendars: z.array(googleSyncedCalendarSchema),
+});
+export type GoogleSyncInfo = z.infer<typeof googleSyncResponseSchema>;
+
+/** Calendarios de la cuenta de Google que se pueden sincronizar. */
+export const googleAccountCalendarsResponseSchema = z.object({
+  calendars: z.array(
+    z.object({
+      googleCalendarId: z.string(),
+      name: z.string(),
+      color: z.string().nullable(),
+      /** Festivos y números de semana de Google: mejor no sincronizarlos (Delyra trae los suyos). */
+      suggestSkip: z.boolean(),
+      synced: z.boolean(),
+    }),
+  ),
+});
+
+export const addGoogleSyncRequestSchema = z.object({
+  googleCalendarId: z.string().trim().min(1).max(300),
+  reminders: z.boolean().default(true),
+});

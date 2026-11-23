@@ -104,13 +104,19 @@ function PrivacyEs() {
         Solo si tú lo pides, Delyra se conecta a tu cuenta de Google con el permiso de{" "}
         <strong>solo lectura del calendario</strong> (<code>calendar.readonly</code>) para importar
         una vez tus calendarios (nombre, color y zona horaria), sus eventos (con sus repeticiones) y
-        sus recordatorios.
+        sus recordatorios, o para mantener sincronizados los que elijas.
       </p>
       <ul>
         <li>
-          No se guarda ningún permiso permanente: Delyra no recibe ni almacena un token de
-          actualización. El token de acceso temporal (una hora como máximo) se guarda cifrado solo
-          mientras se descargan los calendarios y se borra al terminar.
+          Para importar una vez no se guarda ningún permiso permanente: el token de acceso temporal
+          (una hora como máximo) se guarda cifrado solo mientras se descargan los calendarios y se
+          borra al terminar.
+        </li>
+        <li>
+          Si activas la sincronización, Delyra guarda cifrado un token de actualización de solo
+          lectura y el email de esa cuenta de Google, y cada 15 minutos consulta los cambios de los
+          calendarios que elegiste. Lo borra en cuanto pulsas «Desconectar Google» (y revoca el
+          permiso en Google) o si Google lo retira.
         </li>
         <li>
           Los datos descargados se guardan de forma temporal (como mucho 7 días) hasta que eliges
@@ -183,8 +189,9 @@ function TermsEs() {
         <li>Tu cuenta es personal: protege tu contraseña y tu segundo factor.</li>
         <li>No subas contenido ilegal ni intentes acceder a datos de otras personas.</li>
         <li>
-          Las importaciones desde Google son a petición tuya y solo leen los calendarios de la
-          cuenta con la que te conectas.
+          Las importaciones y la sincronización con Google son a petición tuya y solo leen los
+          calendarios de la cuenta con la que te conectas. Los calendarios sincronizados se editan
+          en Google.
         </li>
       </ul>
       <h2>Servicio</h2>

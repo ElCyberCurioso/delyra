@@ -1,6 +1,8 @@
 import {
+  googleAccountCalendarsResponseSchema,
   googleAuthorizeResponseSchema,
   googleStatusResponseSchema,
+  googleSyncResponseSchema,
   type ImportInfo,
   importResponseSchema,
   importsResponseSchema,
@@ -16,6 +18,7 @@ import { useQuery } from "@tanstack/react-query";
 /** Importación desde Google (F5-03) y suscripciones iCal (F5-06). */
 
 export const IMPORTS_KEY = ["imports"] as const;
+export const GOOGLE_SYNC_KEY = ["google", "sync"] as const;
 export const SUBSCRIPTIONS_KEY = ["subscriptions"] as const;
 export const importKey = (id: string) => [...IMPORTS_KEY, id] as const;
 
@@ -113,3 +116,54 @@ export const syncSubscription = (id: string): Promise<SubscriptionInfo> =>
 
 export const unsubscribe = (id: string) =>
   apiFetch(`/api/subscriptions/${id}`, { method: "DELETE" });
+
+// ── Sincronización continua con Google (F7-09) ───────────────────────────────
+
+export function useGoogleSync() {
+  return useQuery({
+    queryKey: GOOGLE_SYNC_KEY,
+    queryFn: ({ signal }) =>
+      apiFetch("/api/google/sync", { schema: googleSyncResponseSchema, signal }),
+    // Mientras se hace la primera descarga de un calendario, se consulta su estado.
+    refetchInterval: (query) =>
+      query.state.data?.calendars.some((c) => c.status === "pending") ? 2000 : false,
+  });
+}
+
+export function useGoogleAccountCalendars(enabled: boolean) {
+  return useQuery({
+    queryKey: [...GOOGLE_SYNC_KEY, "available"],
+    enabled,
+    retry: false,
+    staleTime: 60_000,
+    queryFn: ({ signal }) =>
+      apiFetch("/api/google/sync/available", {
+        schema: googleAccountCalendarsResponseSchema,
+        signal,
+      }).then((r) => r.calendars),
+  });
+}
+
+export const authorizeGoogleSync = () =>
+  apiFetch("/api/google/sync/authorize", {
+    method: "POST",
+    schema: googleAuthorizeResponseSchema,
+  });
+
+export const addGoogleSync = (googleCalendarId: string, reminders: boolean) =>
+  apiFetch("/api/google/sync/calendars", {
+    method: "POST",
+    body: { googleCalendarId, reminders },
+    schema: googleSyncResponseSchema,
+  });
+
+export const syncGoogleNow = (id: string) =>
+  apiFetch(`/api/google/sync/calendars/${id}/sync`, {
+    method: "POST",
+    schema: googleSyncResponseSchema,
+  });
+
+export const removeGoogleSync = (id: string) =>
+  apiFetch(`/api/google/sync/calendars/${id}`, { method: "DELETE" });
+
+export const disconnectGoogleSync = () => apiFetch("/api/google/sync", { method: "DELETE" });

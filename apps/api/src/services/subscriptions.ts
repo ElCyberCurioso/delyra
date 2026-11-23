@@ -4,7 +4,13 @@ import type { SubscriptionRow } from "../db/schema";
 import { AppError } from "../lib/errors";
 import { decryptField, encryptField, type Keyring } from "../lib/field-crypto";
 import { looksLikeIcs, parseIcs } from "../lib/ics";
-import { IMPORT_LIMITS, ImportFormatError, ImportLimitError, stripBom } from "../lib/import-model";
+import {
+  IMPORT_LIMITS,
+  type ImportedEvent,
+  ImportFormatError,
+  ImportLimitError,
+  stripBom,
+} from "../lib/import-model";
 import type { Logger } from "../lib/logger";
 import { calendarRepository } from "../repositories/calendars";
 import { eventRepository } from "../repositories/events";
@@ -137,6 +143,62 @@ export interface SyncResult extends ApplyCounts {
   notModified: boolean;
 }
 
+/**
+ * Deja un calendario de solo lectura igual que el origen (suscripción iCal o calendario de
+ * Google sincronizado): crea y actualiza lo que llega y borra lo que ya no está (series, eventos
+ * sueltos y excepciones).
+ */
+export async function mirrorCalendar(
+  db: Database,
+  ownerId: string,
+  calendarId: string,
+  imported: readonly ImportedEvent[],
+  now: number,
+  options: { reminders: boolean } = { reminders: false },
+): Promise<ApplyCounts & { deleted: number }> {
+  const events = eventRepository(db, ownerId);
+  const ctx = { events, calendars: calendarRepository(db, ownerId), now };
+  const counts = await applyImportedEvents(ctx, imported, {
+    target: () => Promise.resolve(calendarId),
+    scope: { calendarId },
+    reminders: options.reminders,
+    mirror: true,
+  });
+
+  const present = new Set(imported.map((e) => e.uid));
+  const standalone = new Set(
+    imported
+      .filter((e) => e.recurrenceId !== null)
+      .map((e) => `${e.uid}#${String(e.recurrenceId)}`),
+  );
+  const stale = (await events.uidsOfCalendar(calendarId))
+    .filter((e) => e.icalUid === null || (!present.has(e.icalUid) && !standalone.has(e.icalUid)))
+    .map((e) => e.id);
+  await events.hardDelete(stale);
+  const overridesByUid = new Map<string, Set<number>>();
+  for (const event of imported) {
+    if (event.recurrenceId === null) continue;
+    const set = overridesByUid.get(event.uid) ?? new Set<number>();
+    set.add(event.recurrenceId);
+    overridesByUid.set(event.uid, set);
+  }
+  let deleted = stale.length;
+  const masters = await events.findByUids(
+    imported.filter((e) => e.recurrenceId === null && e.rrule).map((e) => e.uid),
+    { calendarId },
+  );
+  for (const master of masters) {
+    const keep = overridesByUid.get(master.icalUid ?? "") ?? new Set<number>();
+    for (const override of await events.overridesOf(master.id)) {
+      if (!keep.has(override.originalStart ?? -1)) {
+        await events.deleteOverride(override.id);
+        deleted++;
+      }
+    }
+  }
+  return { ...counts, deleted };
+}
+
 /** Sincroniza una suscripción: refleja en su calendario lo que haya ahora en Google. */
 export async function syncSubscription(
   db: Database,
@@ -168,47 +230,13 @@ export async function syncSubscription(
       return { ...empty, notModified: true };
     }
     const parsed = parseIcs(feed.text, { defaultTimeZone: await userTimeZone(db, row.ownerId) });
-    const events = eventRepository(db, row.ownerId);
-    const ctx = { events, calendars: calendarRepository(db, row.ownerId), now };
-    const counts = await applyImportedEvents(ctx, parsed.events, {
-      target: () => Promise.resolve(row.calendarId),
-      scope: { calendarId: row.calendarId },
-      reminders: false,
-      mirror: true,
-    });
-
-    // Lo que ya no está en el origen se borra (series, eventos y excepciones).
-    const present = new Set(parsed.events.map((e) => e.uid));
-    const standalone = new Set(
-      parsed.events
-        .filter((e) => e.recurrenceId !== null)
-        .map((e) => `${e.uid}#${String(e.recurrenceId)}`),
+    const { deleted, ...counts } = await mirrorCalendar(
+      db,
+      row.ownerId,
+      row.calendarId,
+      parsed.events,
+      now,
     );
-    const stale = (await events.uidsOfCalendar(row.calendarId))
-      .filter((e) => e.icalUid === null || (!present.has(e.icalUid) && !standalone.has(e.icalUid)))
-      .map((e) => e.id);
-    await events.hardDelete(stale);
-    const overridesByUid = new Map<string, Set<number>>();
-    for (const event of parsed.events) {
-      if (event.recurrenceId === null) continue;
-      const set = overridesByUid.get(event.uid) ?? new Set<number>();
-      set.add(event.recurrenceId);
-      overridesByUid.set(event.uid, set);
-    }
-    let deleted = stale.length;
-    const masters = await events.findByUids(
-      parsed.events.filter((e) => e.recurrenceId === null && e.rrule).map((e) => e.uid),
-      { calendarId: row.calendarId },
-    );
-    for (const master of masters) {
-      const keep = overridesByUid.get(master.icalUid ?? "") ?? new Set<number>();
-      for (const override of await events.overridesOf(master.id)) {
-        if (!keep.has(override.originalStart ?? -1)) {
-          await events.deleteOverride(override.id);
-          deleted++;
-        }
-      }
-    }
 
     await repo.update(row.id, {
       status: "ok",

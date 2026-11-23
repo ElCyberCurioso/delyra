@@ -255,6 +255,113 @@ describe("Importar desde Google (F5-03)", () => {
     expect(screen.getByText("118")).toBeInTheDocument();
   });
 
+  it("sincronización con Google (F7-09): añadir, permiso revocado y desconectar", async () => {
+    sessionState = "active";
+    const GOOGLE_ID = "persona@gmail.com";
+    let sync = {
+      enabled: true,
+      connection: { email: GOOGLE_ID, status: "ok", connectedAt: "2026-11-23T10:00:00.000Z" },
+      calendars: [] as Record<string, unknown>[],
+    };
+    const synced = {
+      id: "01a1fa43-8aed-7103-b1ae-9ca51d830101",
+      calendarId: "01a1fa43-8aed-7103-b1ae-9ca51d830102",
+      name: "Mi calendario",
+      color: "#9fe1e7",
+      reminders: false,
+      status: "ok",
+      error: null,
+      events: 3,
+      lastSyncedAt: "2026-11-23T10:05:00.000Z",
+      nextSyncAt: "2026-11-23T10:20:00.000Z",
+    };
+    server.use(
+      http.get("/api/google/status", () => HttpResponse.json({ enabled: true })),
+      http.get("/api/subscriptions", () => HttpResponse.json({ subscriptions: [] })),
+      http.get("/api/imports", () => HttpResponse.json({ imports: [] })),
+      http.get("/api/google/sync", () => HttpResponse.json(sync)),
+      http.get("/api/google/sync/available", () =>
+        HttpResponse.json({
+          calendars: [
+            {
+              googleCalendarId: "es.spain#holiday@group.v.calendar.google.com",
+              name: "Festivos en España",
+              color: "#16a765",
+              suggestSkip: true,
+              synced: false,
+            },
+            {
+              googleCalendarId: GOOGLE_ID,
+              name: "Mi calendario",
+              color: "#9fe1e7",
+              suggestSkip: false,
+              synced: sync.calendars.length > 0,
+            },
+          ],
+        }),
+      ),
+      http.post("/api/google/sync/calendars", async ({ request }) => {
+        requests.push({ path: "sync-add", body: await request.json() });
+        sync = { ...sync, calendars: [synced] };
+        return HttpResponse.json(sync, { status: 201 });
+      }),
+      http.delete("/api/google/sync", () => {
+        requests.push({ path: "sync-disconnect", body: null });
+        sync = { enabled: true, connection: null as never, calendars: [] };
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const user = userEvent.setup();
+    renderAt("/importar");
+
+    const section = await screen.findByRole("region", { name: "Sincronizar con Google" });
+    expect(within(section).getByText(`Conectada como ${GOOGLE_ID}.`)).toBeInTheDocument();
+    // Por defecto propone el calendario recomendado, no los festivos de Google.
+    const select = await within(section).findByLabelText("Calendario de Google");
+    expect(select).toHaveValue(GOOGLE_ID);
+    expect(
+      within(section).getByRole("option", { name: "Festivos en España (no recomendado)" }),
+    ).toBeInTheDocument();
+    await user.click(within(section).getByLabelText(/Convertir sus recordatorios/));
+    await user.click(within(section).getByRole("button", { name: "Sincronizar este calendario" }));
+    expect(await within(section).findByText(/3 eventos/)).toBeInTheDocument();
+    expect(requests.find((r) => r.path === "sync-add")?.body).toEqual({
+      googleCalendarId: GOOGLE_ID,
+      reminders: false,
+    });
+    expect(
+      within(section).getByRole("button", { name: "Dejar de sincronizar Mi calendario" }),
+    ).toBeInTheDocument();
+
+    await user.click(within(section).getByRole("button", { name: "Desconectar Google" }));
+    expect(
+      await within(section).findByRole("button", { name: "Conectar para sincronizar" }),
+    ).toBeInTheDocument();
+    expect(requests.some((r) => r.path === "sync-disconnect")).toBe(true);
+  });
+
+  it("con el permiso de Google revocado pide volver a conectar", async () => {
+    sessionState = "active";
+    server.use(
+      http.get("/api/google/status", () => HttpResponse.json({ enabled: true })),
+      http.get("/api/subscriptions", () => HttpResponse.json({ subscriptions: [] })),
+      http.get("/api/imports", () => HttpResponse.json({ imports: [] })),
+      http.get("/api/google/sync", () =>
+        HttpResponse.json({
+          enabled: true,
+          connection: { email: null, status: "revoked", connectedAt: "2026-11-01T10:00:00.000Z" },
+          calendars: [],
+        }),
+      ),
+    );
+    renderAt("/importar");
+    const section = await screen.findByRole("region", { name: "Sincronizar con Google" });
+    expect(within(section).getByRole("alert")).toHaveTextContent("Google ha retirado el permiso");
+    expect(within(section).getByRole("button", { name: "Volver a conectar" })).toBeInTheDocument();
+    expect(within(section).queryByLabelText("Calendario de Google")).toBeNull();
+  });
+
   it("las páginas de privacidad y condiciones son públicas", async () => {
     sessionState = "anonymous";
     renderAt("/privacidad");

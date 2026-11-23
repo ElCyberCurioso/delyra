@@ -1,6 +1,7 @@
 # ADR-0008 · Importación desde Google Calendar sin tokens de larga duración
 
-- **Estado:** aceptada (2026-11-22)
+- **Estado:** aceptada (2026-11-22); la sincronización continua (ADR-0014) sí guarda, cifrado, un
+  token de actualización, pero solo en esa vía y a petición de la persona
 - **Fecha:** 2026-11-22
 - **Tareas afectadas:** F5-01 a F5-07
 
