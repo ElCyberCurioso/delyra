@@ -2,7 +2,6 @@ import {
   BACKUP_FREQUENCIES,
   BACKUP_LIMITS,
   type BackupCounts,
-  type BackupFrequency,
   backupResponseSchema,
   backupSettingsSchema,
   backupsResponseSchema,
@@ -10,7 +9,6 @@ import {
   type RestoreInfo,
   type RestoreMode,
   restoreResponseSchema,
-  type UserBackupInfo,
 } from "@delyra/shared";
 import {
   type ActiveSession,
@@ -28,6 +26,7 @@ import {
   FormError,
   SelectField,
   toast,
+  translateServer,
 } from "@delyra/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -41,24 +40,12 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { formatDateTime } from "./format";
+import { settingsMessages } from "./messages";
 import { Section } from "./section";
 
 /** Copias de seguridad en Ajustes (F6-05): crear, descargar, restaurar y deshacer. */
 
 const BACKUPS_KEY = ["account", "backups"] as const;
-
-const KIND_LABELS: Record<UserBackupInfo["kind"], string> = {
-  manual: "Manual",
-  auto: "Automática",
-  pre_restore: "Antes de restaurar",
-};
-
-const FREQUENCY_LABELS: Record<BackupFrequency, string> = {
-  off: "Desactivada",
-  daily: "Cada día",
-  weekly: "Cada semana",
-  monthly: "Cada mes",
-};
 
 function formatSize(bytes: number | null): string {
   if (bytes === null) return "";
@@ -69,13 +56,13 @@ function formatSize(bytes: number | null): string {
 
 function describeCounts(counts: BackupCounts | null): string {
   if (!counts) return "";
-  const part = (n: number, one: string, many: string) => `${String(n)} ${n === 1 ? one : many}`;
+  const t = settingsMessages().backups.counts;
   return [
-    part(counts.calendars, "calendario", "calendarios"),
-    part(counts.events, "evento", "eventos"),
-    part(counts.boards, "tablero", "tableros"),
-    part(counts.cards, "tarjeta", "tarjetas"),
-    counts.attachments > 0 ? part(counts.attachments, "adjunto", "adjuntos") : null,
+    t.calendars(counts.calendars),
+    t.events(counts.events),
+    t.boards(counts.boards),
+    t.cards(counts.cards),
+    counts.attachments > 0 ? t.attachments(counts.attachments) : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -134,6 +121,7 @@ function RestorePanel({
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = settingsMessages().backups;
 
   async function run(action: () => Promise<unknown>) {
     setError(null);
@@ -172,9 +160,7 @@ function RestorePanel({
     restore.progress.total > 0
       ? Math.round((restore.progress.done / restore.progress.total) * 100)
       : 0;
-  const title = restore.undoOf
-    ? "Deshaciendo la restauración"
-    : `Restaurar ${restore.filename ?? "una copia guardada"}`;
+  const title = restore.undoOf ? t.undoing : t.restoreNamed(restore.filename ?? t.savedCopy);
 
   return (
     <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 text-sm" aria-live="polite">
@@ -183,24 +169,23 @@ function RestorePanel({
       {restore.status === "validating" ? (
         <p className="flex items-center gap-2 text-muted-foreground">
           <Loader2Icon aria-hidden="true" className="size-4 animate-spin" />
-          Comprobando la copia…
+          {t.validating}
         </p>
       ) : null}
       {restore.status === "ready" ? (
         <>
           <p className="text-muted-foreground">
-            Copia del{" "}
-            {restore.exportedAt ? formatDateTime(restore.exportedAt, timeZone) : "(sin fecha)"}:{" "}
-            {describeCounts(restore.counts)}.
+            {t.copyOf(restore.exportedAt ? formatDateTime(restore.exportedAt, timeZone) : t.noDate)}
+            : {describeCounts(restore.counts)}.
           </p>
           {restore.warnings.map((w) => (
             <p key={w} className="flex items-start gap-2 text-amber-700 dark:text-amber-400">
               <TriangleAlertIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-              {w}
+              {translateServer(w)}
             </p>
           ))}
           <fieldset className="grid gap-2">
-            <legend className="mb-1 font-medium">¿Cómo la restauro?</legend>
+            <legend className="mb-1 font-medium">{t.how}</legend>
             <label className="flex items-start gap-2">
               <input
                 type="radio"
@@ -210,8 +195,7 @@ function RestorePanel({
                 onChange={() => setMode("merge")}
               />
               <span>
-                <strong>Fusionar</strong> con lo que ya tienes: los calendarios con el mismo nombre
-                se juntan, los eventos idénticos no se duplican y los tableros se añaden.
+                <strong>{t.merge}</strong> {t.mergeDetail}
               </span>
             </label>
             <label className="flex items-start gap-2">
@@ -223,23 +207,20 @@ function RestorePanel({
                 onChange={() => setMode("replace")}
               />
               <span>
-                <strong>Reemplazar</strong> todos tus calendarios, eventos y tableros por los de la
-                copia (las suscripciones iCal se mantienen).
+                <strong>{t.replace}</strong> {t.replaceDetail}
               </span>
             </label>
           </fieldset>
-          <p className="text-muted-foreground">
-            Antes de restaurar se guarda una copia de lo que tienes ahora: podrás deshacerlo.
-          </p>
+          <p className="text-muted-foreground">{t.safety}</p>
           <div className="flex flex-wrap gap-2">
             <Button
               disabled={pending}
               onClick={() => (mode === "replace" ? setConfirming(true) : void start())}
             >
-              Restaurar
+              {settingsMessages().common.restore}
             </Button>
             <Button variant="outline" disabled={pending} onClick={() => void discard()}>
-              Descartar
+              {t.discard}
             </Button>
           </div>
         </>
@@ -248,12 +229,12 @@ function RestorePanel({
         <div className="grid gap-2">
           <p className="flex items-center gap-2 text-muted-foreground">
             <Loader2Icon aria-hidden="true" className="size-4 animate-spin" />
-            Restaurando…
+            {t.restoring}
           </p>
           <div
             className="h-2 overflow-hidden rounded-full bg-muted"
             role="progressbar"
-            aria-label="Progreso de la restauración"
+            aria-label={t.progress}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={percent}
@@ -268,43 +249,40 @@ function RestorePanel({
       {restore.status === "succeeded" ? (
         <p className="flex items-center gap-2">
           <CheckCircle2Icon aria-hidden="true" className="size-4 text-green-600" />
-          {restore.undoOf ? "Se ha deshecho la restauración." : "Copia restaurada."}
+          {restore.undoOf ? t.undone : t.restored}
         </p>
       ) : null}
-      {restore.status === "undone" ? (
-        <p className="text-muted-foreground">Esta restauración se deshizo.</p>
-      ) : null}
+      {restore.status === "undone" ? <p className="text-muted-foreground">{t.wasUndone}</p> : null}
       {restore.status === "failed" || restore.status === "expired" ? (
         <p role="alert" className="flex items-start gap-2 text-destructive">
           <TriangleAlertIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
           {restore.status === "expired"
-            ? "La vista previa ha caducado. Vuelve a empezar."
-            : (restore.error ?? "La restauración ha fallado.")}
+            ? t.expired
+            : restore.error
+              ? translateServer(restore.error)
+              : t.failed}
         </p>
       ) : null}
       {canUndo ? (
         <div>
           <Button variant="outline" disabled={pending} onClick={() => void undo()}>
             <RotateCcwIcon aria-hidden="true" />
-            Deshacer
+            {t.undo}
           </Button>
         </div>
       ) : null}
       <Dialog open={confirming} onOpenChange={setConfirming}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>¿Reemplazar todos tus datos?</DialogTitle>
-            <DialogDescription>
-              Tus calendarios, eventos y tableros actuales se sustituirán por los de la copia. Antes
-              se guarda una copia de lo que tienes y podrás deshacerlo.
-            </DialogDescription>
+            <DialogTitle>{t.confirmTitle}</DialogTitle>
+            <DialogDescription>{t.confirmBody}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">Cancelar</Button>
+              <Button variant="outline">{settingsMessages().common.cancel}</Button>
             </DialogClose>
             <Button variant="destructive" disabled={pending} onClick={() => void start()}>
-              Reemplazar
+              {t.replace}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -319,6 +297,7 @@ export function BackupsSection({ session }: { session: ActiveSession }) {
   const backups = useBackups();
   const [pending, setPending] = useState(false);
   const refresh = () => queryClient.invalidateQueries({ queryKey: BACKUPS_KEY });
+  const t = settingsMessages().backups;
 
   async function act(action: () => Promise<unknown>, success?: string) {
     setPending(true);
@@ -342,8 +321,8 @@ export function BackupsSection({ session }: { session: ActiveSession }) {
   return (
     <Section
       id="copias"
-      title="Copias de seguridad"
-      description="Tus calendarios, eventos, tableros y adjuntos en un .zip que puedes descargar y restaurar. No incluyen contraseñas, el segundo factor ni las suscripciones iCal."
+      title={t.title}
+      description={t.description}
       actions={
         <Button
           size="sm"
@@ -351,12 +330,12 @@ export function BackupsSection({ session }: { session: ActiveSession }) {
           onClick={() =>
             void act(
               () => apiFetch("/api/backups", { method: "POST", schema: backupResponseSchema }),
-              "Haciendo la copia…",
+              t.creating,
             )
           }
         >
           {busy ? <Loader2Icon aria-hidden="true" className="animate-spin" /> : null}
-          Crear copia ahora
+          {t.create}
         </Button>
       }
     >
@@ -364,9 +343,9 @@ export function BackupsSection({ session }: { session: ActiveSession }) {
         {data ? (
           <div className="grid gap-3 sm:grid-cols-2">
             <SelectField
-              label="Copia automática"
+              label={t.auto}
               value={data.settings.frequency}
-              options={BACKUP_FREQUENCIES.map((f) => ({ value: f, label: FREQUENCY_LABELS[f] }))}
+              options={BACKUP_FREQUENCIES.map((f) => ({ value: f, label: t.frequencies[f] }))}
               onChange={(e) => {
                 const settings = backupSettingsSchema.parse({
                   ...data.settings,
@@ -378,7 +357,7 @@ export function BackupsSection({ session }: { session: ActiveSession }) {
               }}
             />
             <SelectField
-              label="Copias automáticas que se guardan"
+              label={t.keep}
               value={String(data.settings.keep)}
               disabled={data.settings.frequency === "off"}
               options={Array.from({ length: BACKUP_LIMITS.keepAutoMax }, (_, i) => ({
@@ -400,7 +379,7 @@ export function BackupsSection({ session }: { session: ActiveSession }) {
         {restore ? <RestorePanel restore={restore} timeZone={timeZone} onChange={refresh} /> : null}
 
         <label className="grid gap-1.5 text-sm">
-          <span className="font-medium">Restaurar desde un archivo (.zip o .json)</span>
+          <span className="font-medium">{t.fromFile}</span>
           <span className="flex items-center gap-2">
             <UploadIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
             <input
@@ -418,7 +397,7 @@ export function BackupsSection({ session }: { session: ActiveSession }) {
         </label>
 
         {list.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aún no tienes copias.</p>
+          <p className="text-sm text-muted-foreground">{t.none}</p>
         ) : (
           <ul className="grid gap-2">
             {list.map((backup) => (
@@ -428,7 +407,7 @@ export function BackupsSection({ session }: { session: ActiveSession }) {
               >
                 <div className="min-w-0">
                   <p className="font-medium">
-                    {KIND_LABELS[backup.kind]} · {formatDateTime(backup.createdAt, timeZone)}
+                    {t.kinds[backup.kind]} · {formatDateTime(backup.createdAt, timeZone)}
                   </p>
                   <p
                     className={
@@ -438,9 +417,11 @@ export function BackupsSection({ session }: { session: ActiveSession }) {
                     }
                   >
                     {backup.status === "running"
-                      ? "Haciendo la copia…"
+                      ? t.creating
                       : backup.status === "failed"
-                        ? (backup.error ?? "Ha fallado")
+                        ? backup.error
+                          ? translateServer(backup.error)
+                          : t.backupFailed
                         : `${formatSize(backup.sizeBytes)} · ${describeCounts(backup.counts)}`}
                   </p>
                 </div>
@@ -449,7 +430,7 @@ export function BackupsSection({ session }: { session: ActiveSession }) {
                     <Button asChild variant="outline" size="sm">
                       <a href={`/api/backups/${backup.id}/download`} download>
                         <DownloadIcon aria-hidden="true" />
-                        Descargar
+                        {settingsMessages().common.download}
                       </a>
                     </Button>
                     <Button
@@ -467,17 +448,17 @@ export function BackupsSection({ session }: { session: ActiveSession }) {
                       }
                     >
                       <RotateCcwIcon aria-hidden="true" />
-                      Restaurar
+                      {settingsMessages().common.restore}
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      aria-label="Borrar la copia"
+                      aria-label={t.delete}
                       disabled={pending}
                       onClick={() =>
                         void act(
                           () => apiFetch(`/api/backups/${backup.id}`, { method: "DELETE" }),
-                          "Copia borrada",
+                          t.deleted,
                         )
                       }
                     >

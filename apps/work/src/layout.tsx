@@ -1,4 +1,10 @@
-import { type ActiveSession, AppShell, RequireSession, useLogout } from "@delyra/ui";
+import {
+  type ActiveSession,
+  AppShell,
+  RequireSession,
+  useChangeLocale,
+  useLogout,
+} from "@delyra/ui";
 import type { ReactNode } from "react";
 
 /**
@@ -7,10 +13,16 @@ import type { ReactNode } from "react";
  */
 export function WorkLayout({ children }: { children: (session: ActiveSession) => ReactNode }) {
   const logout = useLogout();
+  const changeLocale = useChangeLocale();
   return (
     <RequireSession>
       {(session) => (
-        <AppShell app="work" user={session.user} onSignOut={() => logout.mutate()}>
+        <AppShell
+          app="work"
+          user={session.user}
+          onSignOut={() => logout.mutate()}
+          onLocaleChange={(locale) => changeLocale.mutate(locale)}
+        >
           {children(session)}
         </AppShell>
       )}

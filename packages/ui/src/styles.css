@@ -101,3 +101,8 @@
     @apply bg-background text-foreground font-sans antialiased;
   }
 }
+
+/* F7-06 (WCAG 2.4.11): al moverse con el teclado, lo enfocado no queda tapado por la cabecera fija. */
+html {
+  scroll-padding-top: 4.5rem;
+}

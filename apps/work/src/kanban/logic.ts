@@ -1,6 +1,7 @@
 import {
   type BoardColumn,
   type BoardDetail,
+  type BoardTemplate,
   type CardPriority,
   type CardSummary,
   dateOnlyToUtc,
@@ -8,7 +9,9 @@ import {
   utcToDateOnly,
   wallToInstant,
 } from "@delyra/shared";
+import { intlLocale } from "@delyra/ui";
 import { generateKeyBetween } from "fractional-indexing";
+import { workMessages } from "./messages";
 
 /** Lógica del tablero sin React: orden, movimientos optimistas, filtros y fechas (F4-08, F4-10). */
 
@@ -135,14 +138,15 @@ export function dueLabel(due: DueInfo, timeZone: string, now: number): string {
   const today = localDate(now, timeZone);
   const tomorrow = utcToDateOnly(dateOnlyToUtc(today) + 86_400_000);
   const yesterday = utcToDateOnly(dateOnlyToUtc(today) - 86_400_000);
+  const t = workMessages().due;
   const day =
     date === today
-      ? "Hoy"
+      ? t.today
       : date === tomorrow
-        ? "Mañana"
+        ? t.tomorrow
         : date === yesterday
-          ? "Ayer"
-          : new Intl.DateTimeFormat("es-ES", {
+          ? t.yesterday
+          : new Intl.DateTimeFormat(intlLocale(), {
               day: "numeric",
               month: "short",
               ...(date.slice(0, 4) === today.slice(0, 4) ? {} : { year: "numeric" }),
@@ -207,20 +211,9 @@ export function matchesFilters(
   return true;
 }
 
-export const PRIORITY_LABELS: Record<CardPriority, string> = {
-  none: "Sin prioridad",
-  low: "Baja",
-  medium: "Media",
-  high: "Alta",
-  urgent: "Urgente",
-};
+/** Nombre de una prioridad en el idioma actual. */
+export const priorityLabel = (priority: CardPriority): string =>
+  workMessages().priorities[priority];
 
-export const TEMPLATE_LABELS = {
-  personal: { name: "Personal", description: "Por hacer, haciendo y hecho." },
-  sprint: { name: "Sprint", description: "Backlog, en curso, en revisión y hecho." },
-  audit: {
-    name: "Proyecto / auditoría",
-    description: "Pendiente, en análisis, hallazgos, informe y cerrado.",
-  },
-  empty: { name: "Vacío", description: "Sin columnas: lo montas a tu manera." },
-} as const;
+/** Nombre y descripción de una plantilla de tablero en el idioma actual. */
+export const templateLabel = (template: BoardTemplate) => workMessages().templates[template];

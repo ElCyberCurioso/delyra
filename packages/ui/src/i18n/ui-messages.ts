@@ -1,0 +1,69 @@
+/** Textos de los componentes comunes (`@delyra/ui`) en español; la traducción, en `ui-messages.en.ts`. */
+export const uiEs = {
+  common: {
+    loading: "Cargando…",
+    retry: "Reintentar",
+    close: "Cerrar",
+    redirectingToLogin: "Redirigiendo al inicio de sesión…",
+  },
+  notFound: {
+    title: "Página no encontrada",
+    description: "La dirección no existe o ha cambiado.",
+    boards: "Ir a mis tableros",
+    loadingBoard: "Cargando tablero…",
+  },
+  errors: {
+    tooManyAttempts: "Demasiados intentos. Espera unos minutos y vuelve a probar.",
+    offline: "No hay conexión con el servidor.",
+    generic: "Algo ha fallado. Vuelve a intentarlo.",
+    apiStatus: (status: number) => `La API respondió HTTP ${String(status)}`,
+  },
+  shell: {
+    skipToContent: "Saltar al contenido",
+    apps: "Aplicaciones",
+    calendar: "Calendario",
+    work: "Trabajo",
+  },
+  userMenu: {
+    label: "Menú de usuario",
+    signedOut: "Sin sesión",
+    settings: "Ajustes",
+    admin: "Administración",
+    theme: "Tema",
+    light: "Claro",
+    dark: "Oscuro",
+    system: "Sistema",
+    language: "Idioma",
+    signOut: "Cerrar sesión",
+  },
+  language: {
+    switchTo: "Cambiar el idioma",
+  },
+  shortcuts: {
+    title: "Atajos de teclado",
+    description: "Funcionan cuando no estás escribiendo en un campo.",
+  },
+  pwa: {
+    newVersion: "Hay una versión nueva de Delyra",
+    update: "Actualizar",
+  },
+  health: {
+    title: "Estado de la plataforma",
+    checking: "Comprobando…",
+    noApi: "Sin conexión con la API",
+    ok: "Operativo",
+    degraded: "Degradado",
+    error: "Error",
+    version: "Versión",
+    d1: "Base de datos (D1)",
+    r2: "Almacenamiento (R2)",
+    queues: "Colas (Queues)",
+    development: "Local",
+    production: "Producción",
+  },
+};
+
+export type UiMessages = typeof uiEs;
+
+/** Nombre de cada idioma en ese mismo idioma (no se traduce). */
+export const LOCALE_NAMES = { es: "Español", en: "English" } as const;

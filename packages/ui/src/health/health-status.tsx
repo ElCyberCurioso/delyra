@@ -4,6 +4,7 @@ import {
   healthResponseSchema,
 } from "@delyra/shared";
 import { useQuery } from "@tanstack/react-query";
+import { ui } from "../i18n";
 import { cn } from "../lib/utils";
 
 export async function fetchHealth(signal?: AbortSignal): Promise<HealthResponse> {
@@ -14,7 +15,7 @@ export async function fetchHealth(signal?: AbortSignal): Promise<HealthResponse>
   });
   // 503 también trae el cuerpo con el detalle de cada componente.
   if (!response.ok && response.status !== 503) {
-    throw new Error(`La API respondió HTTP ${String(response.status)}`);
+    throw new Error(ui().errors.apiStatus(response.status));
   }
   return healthResponseSchema.parse(await response.json());
 }
@@ -28,16 +29,7 @@ export function useHealth() {
   });
 }
 
-const COMPONENT_LABELS: Record<HealthComponentName, string> = {
-  d1: "Base de datos (D1)",
-  r2: "Almacenamiento (R2)",
-  queues: "Colas (Queues)",
-};
-
-const ENVIRONMENT_LABELS: Record<HealthResponse["environment"], string> = {
-  development: "Local",
-  production: "Producción",
-};
+const COMPONENTS: readonly HealthComponentName[] = ["d1", "r2", "queues"];
 
 function Dot({ ok }: { ok: boolean }) {
   return (
@@ -51,11 +43,12 @@ function Dot({ ok }: { ok: boolean }) {
 /** Tarjeta de estado de la plataforma (página provisional de F0-04). */
 export function HealthStatus({ className }: { className?: string }) {
   const { data, isPending, isError } = useHealth();
+  const t = ui().health;
 
   let summary: string;
-  if (isPending) summary = "Comprobando…";
-  else if (isError) summary = "Sin conexión con la API";
-  else summary = data.status === "ok" ? "Operativo" : "Degradado";
+  if (isPending) summary = t.checking;
+  else if (isError) summary = t.noApi;
+  else summary = data.status === "ok" ? t.ok : t.degraded;
 
   return (
     <section
@@ -64,11 +57,11 @@ export function HealthStatus({ className }: { className?: string }) {
     >
       <div className="flex items-center justify-between gap-3">
         <h2 id="estado-plataforma" className="text-sm font-semibold">
-          Estado de la plataforma
+          {t.title}
         </h2>
         {data ? (
           <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-            {ENVIRONMENT_LABELS[data.environment]}
+            {t[data.environment]}
           </span>
         ) : null}
       </div>
@@ -82,16 +75,16 @@ export function HealthStatus({ className }: { className?: string }) {
       </p>
       {data ? (
         <ul className="mt-4 space-y-2 text-sm">
-          {(Object.keys(COMPONENT_LABELS) as HealthComponentName[]).map((name) => {
+          {COMPONENTS.map((name) => {
             const check = data.checks[name];
             return (
               <li key={name} className="flex items-center justify-between gap-3">
                 <span className="flex items-center gap-2">
                   <Dot ok={check.status === "ok"} />
-                  {COMPONENT_LABELS[name]}
+                  {t[name]}
                 </span>
                 <span className="text-muted-foreground tabular-nums">
-                  {check.status === "ok" ? `${String(check.latencyMs)} ms` : "Error"}
+                  {check.status === "ok" ? `${String(check.latencyMs)} ms` : t.error}
                 </span>
               </li>
             );
@@ -100,7 +93,7 @@ export function HealthStatus({ className }: { className?: string }) {
       ) : null}
       {data?.version ? (
         <p className="mt-4 truncate text-xs text-muted-foreground">
-          Versión <code>{data.version.slice(0, 8)}</code>
+          {t.version} <code>{data.version.slice(0, 8)}</code>
         </p>
       ) : null}
     </section>

@@ -26,6 +26,7 @@ import { z } from "zod";
 import { createDb } from "../db/client";
 import { cardAttachments, cardComments, checklistItems, labels } from "../db/schema";
 import { AppError } from "../lib/errors";
+import { requestLocale } from "../lib/locale";
 import { invalidField, readBody, readQuery } from "../lib/http";
 import { currentAuth, requireActiveSession } from "../middleware/session";
 import { type KanbanRepository, kanbanRepository } from "../repositories/kanban";
@@ -122,7 +123,7 @@ export const boardRoutes = new Hono<AppEnv>()
   .post("/", async (c) => {
     const body = await readBody(c, createBoardRequestSchema);
     const r = repo(c);
-    const board = await createBoard(r, body);
+    const board = await createBoard(r, body, requestLocale(c.req.header("accept-language")));
     return c.json(await boardDetail(r, board), 201);
   })
 

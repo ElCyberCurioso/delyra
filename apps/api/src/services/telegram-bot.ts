@@ -2,13 +2,16 @@ import {
   addDays,
   dateOnlyToUtc,
   instantToWall,
+  type Locale,
   parseQuickAdd,
   type QuickDraft,
   utcToDateOnly,
   wallToInstant,
 } from "@delyra/shared";
+import { parseEnglish } from "@delyra/shared/quick-add-en";
 import { z } from "zod";
 import type { Database } from "../db/client";
+import { accountLocale, requestLocale } from "../lib/locale";
 import type { Logger } from "../lib/logger";
 import type { RequestMeta } from "../lib/request-meta";
 import { escapeHtml, type TelegramClient } from "../lib/telegram";
@@ -16,6 +19,7 @@ import { calendarRepository } from "../repositories/calendars";
 import { eventRepository } from "../repositories/events";
 import { agendaFor, localToday, tasksUntil } from "./agenda";
 import { audit } from "./audit";
+import { botText, COMMAND_ALIASES } from "./bot-text";
 import { createEvent } from "./events";
 import { agendaText, describeWhen, helpText, reminderText, tasksText } from "./notification-text";
 import { loadReminder, reminderContent, settingsUrl } from "./notifications";
@@ -35,7 +39,12 @@ const chatSchema = z.looseObject({ id: z.number(), type: z.string() });
 export const telegramUpdateSchema = z.looseObject({
   update_id: z.number().int(),
   message: z
-    .looseObject({ message_id: z.number(), chat: chatSchema, text: z.string().optional() })
+    .looseObject({
+      message_id: z.number(),
+      chat: chatSchema,
+      text: z.string().optional(),
+      from: z.looseObject({ language_code: z.string().optional() }).optional(),
+    })
     .optional(),
   callback_query: z
     .looseObject({
@@ -66,8 +75,16 @@ async function reply(deps: BotDeps, chatId: string, html: string) {
   }
 }
 
-async function timeZoneOf(db: Database, userId: string): Promise<string> {
-  return (await getUserSettings(db, userId))?.timeZone ?? "Europe/Madrid";
+/** Zona horaria e idioma de la cuenta (F7-06). */
+async function prefsOf(
+  db: Database,
+  userId: string,
+): Promise<{ timeZone: string; locale: Locale }> {
+  const settings = await getUserSettings(db, userId);
+  return {
+    timeZone: settings?.timeZone ?? "Europe/Madrid",
+    locale: accountLocale(settings?.locale),
+  };
 }
 
 /** «Ahora» en la zona del usuario como fecha local (lo que espera chrono-node). */
@@ -109,42 +126,36 @@ function draftTimes(draft: QuickDraft, timeZone: string) {
 }
 
 /** Hora local legible de un instante: «hoy a las 18:40», «mañana a las 09:00». */
-function untilLabel(ms: number, now: number, timeZone: string): string {
+function untilLabel(ms: number, now: number, timeZone: string, locale: Locale): string {
+  const t = botText(locale);
   const w = instantToWall(ms, timeZone);
   const date = `${String(w.year)}-${pad(w.month)}-${pad(w.day)}`;
   const today = localToday(now, timeZone);
   const day =
     date === today
-      ? "hoy"
+      ? t.today
       : date === utcToDateOnly(addDays(dateOnlyToUtc(today), 1))
-        ? "mañana"
-        : new Intl.DateTimeFormat("es-ES", {
+        ? t.tomorrow
+        : new Intl.DateTimeFormat(t.intl, {
             day: "numeric",
             month: "short",
             timeZone: "UTC",
           }).format(new Date(dateOnlyToUtc(date)));
-  return `${day} a las ${pad(w.hour)}:${pad(w.minute)}`;
+  return t.at(day, `${pad(w.hour)}:${pad(w.minute)}`);
 }
 
 // ── Comandos ─────────────────────────────────────────────────────────────────
 
-async function linkFromStart(deps: BotDeps, chatId: string, token: string) {
+async function linkFromStart(deps: BotDeps, chatId: string, token: string, fallback: Locale) {
   const userId = await consumeLinkToken(deps.db, token, deps.now);
   if (!userId) {
-    await reply(
-      deps,
-      chatId,
-      "Ese enlace no es válido o ha caducado. Genera otro en Ajustes → Telegram.",
-    );
+    await reply(deps, chatId, botText(fallback).linkInvalid);
     return;
   }
   await linkChat(deps.db, deps.env, userId, chatId, deps.now);
   await audit(deps.db, deps.meta, "telegram.linked", { userId });
-  await reply(
-    deps,
-    chatId,
-    `✅ <b>Cuenta vinculada.</b> Aquí te llegarán tus alertas.\n\n${helpText()}`,
-  );
+  const { locale } = await prefsOf(deps.db, userId);
+  await reply(deps, chatId, `${botText(locale).linked}\n\n${helpText(locale)}`);
 }
 
 async function runCommand(
@@ -154,7 +165,8 @@ async function runCommand(
   command: string,
   args: string,
 ) {
-  const timeZone = await timeZoneOf(deps.db, userId);
+  const { timeZone, locale } = await prefsOf(deps.db, userId);
+  const t = botText(locale);
   const today = localToday(deps.now, timeZone);
   const agenda = async (heading: string, firstDay: string, days: number) => {
     const { occurrences, calendarNames } = await agendaFor(
@@ -167,41 +179,36 @@ async function runCommand(
     await reply(
       deps,
       chatId,
-      agendaText(heading, occurrences, calendarNames, timeZone, deps.now, days > 1),
+      agendaText(heading, occurrences, calendarNames, timeZone, deps.now, days > 1, locale),
     );
   };
   const tomorrow = utcToDateOnly(addDays(dateOnlyToUtc(today), 1));
 
-  switch (command) {
-    case "hoy":
-      return agenda("📅 Hoy", today, 1);
-    case "manana":
-    case "mañana":
-      return agenda("📅 Mañana", tomorrow, 1);
-    case "semana":
-      return agenda("📅 Próximos 7 días", today, 7);
-    case "tareas": {
+  switch (COMMAND_ALIASES[command] ?? "unknown") {
+    case "today":
+      return agenda(t.agendaToday, today, 1);
+    case "tomorrow":
+      return agenda(t.agendaTomorrow, tomorrow, 1);
+    case "week":
+      return agenda(t.agendaWeek, today, 7);
+    case "tasks": {
       const lastDay = utcToDateOnly(addDays(dateOnlyToUtc(today), 6));
       const tasks = await tasksUntil(deps.db, userId, timeZone, lastDay, deps.now);
-      return reply(
-        deps,
-        chatId,
-        tasksText("📌 Tareas de los próximos 7 días", tasks, timeZone, deps.now),
-      );
+      return reply(deps, chatId, tasksText(t.tasksWeek, tasks, timeZone, deps.now, locale));
     }
-    case "nuevo": {
-      const draft = args ? parseQuickAdd(args, reference(deps.now, timeZone)) : null;
-      if (!draft) {
-        return reply(
-          deps,
-          chatId,
-          "No he entendido cuándo. Prueba con: /nuevo Dentista mañana 17:30",
-        );
-      }
+    case "new": {
+      // En inglés se usa el analizador inglés de chrono-node; el español entiende igual las horas.
+      const draft = args
+        ? parseQuickAdd(args, reference(deps.now, timeZone), {
+            locale,
+            parse: locale === "en" ? parseEnglish : undefined,
+          })
+        : null;
+      if (!draft) return reply(deps, chatId, t.newNotUnderstood);
       const calendars = calendarRepository(deps.db, userId);
-      await calendars.ensureDefaults();
+      await calendars.ensureDefaults(locale);
       const calendar = (await calendars.list()).find((c) => c.kind === "personal");
-      if (!calendar) return reply(deps, chatId, "No encuentro tu calendario Personal.");
+      if (!calendar) return reply(deps, chatId, t.noPersonal);
       const times = draftTimes(draft, timeZone);
       const event = await createEvent(
         { events: eventRepository(deps.db, userId), calendars, now: deps.now },
@@ -215,39 +222,39 @@ async function runCommand(
         },
         timeZone,
         deps.now,
+        locale,
       );
       return reply(
         deps,
         chatId,
-        `✅ Creado: <b>${escapeHtml(event.title)}</b>\n${escapeHtml(when)} · ${escapeHtml(calendar.name)}`,
+        `${t.created} <b>${escapeHtml(event.title)}</b>\n${escapeHtml(when)} · ${escapeHtml(calendar.name)}`,
       );
     }
-    case "silenciar": {
+    case "mute": {
       if (/^(no|off|0)$/i.test(args)) {
         await updateLink(deps.db, userId, { mutedUntil: null });
-        return reply(deps, chatId, "🔔 Alertas activadas de nuevo.");
+        return reply(deps, chatId, t.unmuted);
       }
       const hours = args ? Number(args.replace(",", ".")) : 1;
       if (!Number.isFinite(hours) || hours <= 0 || hours > 72) {
-        return reply(deps, chatId, "Indica las horas (de 1 a 72): /silenciar 2");
+        return reply(deps, chatId, t.muteHours);
       }
       const until = deps.now + Math.round(hours * 3_600_000);
       await updateLink(deps.db, userId, { mutedUntil: until });
       return reply(
         deps,
         chatId,
-        `🔕 Alertas silenciadas hasta ${escapeHtml(untilLabel(until, deps.now, timeZone))}. Los avisos de seguridad siguen llegando. /silenciar no para reactivarlas.`,
+        t.muted(escapeHtml(untilLabel(until, deps.now, timeZone, locale))),
       );
     }
-    case "desvincular":
+    case "unlink":
       await unlinkUser(deps.db, userId);
       await audit(deps.db, deps.meta, "telegram.unlinked", { userId });
-      return reply(deps, chatId, "Cuenta desvinculada. Ya no recibirás alertas aquí.");
-    case "ayuda":
+      return reply(deps, chatId, t.unlinked);
     case "help":
-      return reply(deps, chatId, helpText());
-    default:
-      return reply(deps, chatId, "No conozco ese comando. Escribe /ayuda para ver la lista.");
+      return reply(deps, chatId, helpText(locale));
+    case "unknown":
+      return reply(deps, chatId, t.unknownCommand);
   }
 }
 
@@ -255,35 +262,31 @@ async function handleMessage(deps: BotDeps, message: NonNullable<TelegramUpdate[
   // Solo chats privados: en un grupo, cualquiera podría ver la agenda.
   if (message.chat.type !== "private") return;
   const chatId = String(message.chat.id);
+  // Sin cuenta vinculada, el idioma del propio Telegram.
+  const fallback = requestLocale(message.from?.language_code);
+  const linked = await findLinkByChat(deps.db, deps.env, chatId);
+  const locale = linked ? (await prefsOf(deps.db, linked.userId)).locale : fallback;
   const match = /^\/([\p{L}\w]+)(?:@\w+)?(?:\s+([\s\S]*))?$/u.exec((message.text ?? "").trim());
   if (!match) {
-    await reply(deps, chatId, "Escribe /ayuda para ver lo que puedo hacer.");
+    await reply(deps, chatId, botText(locale).typeHelp);
     return;
   }
   const command = (match[1] ?? "").toLowerCase();
   const args = (match[2] ?? "").trim().slice(0, 300);
 
   if (command === "start") {
-    if (args) return linkFromStart(deps, chatId, args);
-    const link = await findLinkByChat(deps.db, deps.env, chatId);
+    if (args) return linkFromStart(deps, chatId, args, fallback);
     return reply(
       deps,
       chatId,
-      link
-        ? helpText()
-        : `Hola. Para recibir tus alertas, vincula tu cuenta desde Ajustes → Telegram: ${escapeHtml(settingsUrl(deps.env))}`,
+      linked ? helpText(locale) : botText(locale).hello(escapeHtml(settingsUrl(deps.env))),
     );
   }
-  const link = await findLinkByChat(deps.db, deps.env, chatId);
-  if (!link) {
-    await reply(
-      deps,
-      chatId,
-      `Primero vincula tu cuenta desde Ajustes → Telegram: ${escapeHtml(settingsUrl(deps.env))}`,
-    );
+  if (!linked) {
+    await reply(deps, chatId, botText(locale).linkFirst(escapeHtml(settingsUrl(deps.env))));
     return;
   }
-  await runCommand(deps, chatId, link.userId, command, args);
+  await runCommand(deps, chatId, linked.userId, command, args);
 }
 
 // ── Botones de las alertas (F3-07) ───────────────────────────────────────────
@@ -303,9 +306,10 @@ async function handleCallback(deps: BotDeps, query: NonNullable<TelegramUpdate["
   // El botón solo vale en el chat vinculado al dueño de la alerta.
   const link = await findLinkByChat(deps.db, deps.env, chatId);
   const loaded = link ? await loadReminder(deps.db, link.userId, reminderId) : null;
-  if (!link || !loaded) return answer("Esta alerta ya no está disponible.");
+  if (!link || !loaded) return answer(botText("es").reminderGone);
 
-  const timeZone = await timeZoneOf(deps.db, link.userId);
+  const { timeZone, locale } = await prefsOf(deps.db, link.userId);
+  const t = botText(locale);
   const occurrenceStart = Number.parseInt(occurrence, 36);
   const content = await reminderContent(deps.db, link.userId, loaded.target, occurrenceStart);
   const events = eventRepository(deps.db, link.userId);
@@ -313,7 +317,7 @@ async function handleCallback(deps: BotDeps, query: NonNullable<TelegramUpdate["
   let footer: string;
   if (action === "ok") {
     await events.updateReminder(reminderId, { snoozeUntil: null, snoozeOccurrenceStart: null });
-    footer = "✅ Hecho";
+    footer = t.done;
   } else {
     let until: number;
     if (action === "s10") until = deps.now + 10 * 60_000;
@@ -330,13 +334,13 @@ async function handleCallback(deps: BotDeps, query: NonNullable<TelegramUpdate["
       snoozeUntil: until,
       snoozeOccurrenceStart: occurrenceStart,
     });
-    footer = `⏰ Pospuesta hasta ${untilLabel(until, deps.now, timeZone)}`;
+    footer = t.snoozedUntil(untilLabel(until, deps.now, timeZone, locale));
   }
   try {
     await deps.telegram.editMessageText(
       chatId,
       query.message.message_id,
-      reminderText(content, timeZone, deps.now, escapeHtml(footer)),
+      reminderText(content, timeZone, deps.now, escapeHtml(footer), locale),
     );
   } catch (error) {
     deps.logger.warn("telegram_edit_failed", { error });

@@ -26,6 +26,7 @@ import {
   RequireSession,
   SelectField,
   toast,
+  useChangeLocale,
   useLogout,
 } from "@delyra/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -34,18 +35,14 @@ import { CopyIcon } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { apiFieldErrors, type FieldErrors, formValues } from "../auth/form";
 import { formatDateTime } from "../settings/format";
+import { settingsMessages } from "../settings/messages";
 import { Section } from "../settings/section";
 import { SystemBackupsSection } from "./system-backups";
 
 const USERS_KEY = ["admin", "users"] as const;
 const INVITATIONS_KEY = ["admin", "invitations"] as const;
 
-const ROLE_OPTIONS = [
-  { value: "member", label: "Miembro" },
-  { value: "admin", label: "Administrador" },
-] as const;
-
-const ROLE_LABELS: Record<string, string> = { member: "Miembro", admin: "Administrador" };
+const roleLabel = (role: "member" | "admin") => settingsMessages().admin.roles[role];
 
 /** Enlace de invitación recién generado: solo se ve una vez (en D1 solo queda su hash). */
 function InvitationLink({
@@ -57,13 +54,10 @@ function InvitationLink({
   link: string;
   emailed: boolean;
 }) {
+  const t = settingsMessages();
   return (
     <div className="grid gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
-      <p>
-        {emailed
-          ? `Hemos enviado la invitación a ${email}. También puedes compartir este enlace:`
-          : `El envío de correo no está configurado: comparte tú este enlace con ${email} por un canal privado.`}
-      </p>
+      <p>{emailed ? t.admin.emailed(email) : t.admin.notEmailed(email)}</p>
       <div className="flex gap-2">
         <code className="min-w-0 flex-1 truncate rounded bg-muted px-2 py-1.5 font-mono text-xs select-all">
           {link}
@@ -73,18 +67,16 @@ function InvitationLink({
           size="sm"
           onClick={() => {
             void navigator.clipboard.writeText(link).then(
-              () => toast.success("Enlace copiado"),
-              () => toast.error("No se pudo copiar"),
+              () => toast.success(t.admin.linkCopied),
+              () => toast.error(t.admin.copyFailed),
             );
           }}
         >
           <CopyIcon aria-hidden="true" />
-          Copiar
+          {t.common.copy}
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Es de un solo uso y no se podrá volver a mostrar. Si se pierde, reenvía la invitación.
-      </p>
+      <p className="text-xs text-muted-foreground">{t.admin.oneUse}</p>
     </div>
   );
 }
@@ -97,6 +89,7 @@ function InviteForm() {
   const [created, setCreated] = useState<{ email: string; link: string; emailed: boolean } | null>(
     null,
   );
+  const t = settingsMessages();
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -142,26 +135,30 @@ function InviteForm() {
       >
         <FormError>{formError}</FormError>
         <Field
-          label="Email"
+          label={t.common.email}
           name="email"
           type="email"
           autoComplete="off"
           required
           error={errors.email}
         />
-        <SelectField label="Rol" name="role" defaultValue="member" options={ROLE_OPTIONS} />
         <SelectField
-          label="Caduca en"
+          label={t.admin.role}
+          name="role"
+          defaultValue="member"
+          options={(["member", "admin"] as const).map((role) => ({
+            value: role,
+            label: roleLabel(role),
+          }))}
+        />
+        <SelectField
+          label={t.admin.expiresIn}
           name="expiresInDays"
           defaultValue="7"
-          options={[
-            { value: "1", label: "1 día" },
-            { value: "7", label: "7 días" },
-            { value: "30", label: "30 días" },
-          ]}
+          options={[1, 7, 30].map((n) => ({ value: String(n), label: t.admin.days(n) }))}
         />
         <Button type="submit" disabled={pending}>
-          {pending ? "Invitando…" : "Invitar"}
+          {pending ? t.admin.inviting : t.admin.invite}
         </Button>
       </form>
       {created ? <InvitationLink {...created} /> : null}
@@ -170,10 +167,11 @@ function InviteForm() {
 }
 
 function invitationStatus(invitation: AdminInvitation): { label: string; open: boolean } {
-  if (invitation.acceptedAt) return { label: "Aceptada", open: false };
-  if (invitation.revokedAt) return { label: "Revocada", open: false };
-  if (Date.parse(invitation.expiresAt) < Date.now()) return { label: "Caducada", open: true };
-  return { label: "Pendiente", open: true };
+  const t = settingsMessages().admin.status;
+  if (invitation.acceptedAt) return { label: t.accepted, open: false };
+  if (invitation.revokedAt) return { label: t.revoked, open: false };
+  if (Date.parse(invitation.expiresAt) < Date.now()) return { label: t.expired, open: true };
+  return { label: t.pending, open: true };
 }
 
 function InvitationsList({ timeZone }: { timeZone: string }) {
@@ -201,7 +199,7 @@ function InvitationsList({ timeZone }: { timeZone: string }) {
   const revoke = useMutation({
     mutationFn: (id: string) => apiFetch(`/api/admin/invitations/${id}`, { method: "DELETE" }),
     onSuccess: () => {
-      toast.success("Invitación revocada");
+      toast.success(settingsMessages().admin.revoked);
       void queryClient.invalidateQueries({ queryKey: INVITATIONS_KEY });
     },
     onError: (error) => toast.error(errorMessage(error)),
@@ -213,7 +211,7 @@ function InvitationsList({ timeZone }: { timeZone: string }) {
       {resent ? <InvitationLink {...resent} /> : null}
       {invitations.isError ? <p role="alert">{errorMessage(invitations.error)}</p> : null}
       {list.length === 0 && invitations.isSuccess ? (
-        <p className="text-sm text-muted-foreground">Aún no hay invitaciones.</p>
+        <p className="text-sm text-muted-foreground">{settingsMessages().admin.noInvitations}</p>
       ) : null}
       <ul className="divide-y rounded-md border text-sm">
         {list.map((invitation) => {
@@ -223,8 +221,10 @@ function InvitationsList({ timeZone }: { timeZone: string }) {
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{invitation.email}</p>
                 <p className="text-muted-foreground">
-                  {ROLE_LABELS[invitation.role]} · {status.label} · creada el{" "}
-                  {formatDateTime(invitation.createdAt, timeZone)}
+                  {roleLabel(invitation.role)} · {status.label} ·{" "}
+                  {settingsMessages().admin.createdOn(
+                    formatDateTime(invitation.createdAt, timeZone),
+                  )}
                 </p>
               </div>
               {status.open ? (
@@ -235,7 +235,7 @@ function InvitationsList({ timeZone }: { timeZone: string }) {
                     disabled={resend.isPending}
                     onClick={() => resend.mutate(invitation)}
                   >
-                    Reenviar
+                    {settingsMessages().admin.resend}
                   </Button>
                   <Button
                     variant="ghost"
@@ -243,7 +243,7 @@ function InvitationsList({ timeZone }: { timeZone: string }) {
                     disabled={revoke.isPending}
                     onClick={() => revoke.mutate(invitation.id)}
                   >
-                    Revocar
+                    {settingsMessages().admin.revoke}
                   </Button>
                 </div>
               ) : null}
@@ -257,23 +257,10 @@ function InvitationsList({ timeZone }: { timeZone: string }) {
 
 type UserAction = "disable" | "enable" | "reset-2fa";
 
-const ACTION_COPY: Record<UserAction, { title: string; body: string; confirm: string }> = {
-  disable: {
-    title: "Desactivar la cuenta",
-    body: "No podrá entrar y se cerrarán todas sus sesiones. Puedes reactivarla después.",
-    confirm: "Desactivar",
-  },
-  enable: {
-    title: "Reactivar la cuenta",
-    body: "Podrá volver a entrar con su contraseña y su segundo factor.",
-    confirm: "Reactivar",
-  },
-  "reset-2fa": {
-    title: "Reiniciar la verificación en dos pasos",
-    body: "Se borran su app autenticadora y sus códigos de recuperación, y se cierran sus sesiones. Al volver a entrar tendrá que configurarla de nuevo. Hazlo solo si has comprobado su identidad por otra vía.",
-    confirm: "Reiniciar 2FA",
-  },
-};
+function actionCopy(action: UserAction) {
+  const t = settingsMessages().admin.actions;
+  return action === "reset-2fa" ? t.reset2fa : t[action];
+}
 
 function UsersList({ currentUserId, timeZone }: { currentUserId: string; timeZone: string }) {
   const queryClient = useQueryClient();
@@ -290,14 +277,15 @@ function UsersList({ currentUserId, timeZone }: { currentUserId: string; timeZon
     mutationFn: ({ user, action }: { user: AdminUser; action: UserAction }) =>
       apiFetch(`/api/admin/users/${user.id}/${action}`, { method: "POST" }),
     onSuccess: () => {
-      toast.success("Hecho");
+      toast.success(settingsMessages().admin.done);
       setPendingAction(null);
       void queryClient.invalidateQueries({ queryKey: USERS_KEY });
     },
     onError: (error) => toast.error(errorMessage(error)),
   });
 
-  const copy = pendingAction ? ACTION_COPY[pendingAction.action] : null;
+  const copy = pendingAction ? actionCopy(pendingAction.action) : null;
+  const t = settingsMessages();
   return (
     <div className="grid gap-3">
       {users.isError ? <p role="alert">{errorMessage(users.error)}</p> : null}
@@ -308,18 +296,19 @@ function UsersList({ currentUserId, timeZone }: { currentUserId: string; timeZon
             <li key={user.id} className="flex flex-wrap items-center gap-3 p-3">
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">
-                  {user.name} {self ? <span className="text-muted-foreground">(tú)</span> : null}
+                  {user.name}{" "}
+                  {self ? <span className="text-muted-foreground">{t.common.you}</span> : null}
                 </p>
                 <p className="truncate text-muted-foreground">{user.email}</p>
                 <p className="mt-1 flex flex-wrap gap-1.5 text-xs">
-                  <span className="rounded-full border px-2 py-0.5">{ROLE_LABELS[user.role]}</span>
+                  <span className="rounded-full border px-2 py-0.5">{roleLabel(user.role)}</span>
                   <span
                     className={cn(
                       "rounded-full border px-2 py-0.5",
                       user.status === "disabled" && "border-destructive/40 text-destructive",
                     )}
                   >
-                    {user.status === "active" ? "Activa" : "Desactivada"}
+                    {user.status === "active" ? t.admin.active : t.admin.disabled}
                   </span>
                   <span
                     className={cn(
@@ -327,12 +316,12 @@ function UsersList({ currentUserId, timeZone }: { currentUserId: string; timeZon
                       !user.hasTotp && "border-destructive/40 text-destructive",
                     )}
                   >
-                    {user.hasTotp ? "2FA activo" : "Sin 2FA"}
+                    {user.hasTotp ? t.admin.has2fa : t.admin.no2fa}
                   </span>
                   <span className="px-1 py-0.5 text-muted-foreground">
                     {user.lastLoginAt
-                      ? `Último acceso: ${formatDateTime(user.lastLoginAt, timeZone)}`
-                      : "Nunca ha entrado"}
+                      ? t.admin.lastLogin(formatDateTime(user.lastLoginAt, timeZone))
+                      : t.admin.neverLogged}
                   </span>
                 </p>
               </div>
@@ -344,7 +333,7 @@ function UsersList({ currentUserId, timeZone }: { currentUserId: string; timeZon
                       size="sm"
                       onClick={() => setPendingAction({ user, action: "reset-2fa" })}
                     >
-                      Reiniciar 2FA
+                      {t.admin.actions.reset2fa.confirm}
                     </Button>
                   ) : null}
                   <Button
@@ -357,7 +346,9 @@ function UsersList({ currentUserId, timeZone }: { currentUserId: string; timeZon
                       })
                     }
                   >
-                    {user.status === "active" ? "Desactivar" : "Reactivar"}
+                    {user.status === "active"
+                      ? t.admin.actions.disable.confirm
+                      : t.admin.actions.enable.confirm}
                   </Button>
                 </div>
               )}
@@ -379,7 +370,7 @@ function UsersList({ currentUserId, timeZone }: { currentUserId: string; timeZon
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">Cancelar</Button>
+              <Button variant="outline">{t.common.cancel}</Button>
             </DialogClose>
             <Button
               variant={pendingAction?.action === "enable" ? "default" : "destructive"}
@@ -397,25 +388,20 @@ function UsersList({ currentUserId, timeZone }: { currentUserId: string; timeZon
 
 function AdminContent({ session }: { session: ActiveSession }) {
   const timeZone = session.settings.timeZone;
+  const t = settingsMessages().admin;
   return (
     <div className="mx-auto grid max-w-4xl gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Administración</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Todas las acciones quedan registradas en el historial de seguridad.
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t.title}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t.intro}</p>
       </div>
-      <Section
-        id="invitar"
-        title="Invitar a alguien"
-        description="Solo se puede crear una cuenta con una invitación. El enlace es de un solo uso."
-      >
+      <Section id="invitar" title={t.inviteTitle} description={t.inviteDescription}>
         <InviteForm />
       </Section>
-      <Section id="invitaciones" title="Invitaciones">
+      <Section id="invitaciones" title={t.invitations}>
         <InvitationsList timeZone={timeZone} />
       </Section>
-      <Section id="usuarios" title="Usuarios">
+      <Section id="usuarios" title={t.users}>
         <UsersList currentUserId={session.user.id} timeZone={timeZone} />
       </Section>
       <SystemBackupsSection timeZone={timeZone} />
@@ -428,18 +414,25 @@ function AdminContent({ session }: { session: ActiveSession }) {
 export function AdminPage() {
   const router = useRouter();
   const logout = useLogout();
+  const changeLocale = useChangeLocale();
+  const t = settingsMessages().admin;
   return (
     <RequireSession navigate={(path) => router.history.replace(path)}>
       {(session) => (
-        <AppShell app="calendar" user={session.user} onSignOut={() => logout.mutate()}>
+        <AppShell
+          app="calendar"
+          user={session.user}
+          onSignOut={() => logout.mutate()}
+          onLocaleChange={(locale) => changeLocale.mutate(locale)}
+        >
           {session.user.role === "admin" ? (
             <AdminContent session={session} />
           ) : (
             <div className="mx-auto max-w-md py-16 text-center">
-              <h1 className="text-2xl font-semibold tracking-tight">Página no encontrada</h1>
-              <p className="mt-2 text-muted-foreground">La dirección no existe o ha cambiado.</p>
+              <h1 className="text-2xl font-semibold tracking-tight">{t.notFound}</h1>
+              <p className="mt-2 text-muted-foreground">{t.notFoundBody}</p>
               <Button asChild className="mt-6">
-                <Link to="/">Ir al inicio</Link>
+                <Link to="/">{t.home}</Link>
               </Button>
             </div>
           )}

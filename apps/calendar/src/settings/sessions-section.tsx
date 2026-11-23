@@ -3,12 +3,13 @@ import { type ActiveSession, apiFetch, Button, cn, errorMessage, toast } from "@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MonitorSmartphoneIcon, TriangleAlertIcon } from "lucide-react";
 import {
-  AUDIT_LABELS,
+  auditLabel,
   countryName,
   describeUserAgent,
   formatDateTime,
   SUSPICIOUS_EVENTS,
 } from "./format";
+import { settingsMessages } from "./messages";
 import { Section } from "./section";
 
 const SESSIONS_QUERY_KEY = ["account", "sessions"] as const;
@@ -17,6 +18,7 @@ const SESSIONS_QUERY_KEY = ["account", "sessions"] as const;
 export function SessionsSection({ session }: { session: ActiveSession }) {
   const queryClient = useQueryClient();
   const timeZone = session.settings.timeZone;
+  const t = settingsMessages().sessions;
   const sessions = useQuery({
     queryKey: SESSIONS_QUERY_KEY,
     queryFn: ({ signal }) =>
@@ -32,11 +34,11 @@ export function SessionsSection({ session }: { session: ActiveSession }) {
   });
   const revoke = useMutation({
     mutationFn: (id: string) => apiFetch(`/api/me/sessions/${id}`, { method: "DELETE" }),
-    ...onDone("Sesión cerrada"),
+    ...onDone(t.closed),
   });
   const revokeOthers = useMutation({
     mutationFn: () => apiFetch("/api/me/sessions/revoke-others", { method: "POST" }),
-    ...onDone("Se han cerrado las demás sesiones"),
+    ...onDone(t.othersClosed),
   });
 
   const list = sessions.data?.sessions ?? [];
@@ -45,8 +47,8 @@ export function SessionsSection({ session }: { session: ActiveSession }) {
   return (
     <Section
       id="sesiones"
-      title="Sesiones activas"
-      description="Dispositivos con tu sesión abierta en Delyra (calendario y trabajo)."
+      title={t.title}
+      description={t.description}
       actions={
         others > 0 ? (
           <Button
@@ -55,7 +57,7 @@ export function SessionsSection({ session }: { session: ActiveSession }) {
             disabled={revokeOthers.isPending}
             onClick={() => revokeOthers.mutate()}
           >
-            Cerrar las demás
+            {t.closeOthers}
           </Button>
         ) : null
       }
@@ -70,15 +72,12 @@ export function SessionsSection({ session }: { session: ActiveSession }) {
                 {describeUserAgent(item.userAgent)}
                 {item.current ? (
                   <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                    Esta sesión
+                    {t.thisOne}
                   </span>
                 ) : null}
               </p>
               <p className="text-sm text-muted-foreground">
-                {[
-                  countryName(item.country),
-                  `última actividad: ${formatDateTime(item.lastSeenAt, timeZone)}`,
-                ]
+                {[countryName(item.country), t.lastSeen(formatDateTime(item.lastSeenAt, timeZone))]
                   .filter(Boolean)
                   .join(" · ")}
               </p>
@@ -89,15 +88,15 @@ export function SessionsSection({ session }: { session: ActiveSession }) {
                 size="sm"
                 disabled={revoke.isPending}
                 onClick={() => revoke.mutate(item.id)}
-                aria-label={`Cerrar la sesión de ${describeUserAgent(item.userAgent)}`}
+                aria-label={t.closeLabel(describeUserAgent(item.userAgent))}
               >
-                Cerrar
+                {t.close}
               </Button>
             )}
           </li>
         ))}
         {sessions.isPending ? (
-          <li className="p-3 text-sm text-muted-foreground">Cargando…</li>
+          <li className="p-3 text-sm text-muted-foreground">{settingsMessages().common.loading}</li>
         ) : null}
       </ul>
     </Section>
@@ -115,8 +114,8 @@ export function ActivitySection({ session }: { session: ActiveSession }) {
   return (
     <Section
       id="actividad"
-      title="Actividad reciente"
-      description="Inicios de sesión y cambios de seguridad de tu cuenta. Si ves algo que no reconoces, cambia la contraseña."
+      title={settingsMessages().activity.title}
+      description={settingsMessages().activity.description}
     >
       {audit.isError ? <p role="alert">{errorMessage(audit.error)}</p> : null}
       <ol className="divide-y rounded-md border text-sm">
@@ -131,7 +130,7 @@ export function ActivitySection({ session }: { session: ActiveSession }) {
                 )}
               >
                 {suspicious ? <TriangleAlertIcon aria-hidden="true" className="size-4" /> : null}
-                {AUDIT_LABELS[entry.event] ?? entry.event}
+                {auditLabel(entry.event)}
               </span>
               <span className="text-muted-foreground">
                 {[
@@ -145,7 +144,9 @@ export function ActivitySection({ session }: { session: ActiveSession }) {
             </li>
           );
         })}
-        {audit.isPending ? <li className="p-3 text-muted-foreground">Cargando…</li> : null}
+        {audit.isPending ? (
+          <li className="p-3 text-muted-foreground">{settingsMessages().common.loading}</li>
+        ) : null}
       </ol>
     </Section>
   );

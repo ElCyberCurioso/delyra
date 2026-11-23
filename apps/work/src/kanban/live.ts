@@ -3,6 +3,7 @@ import { toast } from "@delyra/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { BOARDS_KEY, boardKey } from "./api";
+import { workMessages } from "./messages";
 
 /**
  * Canal en vivo del tablero (F7-05). El servidor solo avisa de que algo ha cambiado (y de quién
@@ -51,7 +52,7 @@ export function useBoardLive(boardId: string, userId: string): BoardLive {
       stopped = true;
       window.clearTimeout(retryTimer);
       socket?.close(1000);
-      toast.error("Ya no tienes acceso a este tablero.");
+      toast.error(workMessages().live.revoked);
       refresh();
     };
 

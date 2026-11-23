@@ -16,12 +16,15 @@ import {
   DialogTitle,
   errorMessage,
   Input,
+  intlLocale,
   toast,
 } from "@delyra/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArchiveIcon,
   ArchiveRestoreIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
   DownloadIcon,
   LoaderCircleIcon,
   PaperclipIcon,
@@ -49,7 +52,15 @@ import {
   uploadAttachment,
   useCard,
 } from "./api";
-import { fromLocalInput, isOverdue, PRIORITY_LABELS, sortedColumns, toLocalInput } from "./logic";
+import {
+  cardIdsByColumn,
+  fromLocalInput,
+  isOverdue,
+  priorityLabel,
+  sortedColumns,
+  toLocalInput,
+} from "./logic";
+import { workMessages } from "./messages";
 import { Markdown } from "./markdown";
 
 /** Detalle de tarjeta (F4-05, F4-06, F4-07, F4-09). Se abre con `?tarjeta=<id>`. */
@@ -78,10 +89,10 @@ export function CardDialog({ cardId, board, timeZone, now, onClose }: CardDialog
         ) : (
           <DialogHeader>
             <DialogTitle>
-              {card.isError ? "Tarjeta no disponible" : "Cargando tarjeta…"}
+              {card.isError ? workMessages().card.unavailable : workMessages().card.loading}
             </DialogTitle>
             <DialogDescription>
-              {card.isError ? "No existe, se ha borrado o no es tuya." : "Un momento, por favor."}
+              {card.isError ? workMessages().card.missing : workMessages().card.wait}
             </DialogDescription>
           </DialogHeader>
         )}
@@ -90,43 +101,76 @@ export function CardDialog({ cardId, board, timeZone, now, onClose }: CardDialog
   );
 }
 
-const TIMED_REMINDERS = [
-  { value: "", label: "Sin aviso" },
-  { value: "0", label: "A la hora" },
-  { value: "15", label: "15 minutos antes" },
-  { value: "60", label: "1 hora antes" },
-  { value: "1440", label: "1 día antes" },
-];
-const ALL_DAY_REMINDERS = [
-  { value: "", label: "Sin aviso" },
-  { value: "-540", label: "Ese día a las 9:00" },
-  { value: "900", label: "El día antes a las 9:00" },
-];
+function timedReminders() {
+  const t = workMessages().card;
+  return [
+    { value: "", label: t.noReminder },
+    { value: "0", label: t.atTime },
+    { value: "15", label: t.minutes15 },
+    { value: "60", label: t.hour1 },
+    { value: "1440", label: t.day1 },
+  ];
+}
+function allDayReminders() {
+  const t = workMessages().card;
+  return [
+    { value: "", label: t.noReminder },
+    { value: "-540", label: t.sameDay9 },
+    { value: "900", label: t.dayBefore9 },
+  ];
+}
 
 const str = (value: unknown) => (typeof value === "string" ? value : "");
 
-const ACTIVITY: Record<string, (data: Record<string, unknown>) => string> = {
-  created: (d) => `Creada en «${str(d.column)}»`,
-  moved: (d) => `Movida de «${str(d.from)}» a «${str(d.to)}»`,
-  completed: () => "Terminada",
-  reopened: () => "Reabierta",
-  renamed: (d) => `Título cambiado a «${str(d.to)}»`,
-  described: () => "Descripción editada",
-  priority: (d) => `Prioridad: ${PRIORITY_LABELS[d.to as CardPriority] ?? str(d.to)}`,
-  due: (d) => (d.to ? "Fecha límite cambiada" : "Fecha límite quitada"),
-  labels: () => "Etiquetas cambiadas",
-  archived: () => "Archivada",
-  restored: () => "Restaurada",
-  autoarchived: () => "Archivada automáticamente",
-  commented: () => "Comentario añadido",
-  attached: (d) => `Adjunto «${str(d.filename)}» añadido`,
-  detached: (d) => `Adjunto «${str(d.filename)}» quitado`,
-};
+const PRIORITIES = new Set<string>(CARD_PRIORITIES);
+
+/** Una entrada del historial de la tarjeta en el idioma actual. */
+function describeActivity(kind: string, d: Record<string, unknown>): string {
+  const t = workMessages().card.activity;
+  switch (kind) {
+    case "created":
+      return t.created(str(d.column));
+    case "moved":
+      return t.moved(str(d.from), str(d.to));
+    case "completed":
+      return t.completed;
+    case "reopened":
+      return t.reopened;
+    case "renamed":
+      return t.renamed(str(d.to));
+    case "described":
+      return t.described;
+    case "priority":
+      return t.priority(
+        PRIORITIES.has(str(d.to)) ? priorityLabel(str(d.to) as CardPriority) : str(d.to),
+      );
+    case "due":
+      return d.to ? t.dueChanged : t.dueRemoved;
+    case "labels":
+      return t.labels;
+    case "archived":
+      return t.archived;
+    case "restored":
+      return t.restored;
+    case "autoarchived":
+      return t.autoarchived;
+    case "commented":
+      return t.commented;
+    case "attached":
+      return t.attached(str(d.filename));
+    case "detached":
+      return t.detached(str(d.filename));
+    default:
+      return kind;
+  }
+}
 
 const formatDateTime = (iso: string, timeZone: string) =>
-  new Intl.DateTimeFormat("es-ES", { dateStyle: "medium", timeStyle: "short", timeZone }).format(
-    new Date(iso),
-  );
+  new Intl.DateTimeFormat(intlLocale(), {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone,
+  }).format(new Date(iso));
 
 const formatSize = (bytes: number) =>
   bytes < 1024
@@ -180,10 +224,11 @@ function CardBody({
     onError: (error) => toast.error(errorMessage(error)),
   });
   const move = useMutation({
-    mutationFn: (columnId: string) => moveCard(card.id, columnId, 10_000),
+    mutationFn: (v: string | { columnId: string; index: number }) =>
+      typeof v === "string" ? moveCard(card.id, v, 10_000) : moveCard(card.id, v.columnId, v.index),
     onSuccess: ({ card: updated, wipExceeded }) => {
       applyCard(queryClient, updated);
-      if (wipExceeded) toast.warning("Esa columna supera su límite WIP.");
+      if (wipExceeded) toast.warning(workMessages().card.wipWarning);
     },
     onError: (error) => toast.error(errorMessage(error)),
   });
@@ -193,7 +238,9 @@ function CardBody({
       applyCard(queryClient, updated);
       void queryClient.invalidateQueries({ queryKey: archivedKey(board.board.id) });
       void queryClient.invalidateQueries({ queryKey: boardKey(board.board.id) });
-      toast.success(updated.archivedAt ? "Tarjeta archivada" : "Tarjeta restaurada");
+      toast.success(
+        updated.archivedAt ? workMessages().card.archivedToast : workMessages().card.restoredToast,
+      );
     },
     onError: (error) => toast.error(errorMessage(error)),
   });
@@ -204,7 +251,7 @@ function CardBody({
       void queryClient.invalidateQueries({ queryKey: boardKey(board.board.id) });
       void queryClient.invalidateQueries({ queryKey: archivedKey(board.board.id) });
       void queryClient.invalidateQueries({ queryKey: BOARDS_KEY });
-      toast.success("Tarjeta borrada");
+      toast.success(workMessages().card.deleted);
     },
     onError: (error) => toast.error(errorMessage(error)),
   });
@@ -216,7 +263,10 @@ function CardBody({
   };
 
   const overdue = isOverdue(card, now, timeZone);
-  const reminderOptions = card.due?.allDay ? ALL_DAY_REMINDERS : TIMED_REMINDERS;
+  const reminderOptions = card.due?.allDay ? allDayReminders() : timedReminders();
+  const siblings = cardIdsByColumn(board)[card.columnId] ?? [];
+  const index = siblings.indexOf(card.id);
+  const t = workMessages().card;
   const currentReminder = card.reminders[0] ? String(card.reminders[0].offsetMinutes) : "";
 
   const setDue = (due: { allDay: boolean; at: string } | null) =>
@@ -230,7 +280,7 @@ function CardBody({
       <DialogHeader className="pr-8 text-left">
         <DialogTitle className="sr-only">{card.title}</DialogTitle>
         <label className="sr-only" htmlFor={`${ids.column}-title`}>
-          Título
+          {t.title}
         </label>
         <textarea
           // Sin controlar: se rehace si el título cambia en el servidor.
@@ -252,9 +302,9 @@ function CardBody({
           className="field-sizing-content w-full resize-none rounded-md border border-transparent bg-transparent px-1 text-lg font-semibold hover:border-input focus-visible:border-ring focus-visible:outline-none"
         />
         <DialogDescription>
-          En «{columns.find((c) => c.id === card.columnId)?.name ?? ""}»
-          {card.completedAt ? ` · terminada el ${formatDateTime(card.completedAt, timeZone)}` : ""}
-          {card.archivedAt ? " · archivada" : ""}
+          {t.inColumn(columns.find((c) => c.id === card.columnId)?.name ?? "")}
+          {card.completedAt ? t.completedOn(formatDateTime(card.completedAt, timeZone)) : ""}
+          {card.archivedAt ? t.archivedSuffix : ""}
         </DialogDescription>
       </DialogHeader>
 
@@ -262,13 +312,13 @@ function CardBody({
       <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_14rem] md:grid-rows-[auto_1fr]">
         <aside
           className="grid content-start gap-4 md:col-start-2 md:row-start-1"
-          aria-label="Propiedades de la tarjeta"
+          aria-label={t.properties}
         >
           {/* Desactiva de una vez todos los controles para quien solo lee. */}
           <fieldset disabled={readOnly} className="contents">
             <div className="grid gap-1.5">
               <label htmlFor={ids.column} className="text-sm font-medium">
-                Columna
+                {t.column}
               </label>
               <select
                 id={ids.column}
@@ -283,10 +333,35 @@ function CardBody({
                   </option>
                 ))}
               </select>
+
+              {siblings.length > 1 && !card.archivedAt ? (
+                <div role="group" aria-label={t.order} className="mt-1 flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={index <= 0 || move.isPending}
+                    onClick={() => move.mutate({ columnId: card.columnId, index: index - 1 })}
+                  >
+                    <ArrowUpIcon aria-hidden="true" />
+                    {t.moveUp}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={index >= siblings.length - 1 || move.isPending}
+                    onClick={() => move.mutate({ columnId: card.columnId, index: index + 1 })}
+                  >
+                    <ArrowDownIcon aria-hidden="true" />
+                    {t.moveDown}
+                  </Button>
+                </div>
+              ) : null}
             </div>
             <div className="grid gap-1.5">
               <label htmlFor={ids.priority} className="text-sm font-medium">
-                Prioridad
+                {t.priority}
               </label>
               <select
                 id={ids.priority}
@@ -296,15 +371,15 @@ function CardBody({
               >
                 {CARD_PRIORITIES.map((p) => (
                   <option key={p} value={p}>
-                    {PRIORITY_LABELS[p]}
+                    {priorityLabel(p)}
                   </option>
                 ))}
               </select>
             </div>
             <fieldset className="grid gap-1.5">
-              <legend className="mb-1 text-sm font-medium">Etiquetas</legend>
+              <legend className="mb-1 text-sm font-medium">{t.labels}</legend>
               {board.labels.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Este tablero no tiene etiquetas.</p>
+                <p className="text-sm text-muted-foreground">{t.noLabels}</p>
               ) : (
                 board.labels.map((label) => (
                   <label key={label.id} className="flex items-center gap-2 text-sm">
@@ -331,7 +406,7 @@ function CardBody({
               )}
             </fieldset>
             <fieldset className="grid gap-1.5">
-              <legend className="mb-1 text-sm font-medium">Fecha límite</legend>
+              <legend className="mb-1 text-sm font-medium">{t.due}</legend>
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -352,10 +427,10 @@ function CardBody({
                     );
                   }}
                 />
-                Todo el día
+                {t.allDay}
               </label>
               <label htmlFor={ids.due} className="sr-only">
-                Fecha límite
+                {t.due}
               </label>
               {allDay ? (
                 <Input
@@ -377,14 +452,14 @@ function CardBody({
                   }}
                 />
               )}
-              {overdue ? <p className="text-sm font-medium text-destructive">Vencida</p> : null}
+              {overdue ? <p className="text-sm font-medium text-destructive">{t.overdue}</p> : null}
               {card.due ? (
                 <>
                   {/* Los avisos le llegan a quien creó el tablero: solo esa persona los elige. */}
                   {isOwner ? (
                     <>
                       <label htmlFor={ids.reminder} className="mt-1 text-sm font-medium">
-                        Aviso por Telegram
+                        {t.telegram}
                       </label>
                       <select
                         id={ids.reminder}
@@ -400,7 +475,7 @@ function CardBody({
                         className="h-10 rounded-md border bg-background px-2 text-base sm:h-9 sm:text-sm"
                       >
                         {reminderOptions.some((o) => o.value === currentReminder) ? null : (
-                          <option value={currentReminder}>Personalizado</option>
+                          <option value={currentReminder}>{t.custom}</option>
                         )}
                         {reminderOptions.map((o) => (
                           <option key={o.value} value={o.value}>
@@ -418,7 +493,7 @@ function CardBody({
                       onClick={() => setDue(null)}
                     >
                       <XIcon aria-hidden="true" />
-                      Quitar fecha
+                      {t.removeDue}
                     </Button>
                   )}
                 </>
@@ -447,7 +522,7 @@ function CardBody({
             shared={shared}
             run={(action) => run.mutate(action)}
           />
-          <Section title="Actividad">
+          <Section title={t.activityTitle}>
             <ol className="grid gap-1 text-sm text-muted-foreground">
               {card.activity.map((entry) => (
                 <li key={entry.id} className="flex flex-wrap justify-between gap-x-3">
@@ -455,7 +530,7 @@ function CardBody({
                     {shared && entry.actorName ? (
                       <span className="font-medium text-foreground">{entry.actorName}: </span>
                     ) : null}
-                    {ACTIVITY[entry.kind]?.(entry.data) ?? entry.kind}
+                    {describeActivity(entry.kind, entry.data)}
                   </span>
                   <time dateTime={entry.createdAt} className="text-xs">
                     {formatDateTime(entry.createdAt, timeZone)}
@@ -474,7 +549,7 @@ function CardBody({
                 disabled={archive.isPending}
               >
                 <ArchiveRestoreIcon aria-hidden="true" />
-                Restaurar
+                {t.restore}
               </Button>
             ) : (
               <Button
@@ -483,7 +558,7 @@ function CardBody({
                 disabled={archive.isPending}
               >
                 <ArchiveIcon aria-hidden="true" />
-                Archivar
+                {t.archive}
               </Button>
             )}
             <Button
@@ -491,12 +566,11 @@ function CardBody({
               className="text-destructive hover:text-destructive"
               disabled={remove.isPending}
               onClick={() => {
-                if (window.confirm(`¿Borrar «${card.title}»? No se puede deshacer.`))
-                  remove.mutate();
+                if (window.confirm(t.confirmDelete(card.title))) remove.mutate();
               }}
             >
               <Trash2Icon aria-hidden="true" />
-              Borrar tarjeta
+              {t.delete}
             </Button>
           </div>
         )}
@@ -518,16 +592,17 @@ function Description({
   const [tab, setTab] = useState<"write" | "preview">("write");
   const [text, setText] = useState(card.description);
   const id = useId();
+  const t = workMessages().card;
   const startEditing = () => {
     setText(card.description);
     setTab("write");
     setEditing(true);
   };
   return (
-    <Section title="Descripción">
+    <Section title={t.description}>
       {editing ? (
         <div className="grid gap-2">
-          <div role="tablist" aria-label="Modo de la descripción" className="flex gap-1">
+          <div role="tablist" aria-label={t.descriptionMode} className="flex gap-1">
             {(["write", "preview"] as const).map((value) => (
               <button
                 key={value}
@@ -543,7 +618,7 @@ function Description({
                     : "text-muted-foreground hover:bg-accent/60",
                 )}
               >
-                {value === "write" ? "Escribir" : "Vista previa"}
+                {value === "write" ? t.write : t.preview}
               </button>
             ))}
           </div>
@@ -551,7 +626,7 @@ function Description({
             <textarea
               id={`${id}-write`}
               role="tabpanel"
-              aria-label="Descripción en Markdown"
+              aria-label={t.markdown}
               value={text}
               onChange={(e) => setText(e.target.value)}
               maxLength={KANBAN_LIMITS.description}
@@ -572,13 +647,13 @@ function Description({
                 setEditing(false);
               }}
             >
-              Guardar
+              {t.save}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-              Cancelar
+              {t.cancel}
             </Button>
             <span className="ml-auto self-center text-xs text-muted-foreground">
-              Admite Markdown
+              {t.markdownHint}
             </span>
           </div>
         </div>
@@ -592,19 +667,19 @@ function Description({
               className="justify-self-start"
               onClick={startEditing}
             >
-              Editar descripción
+              {t.editDescription}
             </Button>
           )}
         </div>
       ) : readOnly ? (
-        <p className="text-sm text-muted-foreground">Sin descripción.</p>
+        <p className="text-sm text-muted-foreground">{t.noDescription}</p>
       ) : (
         <Button
           variant="outline"
           className="justify-start text-muted-foreground"
           onClick={startEditing}
         >
-          Añadir una descripción…
+          {t.addDescription}
         </Button>
       )}
     </Section>
@@ -616,6 +691,7 @@ type Run = (action: () => Promise<CardDetail>) => void;
 function Checklist({ card, readOnly, run }: { card: CardDetail; readOnly: boolean; run: Run }) {
   const [text, setText] = useState("");
   const { done, total } = card.checklist;
+  const t = workMessages().card;
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!text.trim()) return;
@@ -623,11 +699,11 @@ function Checklist({ card, readOnly, run }: { card: CardDetail; readOnly: boolea
     setText("");
   };
   return (
-    <Section title={total > 0 ? `Lista (${String(done)}/${String(total)})` : "Lista"}>
+    <Section title={total > 0 ? t.checklistCount(done, total) : t.checklist}>
       {total > 0 ? (
         <div
           role="progressbar"
-          aria-label="Progreso de la lista"
+          aria-label={t.checklistProgress}
           aria-valuemin={0}
           aria-valuemax={total}
           aria-valuenow={done}
@@ -661,7 +737,7 @@ function Checklist({ card, readOnly, run }: { card: CardDetail; readOnly: boolea
                 variant="ghost"
                 size="icon"
                 className="size-7 opacity-60 group-hover:opacity-100 pointer-coarse:size-10 pointer-coarse:opacity-100"
-                aria-label={`Quitar «${item.text}» de la lista`}
+                aria-label={t.removeItem(item.text)}
                 onClick={() => run(() => deleteChecklistItem(item.id))}
               >
                 <XIcon aria-hidden="true" />
@@ -671,19 +747,19 @@ function Checklist({ card, readOnly, run }: { card: CardDetail; readOnly: boolea
         ))}
       </ul>
       {readOnly && total === 0 ? (
-        <p className="text-sm text-muted-foreground">Sin elementos.</p>
+        <p className="text-sm text-muted-foreground">{t.noItems}</p>
       ) : null}
       {!readOnly && total < KANBAN_LIMITS.checklistPerCard ? (
         <form onSubmit={submit} className="flex gap-2">
           <Input
-            aria-label="Nuevo elemento de la lista"
-            placeholder="Añadir elemento…"
+            aria-label={t.newItem}
+            placeholder={t.addItem}
             value={text}
             onChange={(e) => setText(e.target.value)}
             maxLength={KANBAN_LIMITS.checklistText}
           />
           <Button type="submit" variant="outline" disabled={!text.trim()}>
-            Añadir
+            {t.add}
           </Button>
         </form>
       ) : null}
@@ -706,11 +782,12 @@ function Attachments({
 }) {
   const queryClient = useQueryClient();
   const input = useRef<HTMLInputElement>(null);
+  const t = workMessages().card;
   const upload = useMutation({
     mutationFn: (file: File) => uploadAttachment(card.id, file),
     onSuccess: (updated) => {
       applyCard(queryClient, updated);
-      toast.success("Adjunto subido");
+      toast.success(t.attachmentUploaded);
     },
     onError: (error) => toast.error(errorMessage(error)),
   });
@@ -718,7 +795,7 @@ function Attachments({
     const file = files?.[0];
     if (!file) return;
     if (file.size > KANBAN_LIMITS.attachmentBytes) {
-      toast.error("El fichero supera los 10 MB.");
+      toast.error(t.tooBig);
       return;
     }
     upload.mutate(file);
@@ -726,7 +803,7 @@ function Attachments({
   };
   const full = card.attachmentList.length >= KANBAN_LIMITS.attachmentsPerCard;
   return (
-    <Section title="Adjuntos">
+    <Section title={t.attachments}>
       {card.attachmentList.length > 0 ? (
         <ul className="grid gap-1">
           {card.attachmentList.map((file) => (
@@ -749,7 +826,7 @@ function Attachments({
                 <a
                   href={attachmentUrl(file.id)}
                   download={file.filename}
-                  aria-label={`Descargar ${file.filename}`}
+                  aria-label={t.downloadFile(file.filename)}
                 >
                   <DownloadIcon aria-hidden="true" />
                 </a>
@@ -759,9 +836,9 @@ function Attachments({
                   variant="ghost"
                   size="icon"
                   className="size-7 pointer-coarse:size-10"
-                  aria-label={`Borrar ${file.filename}`}
+                  aria-label={t.deleteFile(file.filename)}
                   onClick={() => {
-                    if (window.confirm(`¿Borrar «${file.filename}»?`))
+                    if (window.confirm(t.confirmDeleteFile(file.filename)))
                       run(() => deleteAttachment(file.id));
                   }}
                 >
@@ -772,7 +849,7 @@ function Attachments({
           ))}
         </ul>
       ) : readOnly ? (
-        <p className="text-sm text-muted-foreground">Sin adjuntos.</p>
+        <p className="text-sm text-muted-foreground">{t.noAttachments}</p>
       ) : null}
       {readOnly ? null : (
         <div className="flex items-center gap-2">
@@ -797,12 +874,10 @@ function Attachments({
               ) : (
                 <PaperclipIcon aria-hidden="true" />
               )}
-              {upload.isPending ? "Subiendo…" : "Adjuntar fichero"}
+              {upload.isPending ? t.uploading : t.attach}
             </label>
           </Button>
-          <span className="text-xs text-muted-foreground">
-            Imágenes, PDF, texto, CSV, ZIP u Office · hasta 10 MB
-          </span>
+          <span className="text-xs text-muted-foreground">{t.allowedFiles}</span>
         </div>
       )}
     </Section>
@@ -827,6 +902,7 @@ function Comments({
 }) {
   const [text, setText] = useState("");
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
+  const t = workMessages().card;
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!text.trim()) return;
@@ -834,12 +910,12 @@ function Comments({
     setText("");
   };
   return (
-    <Section title="Comentarios">
+    <Section title={t.comments}>
       {readOnly ? null : (
         <form onSubmit={submit} className="grid gap-2">
           <textarea
-            aria-label="Nuevo comentario"
-            placeholder="Escribe un comentario…"
+            aria-label={t.newComment}
+            placeholder={t.commentPlaceholder}
             value={text}
             onChange={(e) => setText(e.target.value)}
             maxLength={KANBAN_LIMITS.comment}
@@ -847,12 +923,12 @@ function Comments({
             className="w-full rounded-md border bg-background p-2 text-base sm:text-sm"
           />
           <Button type="submit" size="sm" className="justify-self-start" disabled={!text.trim()}>
-            Comentar
+            {t.comment}
           </Button>
         </form>
       )}
       {readOnly && card.commentList.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Sin comentarios.</p>
+        <p className="text-sm text-muted-foreground">{t.noComments}</p>
       ) : null}
       <ul className="grid gap-2">
         {card.commentList.map((comment) => (
@@ -860,13 +936,13 @@ function Comments({
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {shared ? (
                 <span className="font-medium text-foreground">
-                  {comment.authorName ?? "Otra persona"}
+                  {comment.authorName ?? t.someone}
                 </span>
               ) : null}
               <time dateTime={comment.createdAt}>
                 {formatDateTime(comment.createdAt, timeZone)}
               </time>
-              {comment.updatedAt !== comment.createdAt ? <span>(editado)</span> : null}
+              {comment.updatedAt !== comment.createdAt ? <span>{t.edited}</span> : null}
               {readOnly ? null : (
                 <span className="ml-auto flex gap-1">
                   {comment.mine ? (
@@ -876,7 +952,7 @@ function Comments({
                       className="h-6 px-2"
                       onClick={() => setEditing({ id: comment.id, text: comment.body })}
                     >
-                      Editar
+                      {t.edit}
                     </Button>
                   ) : null}
                   {comment.mine || isOwner ? (
@@ -885,11 +961,11 @@ function Comments({
                       size="sm"
                       className="h-6 px-2 text-destructive hover:text-destructive"
                       onClick={() => {
-                        if (window.confirm("¿Borrar el comentario?"))
+                        if (window.confirm(t.confirmDeleteComment))
                           run(() => deleteComment(comment.id));
                       }}
                     >
-                      Borrar
+                      {t.deleteComment}
                     </Button>
                   ) : null}
                 </span>
@@ -906,7 +982,7 @@ function Comments({
                 }}
               >
                 <textarea
-                  aria-label="Editar comentario"
+                  aria-label={t.editComment}
                   value={editing.text}
                   onChange={(e) => setEditing({ id: comment.id, text: e.target.value })}
                   maxLength={KANBAN_LIMITS.comment}
@@ -916,10 +992,10 @@ function Comments({
                 />
                 <div className="flex gap-2">
                   <Button type="submit" size="sm">
-                    Guardar
+                    {t.save}
                   </Button>
                   <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(null)}>
-                    Cancelar
+                    {t.cancel}
                   </Button>
                 </div>
               </form>

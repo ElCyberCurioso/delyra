@@ -1,5 +1,6 @@
 import { Turnstile, useAuthConfig } from "@delyra/ui";
 import { useCallback, useState } from "react";
+import { authMessages } from "./messages";
 
 /** Estado del widget Turnstile de un formulario: token actual, elemento y reinicio. */
 export function useTurnstile(action: string) {
@@ -15,7 +16,7 @@ export function useTurnstile(action: string) {
   } else if (!siteKey) {
     element = (
       <p role="alert" className="text-sm text-destructive">
-        La verificación anti-bots no está configurada en este entorno. Avisa al administrador.
+        {authMessages().common.turnstileMissing}
       </p>
     );
   } else {

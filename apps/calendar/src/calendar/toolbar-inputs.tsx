@@ -1,12 +1,36 @@
-import { type CalendarInfo, dateOnlyToUtc, instantToWall, type Occurrence } from "@delyra/shared";
-import { Button, errorMessage, Input, toast } from "@delyra/ui";
+import {
+  type CalendarInfo,
+  dateOnlyToUtc,
+  instantToWall,
+  type Occurrence,
+  parseQuickAdd,
+  type QuickAddParser,
+  type QuickDraft,
+} from "@delyra/shared";
+import { Button, errorMessage, getLocale, Input, toast } from "@delyra/ui";
 import { useQuery } from "@tanstack/react-query";
 import { SearchIcon, SparklesIcon } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { createEvent, searchEvents, useInvalidateEvents } from "./api";
 import type { EditorTarget } from "./event-editor";
-import { parseQuickAdd, type QuickDraft } from "@delyra/shared";
+import { calendarMessages } from "./messages";
 import { describeWhen, joinInstant } from "./time";
+
+let englishParser: QuickAddParser | null = null;
+
+/** En inglés, el analizador de chrono-node/en se descarga la primera vez (F7-06). */
+function useQuickAddParser(): QuickAddParser | undefined {
+  const english = getLocale() === "en";
+  const [parser, setParser] = useState(() => (english ? englishParser : null));
+  useEffect(() => {
+    if (!english || englishParser) return;
+    void import("@delyra/shared/quick-add-en").then(({ parseEnglish }) => {
+      englishParser = parseEnglish;
+      setParser(() => parseEnglish);
+    });
+  }, [english]);
+  return english ? (parser ?? undefined) : undefined;
+}
 
 const DAY_MS = 86_400_000;
 
@@ -42,7 +66,12 @@ export function QuickAdd({
   const [text, setText] = useState("");
   const [pending, setPending] = useState(false);
   const calendar = calendars.find((c) => c.kind === "personal") ?? calendars[0];
-  const draft = useMemo(() => parseQuickAdd(text, reference(timeZone)), [text, timeZone]);
+  const parser = useQuickAddParser();
+  const draft = useMemo(
+    () => parseQuickAdd(text, reference(timeZone), { locale: getLocale(), parse: parser }),
+    [text, timeZone, parser],
+  );
+  const t = calendarMessages().quickAdd;
   const times = draft ? draftTimes(draft, timeZone) : null;
 
   async function submit(event: FormEvent) {
@@ -51,7 +80,7 @@ export function QuickAdd({
     setPending(true);
     try {
       await createEvent({ calendarId: calendar.id, title: draft.title, tz: timeZone, ...times });
-      toast.success(`«${draft.title}» añadido`);
+      toast.success(t.added(draft.title));
       setText("");
       await invalidate();
     } catch (caught) {
@@ -68,8 +97,8 @@ export function QuickAdd({
         className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground"
       />
       <Input
-        aria-label="Alta rápida"
-        placeholder="Alta rápida: «Dentista mañana 17:30»"
+        aria-label={t.label}
+        placeholder={t.placeholder}
         value={text}
         onChange={(e) => setText(e.target.value)}
         className="pl-8"
@@ -100,15 +129,15 @@ export function QuickAdd({
                 setText("");
               }}
             >
-              Más opciones
+              {t.moreOptions}
             </Button>
             <Button type="submit" size="sm" disabled={pending}>
-              Añadir
+              {t.add}
             </Button>
           </div>
         ) : text.trim().length > 3 ? (
           <p className="rounded-md border bg-popover p-2 text-sm text-muted-foreground shadow-md">
-            Añade cuándo: «mañana 17:30», «el viernes de 10 a 11», «3 de diciembre»…
+            {t.hint}
           </p>
         ) : null}
       </div>
@@ -144,6 +173,7 @@ export function SearchBox({
     queryFn: ({ signal }) => searchEvents(query, signal),
   });
   const colors = new Map(calendars.map((c) => [c.id, c.color]));
+  const t = calendarMessages().search;
 
   return (
     <div className="relative w-full" onKeyDown={(e) => e.key === "Escape" && setOpen(false)}>
@@ -153,8 +183,9 @@ export function SearchBox({
       />
       <Input
         type="search"
-        aria-label="Buscar eventos"
-        placeholder="Buscar"
+        data-search="events"
+        aria-label={t.label}
+        placeholder={t.placeholder}
         value={text}
         onChange={(e) => {
           setText(e.target.value);
@@ -167,13 +198,13 @@ export function SearchBox({
       {open && query.length >= 2 ? (
         <div
           role="region"
-          aria-label="Resultados de la búsqueda"
+          aria-label={t.results}
           className="absolute top-full right-0 left-0 z-30 mt-1 max-h-80 overflow-y-auto rounded-md border bg-popover p-1 text-sm text-popover-foreground shadow-md sm:w-96"
         >
-          {results.isPending ? <p className="p-2 text-muted-foreground">Buscando…</p> : null}
+          {results.isPending ? <p className="p-2 text-muted-foreground">{t.searching}</p> : null}
           {results.isError ? <p className="p-2">{errorMessage(results.error)}</p> : null}
           {results.data?.length === 0 ? (
-            <p className="p-2 text-muted-foreground">Sin resultados.</p>
+            <p className="p-2 text-muted-foreground">{t.none}</p>
           ) : null}
           <ul>
             {results.data?.map((occurrence) => (

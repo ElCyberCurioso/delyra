@@ -1,9 +1,11 @@
-import { dateOnlyToUtc, instantToWall, type Occurrence } from "@delyra/shared";
+import { dateOnlyToUtc, instantToWall, type Locale, type Occurrence } from "@delyra/shared";
 import { escapeHtml, type InlineButton } from "../lib/telegram";
+import { botText } from "./bot-text";
 
 /**
- * Textos de Telegram (F3-06, F3-08, F3-09, F3-10), en español y con fechas en la zona del
- * usuario. Todo lo que viene del usuario se escapa: los mensajes usan `parse_mode: HTML`.
+ * Textos de Telegram (F3-06, F3-08, F3-09, F3-10), en el idioma de la cuenta (F7-06) y con fechas
+ * en la zona del usuario. Todo lo que viene del usuario se escapa: los mensajes usan
+ * `parse_mode: HTML`.
  */
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -18,12 +20,13 @@ function time(ms: number, timeZone: string): string {
   return `${pad(w.hour)}:${pad(w.minute)}`;
 }
 
-/** «hoy», «mañana» o «lun 23 nov». */
-function dayLabel(date: string, today: string): string {
-  if (date === today) return "hoy";
+/** «hoy», «mañana» o «lun 23 nov» (en el idioma de la cuenta). */
+function dayLabel(date: string, today: string, locale: Locale): string {
+  const t = botText(locale);
+  if (date === today) return t.today;
   const tomorrow = new Date(dateOnlyToUtc(today) + 86_400_000).toISOString().slice(0, 10);
-  if (date === tomorrow) return "mañana";
-  return new Intl.DateTimeFormat("es-ES", {
+  if (date === tomorrow) return t.tomorrow;
+  return new Intl.DateTimeFormat(t.intl, {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -38,23 +41,37 @@ export interface WhenInput {
 }
 
 /** «hoy, 17:30–18:30», «mañana, todo el día»… */
-export function describeWhen(when: WhenInput, timeZone: string, now: number): string {
+export function describeWhen(
+  when: WhenInput,
+  timeZone: string,
+  now: number,
+  locale: Locale = "es",
+): string {
   const today = localDate(now, timeZone);
   if (when.allDay) {
     const date = new Date(when.start).toISOString().slice(0, 10);
-    return `${dayLabel(date, today)}, todo el día`;
+    return `${dayLabel(date, today, locale)}, ${botText(locale).allDay}`;
   }
-  const day = dayLabel(localDate(when.start, timeZone), today);
+  const day = dayLabel(localDate(when.start, timeZone), today, locale);
   return `${day}, ${time(when.start, timeZone)}–${time(when.end, timeZone)}`;
 }
 
 /** «vence hoy a las 17:00», «vence mañana». */
-export function describeDeadline(when: WhenInput, timeZone: string, now: number): string {
+export function describeDeadline(
+  when: WhenInput,
+  timeZone: string,
+  now: number,
+  locale: Locale = "es",
+): string {
+  const t = botText(locale);
   const today = localDate(now, timeZone);
   if (when.allDay) {
-    return `vence ${dayLabel(new Date(when.start).toISOString().slice(0, 10), today)}`;
+    return t.due(dayLabel(new Date(when.start).toISOString().slice(0, 10), today, locale));
   }
-  return `vence ${dayLabel(localDate(when.start, timeZone), today)} a las ${time(when.start, timeZone)}`;
+  return t.dueAt(
+    dayLabel(localDate(when.start, timeZone), today, locale),
+    time(when.start, timeZone),
+  );
 }
 
 export interface ReminderContent extends WhenInput {
@@ -72,11 +89,12 @@ export function reminderText(
   timeZone: string,
   now: number,
   footer?: string,
+  locale: Locale = "es",
 ): string {
   const title = content.age !== null ? `${content.title} (${String(content.age)})` : content.title;
   const when = content.deadline
-    ? describeDeadline(content, timeZone, now)
-    : describeWhen(content, timeZone, now);
+    ? describeDeadline(content, timeZone, now, locale)
+    : describeWhen(content, timeZone, now, locale);
   const lines = [
     `${content.deadline ? "📌" : "🔔"} <b>${escapeHtml(title)}</b>`,
     escapeHtml([when, content.calendarName].filter(Boolean).join(" · ")),
@@ -92,17 +110,19 @@ export function reminderKeyboard(
   reminderId: string,
   occurrenceStart: number,
   openUrl: string | null,
+  locale: Locale = "es",
 ): InlineButton[][] {
+  const t = botText(locale);
   const ref = `${reminderId}:${occurrenceStart.toString(36)}`;
   const rows: InlineButton[][] = [
     [
-      { text: "⏰ 10 min", callback_data: `s10:${ref}` },
-      { text: "1 h", callback_data: `s60:${ref}` },
-      { text: "Mañana 9:00", callback_data: `stm:${ref}` },
+      { text: t.snooze10, callback_data: `s10:${ref}` },
+      { text: t.snooze60, callback_data: `s60:${ref}` },
+      { text: t.snoozeTomorrow, callback_data: `stm:${ref}` },
     ],
-    [{ text: "✅ Hecho", callback_data: `ok:${ref}` }],
+    [{ text: t.done, callback_data: `ok:${ref}` }],
   ];
-  if (openUrl) rows[1]?.push({ text: "Abrir", url: openUrl });
+  if (openUrl) rows[1]?.push({ text: t.open, url: openUrl });
   return rows;
 }
 
@@ -113,9 +133,10 @@ export function agendaText(
   timeZone: string,
   now: number,
   withDay: boolean,
+  locale: Locale = "es",
 ): string {
-  if (occurrences.length === 0)
-    return `<b>${escapeHtml(heading)}</b>\nNo tienes nada en el calendario.`;
+  const t = botText(locale);
+  if (occurrences.length === 0) return `<b>${escapeHtml(heading)}</b>\n${t.nothing}`;
   const lines = [`<b>${escapeHtml(heading)}</b>`];
   let lastDay = "";
   const today = localDate(now, timeZone);
@@ -123,11 +144,11 @@ export function agendaText(
     const start = o.allDay ? dateOnlyToUtc(o.start) : Date.parse(o.start);
     const day = o.allDay ? o.start : localDate(start, timeZone);
     if (withDay && day !== lastDay) {
-      lines.push("", `<u>${escapeHtml(dayLabel(day, today))}</u>`);
+      lines.push("", `<u>${escapeHtml(dayLabel(day, today, locale))}</u>`);
       lastDay = day;
     }
     const when = o.allDay
-      ? "Todo el día"
+      ? t.allDayLine
       : `${time(start, timeZone)}–${time(Date.parse(o.end), timeZone)}`;
     const title = o.age !== null ? `${o.title} (${String(o.age)})` : o.title;
     const calendar = calendarNames.get(o.calendarId);
@@ -135,7 +156,7 @@ export function agendaText(
       `• ${escapeHtml(when)} ${escapeHtml(title)}${calendar ? ` <i>· ${escapeHtml(calendar)}</i>` : ""}`,
     );
   }
-  if (occurrences.length > 60) lines.push(`… y ${String(occurrences.length - 60)} más.`);
+  if (occurrences.length > 60) lines.push(t.more(occurrences.length - 60));
   return lines.join("\n");
 }
 
@@ -154,32 +175,35 @@ export function tasksText(
   tasks: readonly TaskLine[],
   timeZone: string,
   now: number,
+  locale: Locale = "es",
 ): string {
-  if (tasks.length === 0) return `<b>${escapeHtml(heading)}</b>\nNo tienes tareas pendientes.`;
+  const t = botText(locale);
+  if (tasks.length === 0) return `<b>${escapeHtml(heading)}</b>\n${t.noTasks}`;
   const today = localDate(now, timeZone);
-  const line = (t: TaskLine, withDay: boolean) => {
-    const when = t.allDay
+  const line = (task: TaskLine, withDay: boolean) => {
+    const day = dayLabel(task.date, today, locale);
+    const when = task.allDay
       ? withDay
-        ? dayLabel(t.date, today)
+        ? day
         : ""
-      : `${withDay ? `${dayLabel(t.date, today)} ` : ""}${time(t.dueAt, timeZone)}`;
-    return `• ${when ? `${escapeHtml(when)} ` : ""}${escapeHtml(t.title)} <i>· ${escapeHtml(t.boardName)}</i>`;
+      : `${withDay ? `${day} ` : ""}${time(task.dueAt, timeZone)}`;
+    return `• ${when ? `${escapeHtml(when)} ` : ""}${escapeHtml(task.title)} <i>· ${escapeHtml(task.boardName)}</i>`;
   };
   const lines = [`<b>${escapeHtml(heading)}</b>`];
   const shown = tasks.slice(0, 60);
-  const overdue = shown.filter((t) => t.overdue);
+  const overdue = shown.filter((task) => task.overdue);
   if (overdue.length > 0) {
-    lines.push("", "<u>⚠️ Vencidas</u>", ...overdue.map((t) => line(t, true)));
+    lines.push("", `<u>${t.overdue}</u>`, ...overdue.map((task) => line(task, true)));
   }
   let lastDay = "";
-  for (const t of shown.filter((x) => !x.overdue)) {
-    if (t.date !== lastDay) {
-      lines.push("", `<u>${escapeHtml(dayLabel(t.date, today))}</u>`);
-      lastDay = t.date;
+  for (const task of shown.filter((x) => !x.overdue)) {
+    if (task.date !== lastDay) {
+      lines.push("", `<u>${escapeHtml(dayLabel(task.date, today, locale))}</u>`);
+      lastDay = task.date;
     }
-    lines.push(line(t, false));
+    lines.push(line(task, false));
   }
-  if (tasks.length > 60) lines.push(`… y ${String(tasks.length - 60)} más.`);
+  if (tasks.length > 60) lines.push(t.more(tasks.length - 60));
   return lines.join("\n");
 }
 
@@ -193,46 +217,32 @@ export const SECURITY_EVENTS = [
 ] as const;
 export type SecurityEvent = (typeof SECURITY_EVENTS)[number];
 
-const SECURITY_COPY: Record<SecurityEvent, string> = {
-  login: "Nuevo inicio de sesión en tu cuenta",
-  password_changed: "Se ha cambiado la contraseña de tu cuenta",
-  password_reset: "Se ha restablecido la contraseña de tu cuenta desde el correo",
-  totp_changed: "Se ha cambiado la app autenticadora de tu cuenta",
-  recovery_codes: "Se han generado códigos de recuperación nuevos",
-  sessions_revoked: "Se han cerrado sesiones de tu cuenta",
-};
-
 export function securityText(
   event: SecurityEvent,
   details: { country: string | null; device: string | null },
   settingsUrl: string,
+  locale: Locale = "es",
 ): string {
+  const t = botText(locale);
   const where = [details.device, details.country].filter(Boolean).join(" · ");
   return [
-    `🔐 <b>${escapeHtml(SECURITY_COPY[event])}</b>`,
+    `🔐 <b>${escapeHtml(t.security[event])}</b>`,
     where ? escapeHtml(where) : null,
     "",
-    `Si no has sido tú, cambia la contraseña y cierra las demás sesiones: ${escapeHtml(settingsUrl)}`,
+    escapeHtml(t.securityAdvice(settingsUrl)),
   ]
     .filter((line) => line !== null)
     .join("\n");
 }
 
-export const BOT_COMMANDS = [
-  { command: "hoy", description: "Agenda de hoy" },
-  { command: "manana", description: "Agenda de mañana" },
-  { command: "semana", description: "Próximos 7 días" },
-  { command: "nuevo", description: "Crear un evento: /nuevo Dentista mañana 17:30" },
-  { command: "tareas", description: "Tareas pendientes" },
-  { command: "silenciar", description: "Silenciar alertas: /silenciar 2 (horas) u /silenciar no" },
-  { command: "desvincular", description: "Desvincular esta cuenta de Telegram" },
-  { command: "ayuda", description: "Qué puedo hacer" },
-];
+/** Comandos del bot en español (los que se registran por defecto en Telegram). */
+export const BOT_COMMANDS = botText("es").commands;
 
-export function helpText(): string {
+export function helpText(locale: Locale = "es"): string {
+  const t = botText(locale);
   return [
-    "<b>Delyra</b> te avisa de tus eventos y te deja consultar la agenda.",
+    t.helpIntro,
     "",
-    ...BOT_COMMANDS.map((c) => `/${c.command} — ${escapeHtml(c.description)}`),
+    ...t.commands.map((c) => `/${c.command} — ${escapeHtml(c.description)}`),
   ].join("\n");
 }

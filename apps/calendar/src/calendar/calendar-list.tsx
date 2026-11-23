@@ -30,6 +30,7 @@ import {
   useInvalidateEvents,
 } from "./api";
 import { FeedDialog } from "./feed-dialog";
+import { calendarMessages } from "./messages";
 
 export function ColorPicker({
   value,
@@ -38,15 +39,16 @@ export function ColorPicker({
   value: string;
   onChange: (color: string) => void;
 }) {
+  const t = calendarMessages().list;
   return (
     <fieldset>
-      <legend className="mb-1.5 text-sm font-medium">Color</legend>
+      <legend className="mb-1.5 text-sm font-medium">{t.color}</legend>
       <div className="flex flex-wrap gap-2">
-        {CALENDAR_COLORS.map((color) => (
+        {CALENDAR_COLORS.map((color, index) => (
           <button
             key={color}
             type="button"
-            aria-label={`Color ${color}`}
+            aria-label={t.colorLabel(t.colorNames[index] ?? color)}
             aria-pressed={value === color}
             onClick={() => onChange(color)}
             className={cn(
@@ -70,11 +72,12 @@ function CalendarDialog({ editing, onClose }: { editing: Editing; onClose: () =>
   const [color, setColor] = useState(current?.color ?? CALENDAR_COLORS[0]);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const t = calendarMessages().list;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!name.trim()) {
-      setError("Ponle un nombre.");
+      setError(t.needName);
       return;
     }
     setPending(true);
@@ -94,13 +97,13 @@ function CalendarDialog({ editing, onClose }: { editing: Editing; onClose: () =>
     <Dialog open={editing !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>{current ? "Editar calendario" : "Nuevo calendario"}</DialogTitle>
-          <DialogDescription className="sr-only">Nombre y color del calendario.</DialogDescription>
+          <DialogTitle>{current ? t.edit : t.new}</DialogTitle>
+          <DialogDescription className="sr-only">{t.dialogDescription}</DialogDescription>
         </DialogHeader>
         <form noValidate onSubmit={(event) => void submit(event)} className="grid gap-4">
           <FormError>{error}</FormError>
           <Field
-            label="Nombre"
+            label={t.name}
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={60}
@@ -109,10 +112,10 @@ function CalendarDialog({ editing, onClose }: { editing: Editing; onClose: () =>
           <ColorPicker value={color} onChange={setColor} />
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">Cancelar</Button>
+              <Button variant="outline">{t.cancel}</Button>
             </DialogClose>
             <Button type="submit" disabled={pending}>
-              Guardar
+              {t.save}
             </Button>
           </DialogFooter>
         </form>
@@ -128,6 +131,7 @@ export function CalendarList({ calendars }: { calendars: readonly CalendarInfo[]
   const [editing, setEditing] = useState<Editing>(null);
   const [removing, setRemoving] = useState<CalendarInfo | null>(null);
   const [sharing, setSharing] = useState<CalendarInfo | null>(null);
+  const t = calendarMessages().list;
 
   async function toggle(calendar: CalendarInfo) {
     // Optimista: la visibilidad cambia al instante y se deshace si falla.
@@ -145,7 +149,7 @@ export function CalendarList({ calendars }: { calendars: readonly CalendarInfo[]
   async function remove(calendar: CalendarInfo) {
     try {
       await deleteCalendar(calendar.id);
-      toast.success(`Calendario «${calendar.name}» borrado`);
+      toast.success(t.deleted(calendar.name));
       await queryClient.invalidateQueries({ queryKey: CALENDARS_KEY });
       await invalidateEvents();
     } catch (caught) {
@@ -158,12 +162,12 @@ export function CalendarList({ calendars }: { calendars: readonly CalendarInfo[]
   return (
     <div>
       <div className="mb-1 flex items-center justify-between">
-        <h2 className="text-sm font-medium">Calendarios</h2>
+        <h2 className="text-sm font-medium">{t.title}</h2>
         <Button
           variant="ghost"
           size="icon"
           className="size-7"
-          aria-label="Nuevo calendario"
+          aria-label={t.new}
           onClick={() => setEditing({ kind: "create" })}
         >
           <PlusIcon aria-hidden="true" />
@@ -186,7 +190,7 @@ export function CalendarList({ calendars }: { calendars: readonly CalendarInfo[]
               <span className="truncate">{calendar.name}</span>
               {calendar.readOnly ? (
                 <LockIcon
-                  aria-label="Suscripción de solo lectura"
+                  aria-label={t.readOnly}
                   className="size-3.5 shrink-0 text-muted-foreground"
                 />
               ) : null}
@@ -197,29 +201,27 @@ export function CalendarList({ calendars }: { calendars: readonly CalendarInfo[]
                   variant="ghost"
                   size="icon"
                   className="size-7 opacity-60 group-hover:opacity-100"
-                  aria-label={`Opciones de ${calendar.name}`}
+                  aria-label={t.options(calendar.name)}
                 >
                   <MoreHorizontalIcon aria-hidden="true" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onSelect={() => setEditing({ kind: "edit", calendar })}>
-                  Editar nombre y color
+                  {t.editNameColor}
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <a href={`/api/calendars/${calendar.id}/export`} download>
-                    Exportar (.ics)
+                    {t.export}
                   </a>
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setSharing(calendar)}>
-                  Ver en otras apps (iCal)
-                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setSharing(calendar)}>{t.feed}</DropdownMenuItem>
                 <DropdownMenuItem
                   variant="destructive"
                   disabled={calendars.length <= 1}
                   onSelect={() => setRemoving(calendar)}
                 >
-                  {calendar.readOnly ? "Quitar suscripción" : "Borrar"}
+                  {calendar.readOnly ? t.unsubscribe : t.delete}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -231,7 +233,7 @@ export function CalendarList({ calendars }: { calendars: readonly CalendarInfo[]
         className="mt-1 flex items-center gap-2 rounded-md px-1 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
       >
         <DownloadIcon aria-hidden="true" className="size-4" />
-        Importar desde Google
+        {t.import}
       </Link>
       <FeedDialog calendar={sharing} onClose={() => setSharing(null)} />
       {editing ? (
@@ -244,17 +246,15 @@ export function CalendarList({ calendars }: { calendars: readonly CalendarInfo[]
       <Dialog open={removing !== null} onOpenChange={(open) => !open && setRemoving(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Borrar «{removing?.name}»</DialogTitle>
-            <DialogDescription>
-              Se borrarán también todos sus eventos y sus alertas. No se puede deshacer.
-            </DialogDescription>
+            <DialogTitle>{t.deleteTitle(removing?.name ?? "")}</DialogTitle>
+            <DialogDescription>{t.deleteBody}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">Cancelar</Button>
+              <Button variant="outline">{t.cancel}</Button>
             </DialogClose>
             <Button variant="destructive" onClick={() => removing && void remove(removing)}>
-              Borrar calendario
+              {t.deleteConfirm}
             </Button>
           </DialogFooter>
         </DialogContent>

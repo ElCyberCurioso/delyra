@@ -19,6 +19,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { apiFieldErrors, type FieldErrors, formValues, useFragmentToken } from "./form";
 import { useTurnstile } from "./use-turnstile";
+import { authMessages } from "./messages";
 
 function validateRegistration(values: Record<string, string>): FieldErrors {
   const errors: FieldErrors = {};
@@ -26,7 +27,9 @@ function validateRegistration(values: Record<string, string>): FieldErrors {
   if (!name.success) errors.name = name.error.issues[0]?.message;
   const password = passwordSchema.safeParse(values.password);
   if (!password.success) errors.password = password.error.issues[0]?.message;
-  else if (values.password !== values.confirm) errors.confirm = "Las contraseñas no coinciden";
+  else if (values.password !== values.confirm) {
+    errors.confirm = authMessages().common.passwordsDontMatch;
+  }
   return errors;
 }
 
@@ -39,6 +42,7 @@ export function RegisterPage() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const t = authMessages();
 
   const invitation = useQuery({
     queryKey: ["auth", "invitation", token],
@@ -62,7 +66,7 @@ export function RegisterPage() {
     setErrors(found);
     if (Object.keys(found).length > 0) return;
     if (!turnstile.token) {
-      setFormError("Completa la verificación anti-bots.");
+      setFormError(t.common.completeTurnstile);
       return;
     }
     setPending(true);
@@ -89,10 +93,7 @@ export function RegisterPage() {
 
   if (!token || invitation.isError) {
     return (
-      <AuthLayout
-        title="Invitación no válida"
-        description="El enlace ha caducado, ya se usó o está incompleto. Pide al administrador una invitación nueva."
-      >
+      <AuthLayout title={t.register.invalidTitle} description={t.register.invalidDescription}>
         <span />
       </AuthLayout>
     );
@@ -101,11 +102,10 @@ export function RegisterPage() {
 
   return (
     <AuthLayout
-      title="Crea tu cuenta"
+      title={t.register.title}
       description={
         <>
-          Te han invitado como <strong>{invitation.data.email}</strong>. Después configurarás la
-          verificación en dos pasos.
+          {t.register.invitedAs} <strong>{invitation.data.email}</strong>. {t.register.afterwards}
         </>
       }
     >
@@ -121,7 +121,7 @@ export function RegisterPage() {
           hidden
         />
         <Field
-          label="Nombre"
+          label={t.register.name}
           name="name"
           autoComplete="name"
           required
@@ -130,17 +130,17 @@ export function RegisterPage() {
           error={errors.name}
         />
         <Field
-          label="Contraseña"
+          label={t.common.password}
           name="password"
           type="password"
           autoComplete="new-password"
           required
           minLength={PASSWORD_MIN_LENGTH}
-          hint={`Mínimo ${String(PASSWORD_MIN_LENGTH)} caracteres. Una frase larga es más fácil de recordar y más segura.`}
+          hint={t.register.passwordHint(PASSWORD_MIN_LENGTH)}
           error={errors.password}
         />
         <Field
-          label="Repite la contraseña"
+          label={t.common.repeatPassword}
           name="confirm"
           type="password"
           autoComplete="new-password"
@@ -149,7 +149,7 @@ export function RegisterPage() {
         />
         {turnstile.element}
         <Button type="submit" disabled={pending}>
-          {pending ? "Creando cuenta…" : "Crear cuenta"}
+          {pending ? t.register.creating : t.register.create}
         </Button>
       </form>
     </AuthLayout>

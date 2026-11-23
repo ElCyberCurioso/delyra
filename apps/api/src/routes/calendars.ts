@@ -13,6 +13,7 @@ import { calendarToIcs } from "../services/exports";
 import { feedRepository, feedUrl } from "../services/feeds";
 import { getUserSettings } from "../services/users";
 import type { AppEnv } from "../types";
+import { requestLocale } from "../lib/locale";
 
 /** Calendarios del usuario (F2-03). Un calendario ajeno responde 404, como uno inexistente. */
 
@@ -45,7 +46,7 @@ export const calendarRoutes = new Hono<AppEnv>()
 
   .get("/", async (c) => {
     const { calendars } = repos(c);
-    await calendars.ensureDefaults();
+    await calendars.ensureDefaults(requestLocale(c.req.header("accept-language")));
     return c.json({ calendars: (await calendars.list()).map(dto) });
   })
 

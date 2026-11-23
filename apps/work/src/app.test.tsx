@@ -172,7 +172,7 @@ describe("App (trabajo)", () => {
   it("lista los tableros con la cabecera común", async () => {
     renderAt("/");
     expect(await screen.findByRole("heading", { level: 1, name: "Tableros" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Menú de usuario" })).toHaveTextContent("Ana López");
+    expect(screen.getByRole("button", { name: /Menú de usuario/ })).toHaveTextContent("Ana López");
     expect(screen.getByRole("link", { name: /Trabajo/ })).toHaveAttribute("aria-current", "page");
     const link = await screen.findByRole("link", { name: /Casa/ });
     expect(link).toHaveAttribute("href", "/tableros/b1");

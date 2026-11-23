@@ -21,6 +21,8 @@ import {
 } from "./notification-text";
 import { chatIdOf, getLink, unlinkUser } from "./telegram-links";
 import { findUserById, getUserSettings } from "./users";
+import { accountLocale } from "../lib/locale";
+import { botText } from "./bot-text";
 
 /**
  * Mensajes de `delyra-notifications` y su entrega (F3-06, F3-09, F3-10). Cada mensaje lleva una
@@ -199,6 +201,11 @@ function retryDelay(error: TelegramError, attempts: number): number {
   return Math.min(30 * 2 ** Math.max(attempts - 1, 0), 900);
 }
 
+/** Idioma de la cuenta para sus mensajes (F7-06). */
+async function localeOfUser(db: Database, userId: string) {
+  return accountLocale((await getUserSettings(db, userId))?.locale);
+}
+
 async function sendTelegram(
   deps: DeliveryDeps,
   ownerId: string,
@@ -234,7 +241,9 @@ async function deliverReminder(
   const { reminder, target } = loaded;
   const settings = await getUserSettings(deps.db, message.ownerId);
   const timeZone = settings?.timeZone ?? "Europe/Madrid";
+  const locale = accountLocale(settings?.locale);
   const content = await reminderContent(deps.db, message.ownerId, target, message.occurrenceStart);
+  const text = reminderText(content, timeZone, deps.now, undefined, locale);
 
   let result: "sent" | "skipped";
   if (reminder.channel === "email") {
@@ -244,13 +253,13 @@ async function deliverReminder(
     if (!user) return "skipped";
     await mailer.send({
       to: user.email,
-      subject: `Recordatorio: ${content.title}`,
-      text: reminderText(content, timeZone, deps.now).replace(/<[^>]+>/g, ""),
-      html: reminderText(content, timeZone, deps.now).replaceAll("\n", "<br>"),
+      subject: botText(locale).reminderSubject(content.title),
+      text: text.replace(/<[^>]+>/g, ""),
+      html: text.replaceAll("\n", "<br>"),
     });
     result = "sent";
   } else {
-    result = await sendTelegram(deps, message.ownerId, reminderText(content, timeZone, deps.now), {
+    result = await sendTelegram(deps, message.ownerId, text, {
       respectMute: true,
       keyboard: {
         replyMarkup: {
@@ -258,6 +267,7 @@ async function deliverReminder(
             reminder.id,
             message.occurrenceStart,
             openTargetUrl(deps.env, target),
+            locale,
           ),
         },
       },
@@ -277,6 +287,8 @@ async function deliverDigest(
 ) {
   const settings = await getUserSettings(deps.db, message.ownerId);
   const timeZone = settings?.timeZone ?? "Europe/Madrid";
+  const locale = accountLocale(settings?.locale);
+  const t = botText(locale);
   const { occurrences, calendarNames } = await agendaFor(
     deps.db,
     message.ownerId,
@@ -286,15 +298,21 @@ async function deliverDigest(
   );
   const heading =
     message.date === localToday(deps.now, timeZone)
-      ? "☀️ Tu agenda de hoy"
-      : `☀️ Tu agenda del ${new Intl.DateTimeFormat("es-ES", { dateStyle: "full", timeZone: "UTC" }).format(new Date(dateOnlyToUtc(message.date)))}`;
+      ? t.digestToday
+      : t.digestOn(
+          new Intl.DateTimeFormat(t.intl, { dateStyle: "full", timeZone: "UTC" }).format(
+            new Date(dateOnlyToUtc(message.date)),
+          ),
+        );
   // F4-11: las tareas vencidas y las que vencen ese día van debajo de la agenda.
   const tasks = await tasksUntil(deps.db, message.ownerId, timeZone, message.date, deps.now);
-  const text = agendaText(heading, occurrences, calendarNames, timeZone, deps.now, false);
+  const text = agendaText(heading, occurrences, calendarNames, timeZone, deps.now, false, locale);
   return sendTelegram(
     deps,
     message.ownerId,
-    tasks.length > 0 ? `${text}\n\n${tasksText("📌 Tareas", tasks, timeZone, deps.now)}` : text,
+    tasks.length > 0
+      ? `${text}\n\n${tasksText(t.digestTasks, tasks, timeZone, deps.now, locale)}`
+      : text,
     { respectMute: true },
   );
 }
@@ -322,7 +340,12 @@ export async function deliver(
         status = await sendTelegram(
           deps,
           message.ownerId,
-          securityText(message.event, message, settingsUrl(deps.env)),
+          securityText(
+            message.event,
+            message,
+            settingsUrl(deps.env),
+            await localeOfUser(deps.db, message.ownerId),
+          ),
           { respectMute: false },
         );
         break;
@@ -330,7 +353,7 @@ export async function deliver(
         status = await sendTelegram(
           deps,
           message.ownerId,
-          "✅ <b>Delyra está conectado.</b>\nAquí te llegarán las alertas de tus eventos.",
+          botText(await localeOfUser(deps.db, message.ownerId)).test,
           { respectMute: false },
         );
         break;

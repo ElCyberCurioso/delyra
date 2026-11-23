@@ -1,7 +1,8 @@
-import type { MeResponse } from "@delyra/shared";
+import { localeSchema, type MeResponse } from "@delyra/shared";
 import { LoaderCircleIcon } from "lucide-react";
 import { type ReactNode, useEffect } from "react";
 import { Button } from "../components/button";
+import { getLocale, setLocale, ui } from "../i18n";
 import { rememberUser } from "../lib/offline";
 import { errorMessage } from "./api";
 import { goTo, pendingStepUrl, useMe } from "./session";
@@ -12,14 +13,14 @@ export type ActiveSession = MeResponse & {
   settings: NonNullable<MeResponse["settings"]>;
 };
 
-export function FullPageSpinner({ label = "Cargando…" }: { label?: string }) {
+export function FullPageSpinner({ label }: { label?: string }) {
   return (
     <div
       role="status"
       className="flex min-h-dvh items-center justify-center gap-2 text-muted-foreground"
     >
       <LoaderCircleIcon aria-hidden="true" className="size-5 animate-spin" />
-      <span>{label}</span>
+      <span>{label ?? ui().common.loading}</span>
     </div>
   );
 }
@@ -49,18 +50,24 @@ export function RequireSession({
     if (userId) void rememberUser(userId);
   }, [userId]);
 
+  // F7-06: el idioma de la cuenta manda sobre el del navegador.
+  const accountLocale = localeSchema.safeParse(me.data?.settings?.locale).data;
+  useEffect(() => {
+    if (accountLocale && accountLocale !== getLocale()) void setLocale(accountLocale);
+  }, [accountLocale]);
+
   if (me.isError) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-3 p-6 text-center">
         <p role="alert">{errorMessage(me.error)}</p>
         <Button variant="outline" onClick={() => void me.refetch()}>
-          Reintentar
+          {ui().common.retry}
         </Button>
       </div>
     );
   }
   if (!me.data || redirect || !me.data.user || !me.data.settings) {
-    return <FullPageSpinner label={redirect ? "Redirigiendo al inicio de sesión…" : undefined} />;
+    return <FullPageSpinner label={redirect ? ui().common.redirectingToLogin : undefined} />;
   }
   return children(me.data as ActiveSession);
 }

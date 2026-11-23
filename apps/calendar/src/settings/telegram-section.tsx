@@ -17,6 +17,7 @@ import { BellOffIcon, ExternalLinkIcon, SendIcon } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 import { formatDateTime } from "./format";
 import { Section } from "./section";
+import { settingsMessages } from "./messages";
 
 const TELEGRAM_KEY = ["account", "telegram"] as const;
 
@@ -31,12 +32,10 @@ function useTelegramStatus(polling: boolean) {
 
 function LinkPanel({ onLinking }: { onLinking: (url: string | null) => void }) {
   const [pending, setPending] = useState(false);
+  const t = settingsMessages().telegram;
   return (
     <div className="grid gap-3 text-sm">
-      <p className="text-muted-foreground">
-        Recibe las alertas de tus eventos en Telegram, pospónlas desde el propio mensaje y consulta
-        tu agenda con /hoy o /semana.
-      </p>
+      <p className="text-muted-foreground">{t.intro}</p>
       <div>
         <Button
           disabled={pending}
@@ -55,7 +54,7 @@ function LinkPanel({ onLinking }: { onLinking: (url: string | null) => void }) {
           }}
         >
           <SendIcon aria-hidden="true" />
-          Vincular con Telegram
+          {t.link}
         </Button>
       </div>
     </div>
@@ -71,6 +70,7 @@ function PreferencesForm({ status }: { status: TelegramStatus }) {
   const [quietEnd, setQuietEnd] = useState(status.quietEnd ?? "08:00");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const t = settingsMessages().telegram;
 
   async function save(event: FormEvent) {
     event.preventDefault();
@@ -87,7 +87,7 @@ function PreferencesForm({ status }: { status: TelegramStatus }) {
         schema: telegramStatusSchema,
       });
       queryClient.setQueryData(TELEGRAM_KEY, updated);
-      toast.success("Preferencias de Telegram guardadas");
+      toast.success(t.prefsSaved);
     } catch (caught) {
       setError(errorMessage(caught));
     } finally {
@@ -106,11 +106,11 @@ function PreferencesForm({ status }: { status: TelegramStatus }) {
             checked={digest}
             onChange={(e) => setDigest(e.target.checked)}
           />
-          Resumen diario con la agenda del día
+          {t.digest}
         </label>
         {digest ? (
           <Field
-            label="Hora del resumen"
+            label={t.digestTime}
             type="time"
             value={digestTime}
             onChange={(e) => setDigestTime(e.target.value)}
@@ -126,32 +126,29 @@ function PreferencesForm({ status }: { status: TelegramStatus }) {
             checked={quiet}
             onChange={(e) => setQuiet(e.target.checked)}
           />
-          Horas de silencio para el resumen
+          {t.quiet}
         </label>
         {quiet ? (
           <div className="grid grid-cols-2 gap-3 sm:max-w-80">
             <Field
-              label="Desde"
+              label={t.from}
               type="time"
               value={quietStart}
               onChange={(e) => setQuietStart(e.target.value)}
             />
             <Field
-              label="Hasta"
+              label={t.to}
               type="time"
               value={quietEnd}
               onChange={(e) => setQuietEnd(e.target.value)}
             />
           </div>
         ) : null}
-        <p className="text-xs text-muted-foreground">
-          Si el resumen cae en esas horas, llega cuando terminan. Las alertas de tus eventos llegan
-          siempre a su hora.
-        </p>
+        <p className="text-xs text-muted-foreground">{t.quietHint}</p>
       </div>
       <div>
         <Button type="submit" variant="outline" disabled={pending}>
-          Guardar preferencias
+          {t.savePrefs}
         </Button>
       </div>
     </form>
@@ -167,10 +164,11 @@ export function TelegramSection({ session }: { session: ActiveSession }) {
   const status = useTelegramStatus(polling);
   const timeZone = session.settings.timeZone;
   const data = status.data;
+  const t = settingsMessages().telegram;
 
   const linkedNow = linkUrl !== null && data?.linked === true;
   useEffect(() => {
-    if (linkedNow) toast.success("Telegram vinculado");
+    if (linkedNow) toast.success(settingsMessages().telegram.linked);
   }, [linkedNow]);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: TELEGRAM_KEY });
@@ -184,19 +182,19 @@ export function TelegramSection({ session }: { session: ActiveSession }) {
   };
 
   return (
-    <Section id="telegram" title="Telegram" description="Alertas y agenda en tu móvil.">
-      {status.isPending ? <p className="text-sm text-muted-foreground">Cargando…</p> : null}
+    <Section id="telegram" title={t.title} description={t.description}>
+      {status.isPending ? (
+        <p className="text-sm text-muted-foreground">{settingsMessages().common.loading}</p>
+      ) : null}
       {status.isError ? <p role="alert">{errorMessage(status.error)}</p> : null}
       {data && !data.available ? (
-        <p className="text-sm text-muted-foreground">
-          Las alertas por Telegram aún no están disponibles: falta configurar el bot en el servidor.
-        </p>
+        <p className="text-sm text-muted-foreground">{t.unavailable}</p>
       ) : null}
       {data?.available && !data.linked ? (
         linkUrl ? (
           <div className="grid gap-2 text-sm">
             <p>
-              Abre Telegram y pulsa <strong>Iniciar</strong>. Esta página se actualizará sola.
+              {t.openAndStart} <strong>{t.start}</strong>. {t.pageUpdates}
             </p>
             <p>
               <a
@@ -205,10 +203,10 @@ export function TelegramSection({ session }: { session: ActiveSession }) {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-primary underline underline-offset-4"
               >
-                Abrir @{data.botUsername}
+                {t.open(data.botUsername ?? "")}
                 <ExternalLinkIcon aria-hidden="true" className="size-3.5" />
               </a>
-              <span className="text-muted-foreground"> · el enlace caduca en 10 minutos.</span>
+              <span className="text-muted-foreground">{t.linkExpires}</span>
             </p>
             <div>
               <Button
@@ -219,7 +217,7 @@ export function TelegramSection({ session }: { session: ActiveSession }) {
                   setPolling(false);
                 }}
               >
-                Cancelar
+                {settingsMessages().common.cancel}
               </Button>
             </div>
           </div>
@@ -236,13 +234,13 @@ export function TelegramSection({ session }: { session: ActiveSession }) {
         <div className="grid gap-5">
           <div className="grid gap-2 text-sm">
             <p>
-              Vinculado con <strong>@{data.botUsername}</strong>
-              {data.linkedAt ? ` desde el ${formatDateTime(data.linkedAt, timeZone)}` : ""}.
+              {t.linkedWith} <strong>@{data.botUsername}</strong>
+              {data.linkedAt ? t.since(formatDateTime(data.linkedAt, timeZone)) : ""}.
             </p>
             {data.mutedUntil ? (
               <p className="flex flex-wrap items-center gap-2 text-muted-foreground">
                 <BellOffIcon aria-hidden="true" className="size-4" />
-                Alertas silenciadas hasta el {formatDateTime(data.mutedUntil, timeZone)}.
+                {t.mutedUntil(formatDateTime(data.mutedUntil, timeZone))}
                 <Button
                   variant="link"
                   size="sm"
@@ -251,11 +249,11 @@ export function TelegramSection({ session }: { session: ActiveSession }) {
                     run(
                       () =>
                         apiFetch("/api/me/telegram", { method: "PATCH", body: { muted: false } }),
-                      "Alertas reactivadas",
+                      t.unmuted,
                     )
                   }
                 >
-                  Reactivar
+                  {t.unmute}
                 </Button>
               </p>
             ) : null}
@@ -264,13 +262,10 @@ export function TelegramSection({ session }: { session: ActiveSession }) {
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  run(
-                    () => apiFetch("/api/me/telegram/test", { method: "POST" }),
-                    "Mensaje de prueba enviado: mira Telegram",
-                  )
+                  run(() => apiFetch("/api/me/telegram/test", { method: "POST" }), t.testSent)
                 }
               >
-                Enviar mensaje de prueba
+                {t.sendTest}
               </Button>
               {confirmUnlink ? (
                 <Button
@@ -278,17 +273,14 @@ export function TelegramSection({ session }: { session: ActiveSession }) {
                   size="sm"
                   onClick={() => {
                     setConfirmUnlink(false);
-                    run(
-                      () => apiFetch("/api/me/telegram", { method: "DELETE" }),
-                      "Telegram desvinculado",
-                    );
+                    run(() => apiFetch("/api/me/telegram", { method: "DELETE" }), t.unlinked);
                   }}
                 >
-                  Sí, desvincular
+                  {t.confirmUnlink}
                 </Button>
               ) : (
                 <Button variant="ghost" size="sm" onClick={() => setConfirmUnlink(true)}>
-                  Desvincular
+                  {t.unlink}
                 </Button>
               )}
             </div>

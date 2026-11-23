@@ -38,7 +38,7 @@ export { cn } from "./lib/utils";
 export { THEME_STORAGE_KEY } from "./theme/theme-init-script";
 export { type ResolvedTheme, type Theme, ThemeProvider, useTheme } from "./theme/theme-provider";
 export { ApiError, type ApiRequestOptions, apiFetch, errorMessage } from "./auth/api";
-export { AuthLayout } from "./auth/auth-layout";
+export { AuthLayout, LanguageSwitch } from "./auth/auth-layout";
 export { type ActiveSession, FullPageSpinner, RequireSession } from "./auth/require-session";
 export {
   authUrl,
@@ -51,6 +51,7 @@ export {
   resolveNext,
   type SessionInfo,
   useAuthConfig,
+  useChangeLocale,
   useLogout,
   useMe,
 } from "./auth/session";
@@ -62,3 +63,17 @@ export {
   SelectField,
   type SelectFieldProps,
 } from "./components/field";
+export {
+  browserLocale,
+  defineMessages,
+  getLocale,
+  intlLocale,
+  LOCALE_NAMES,
+  LOCALE_STORAGE_KEY,
+  setLocale,
+  subscribeLocale,
+  type Translation,
+  translateServer,
+  ui,
+} from "./i18n";
+export { LocaleProvider } from "./i18n/provider";

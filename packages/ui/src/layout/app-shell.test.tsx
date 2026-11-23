@@ -54,7 +54,7 @@ describe("AppShell", () => {
   it("cambia el tema desde el menú de usuario", async () => {
     renderShell("calendar");
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Menú de usuario" }));
+    await user.click(screen.getByRole("button", { name: /Menú de usuario/ }));
     await user.click(await screen.findByRole("menuitemradio", { name: /Oscuro/ }));
     expect(document.documentElement).toHaveClass("dark");
     expect(localStorage.getItem("delyra-theme")).toBe("dark");

@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { ui } from "../i18n";
 
 /**
  * Registro del service worker (F7-01). Cada app pasa `registerSW` de `virtual:pwa-register`;
@@ -13,9 +14,9 @@ export function setupServiceWorker(
   if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
   const update = registerSW({
     onNeedRefresh() {
-      toast("Hay una versión nueva de Delyra", {
+      toast(ui().pwa.newVersion, {
         duration: Number.POSITIVE_INFINITY,
-        action: { label: "Actualizar", onClick: () => void update(true) },
+        action: { label: ui().pwa.update, onClick: () => void update(true) },
       });
     },
   });

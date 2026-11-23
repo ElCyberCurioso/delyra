@@ -9,6 +9,7 @@ import {
 import {
   ApiError,
   Button,
+  intlLocale,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -33,19 +34,17 @@ import {
   setBoardMemberRole,
   useBoardMembers,
 } from "./api";
+import { workMessages } from "./messages";
 
 /** Compartir un tablero (F7-04): miembros, invitaciones por email y salir del tablero. */
 
-export const ROLE_LABELS: Record<BoardRole, string> = {
-  owner: "Propietario",
-  editor: "Puede editar",
-  reader: "Solo lectura",
-};
+/** Nombre de un papel en el tablero, en el idioma actual. */
+export const roleLabel = (role: BoardRole): string => workMessages().roles[role];
 
 const SELECT = "h-9 rounded-md border bg-background px-2 text-base sm:text-sm";
 
 const formatDate = (iso: string) =>
-  new Intl.DateTimeFormat("es-ES", { dateStyle: "medium" }).format(new Date(iso));
+  new Intl.DateTimeFormat(intlLocale(), { dateStyle: "medium" }).format(new Date(iso));
 
 export function ShareDialog({
   board,
@@ -69,22 +68,21 @@ function Share({ board }: { board: BoardDetail }) {
   const boardId = board.board.id;
   const isOwner = board.board.role === "owner";
   const members = useBoardMembers(boardId, true);
+  const t = workMessages().share;
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{isOwner ? "Compartir el tablero" : "Personas en el tablero"}</DialogTitle>
+        <DialogTitle>{isOwner ? t.shareTitle : t.peopleTitle}</DialogTitle>
         <DialogDescription>
           {isOwner
-            ? "Invita por email a quien tenga cuenta en Delyra. Quien edita puede crear, mover y comentar tarjetas; quien solo lee, mirarlas."
-            : `Este tablero es de ${board.board.ownerName ?? "otra persona"}. Tú ${
-                board.board.role === "editor" ? "puedes editarlo" : "solo puedes verlo"
-              }.`}
+            ? t.ownerIntro
+            : t.memberIntro(board.board.ownerName ?? t.someone, board.board.role === "editor")}
         </DialogDescription>
       </DialogHeader>
       {isOwner ? <InviteForm boardId={boardId} /> : null}
       {members.isPending ? (
         <p role="status" className="text-sm text-muted-foreground">
-          Cargando…
+          {t.loading}
         </p>
       ) : members.isError ? (
         <p role="alert" className="text-sm">
@@ -124,19 +122,20 @@ function InviteForm({ boardId }: { boardId: string }) {
     onSuccess: (data) => {
       void apply(data);
       setEmail("");
-      toast.success("Invitación creada: la verá en Trabajo al entrar con ese email.");
+      toast.success(workMessages().share.invited);
     },
   });
   const submit = (event: FormEvent) => {
     event.preventDefault();
     invite.mutate();
   };
+  const t = workMessages().share;
   const fieldError =
     invite.error instanceof ApiError ? invite.error.fieldError("email") : undefined;
   return (
     <form onSubmit={submit} className="grid gap-3 rounded-lg border p-3">
       <Field
-        label="Email"
+        label={t.email}
         type="email"
         autoComplete="off"
         value={email}
@@ -147,7 +146,7 @@ function InviteForm({ boardId }: { boardId: string }) {
       <div className="flex flex-wrap items-end gap-2">
         <div className="grid gap-1.5">
           <label htmlFor={roleId} className="text-sm font-medium">
-            Permiso
+            {t.permission}
           </label>
           <select
             id={roleId}
@@ -157,20 +156,19 @@ function InviteForm({ boardId }: { boardId: string }) {
           >
             {BOARD_MEMBER_ROLES.map((value) => (
               <option key={value} value={value}>
-                {ROLE_LABELS[value]}
+                {roleLabel(value)}
               </option>
             ))}
           </select>
         </div>
         <Button type="submit" disabled={invite.isPending || !email.trim()} className="ml-auto">
           <UserPlusIcon aria-hidden="true" />
-          Invitar
+          {t.invite}
         </Button>
       </div>
       <FormError>{invite.isError && !fieldError ? errorMessage(invite.error) : null}</FormError>
       <p className="text-xs text-muted-foreground">
-        Hasta {BOARD_SHARING_LIMITS.members} personas. La invitación caduca a los{" "}
-        {BOARD_SHARING_LIMITS.invitationDays} días.
+        {t.limits(BOARD_SHARING_LIMITS.members, BOARD_SHARING_LIMITS.invitationDays)}
       </p>
     </form>
   );
@@ -181,6 +179,7 @@ function MemberList({ boardId, data }: { boardId: string; data: BoardMembers }) 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const isOwner = data.role === "owner";
+  const t = workMessages().share;
   const changeRole = useMutation({
     mutationFn: (v: { userId: string; role: BoardMemberRole }) =>
       setBoardMemberRole(boardId, v.userId, v.role),
@@ -193,7 +192,7 @@ function MemberList({ boardId, data }: { boardId: string; data: BoardMembers }) 
       if (v.self) {
         queryClient.removeQueries({ queryKey: boardKey(boardId) });
         void queryClient.invalidateQueries({ queryKey: BOARDS_KEY });
-        toast.success("Has salido del tablero");
+        toast.success(t.left);
         void navigate({ to: "/" });
         return;
       }
@@ -211,7 +210,7 @@ function MemberList({ boardId, data }: { boardId: string; data: BoardMembers }) 
     <div className="grid gap-4">
       <section aria-labelledby="miembros-titulo" className="grid gap-2">
         <h3 id="miembros-titulo" className="text-sm font-semibold">
-          Con acceso
+          {t.withAccess}
         </h3>
         <ul className="grid gap-2">
           {data.members.map((member) => (
@@ -221,7 +220,7 @@ function MemberList({ boardId, data }: { boardId: string; data: BoardMembers }) 
             >
               <span className="min-w-0 flex-1">
                 <span className="font-medium">{member.name}</span>
-                {member.you ? <span className="text-muted-foreground"> (tú)</span> : null}
+                {member.you ? <span className="text-muted-foreground">{t.you}</span> : null}
                 {member.email ? (
                   <span className="block truncate text-xs text-muted-foreground">
                     {member.email}
@@ -231,7 +230,7 @@ function MemberList({ boardId, data }: { boardId: string; data: BoardMembers }) 
               {isOwner && member.role !== "owner" ? (
                 <>
                   <select
-                    aria-label={`Permiso de ${member.name}`}
+                    aria-label={t.permissionOf(member.name)}
                     className={SELECT}
                     value={member.role}
                     disabled={changeRole.isPending}
@@ -244,7 +243,7 @@ function MemberList({ boardId, data }: { boardId: string; data: BoardMembers }) 
                   >
                     {BOARD_MEMBER_ROLES.map((value) => (
                       <option key={value} value={value}>
-                        {ROLE_LABELS[value]}
+                        {roleLabel(value)}
                       </option>
                     ))}
                   </select>
@@ -252,10 +251,10 @@ function MemberList({ boardId, data }: { boardId: string; data: BoardMembers }) 
                     variant="ghost"
                     size="icon"
                     className="size-9"
-                    aria-label={`Quitar a ${member.name} del tablero`}
+                    aria-label={t.remove(member.name)}
                     disabled={remove.isPending}
                     onClick={() => {
-                      if (window.confirm(`¿Quitar a ${member.name} del tablero?`))
+                      if (window.confirm(t.confirmRemove(member.name)))
                         remove.mutate({ userId: member.userId, self: false });
                     }}
                   >
@@ -263,7 +262,7 @@ function MemberList({ boardId, data }: { boardId: string; data: BoardMembers }) 
                   </Button>
                 </>
               ) : (
-                <span className="text-xs text-muted-foreground">{ROLE_LABELS[member.role]}</span>
+                <span className="text-xs text-muted-foreground">{roleLabel(member.role)}</span>
               )}
             </li>
           ))}
@@ -273,7 +272,7 @@ function MemberList({ boardId, data }: { boardId: string; data: BoardMembers }) 
       {isOwner && data.invitations.length > 0 ? (
         <section aria-labelledby="invitaciones-titulo" className="grid gap-2">
           <h3 id="invitaciones-titulo" className="text-sm font-semibold">
-            Invitaciones pendientes
+            {t.pending}
           </h3>
           <ul className="grid gap-2">
             {data.invitations.map((invitation) => (
@@ -284,7 +283,7 @@ function MemberList({ boardId, data }: { boardId: string; data: BoardMembers }) 
                 <span className="min-w-0 flex-1">
                   <span className="block truncate">{invitation.email}</span>
                   <span className="block text-xs text-muted-foreground">
-                    {ROLE_LABELS[invitation.role]} · caduca el {formatDate(invitation.expiresAt)}
+                    {t.expires(roleLabel(invitation.role), formatDate(invitation.expiresAt))}
                   </span>
                 </span>
                 <Button
@@ -292,9 +291,9 @@ function MemberList({ boardId, data }: { boardId: string; data: BoardMembers }) 
                   size="sm"
                   disabled={revoke.isPending}
                   onClick={() => revoke.mutate(invitation.id)}
-                  aria-label={`Anular la invitación a ${invitation.email}`}
+                  aria-label={t.revoke(invitation.email)}
                 >
-                  Anular
+                  {t.revokeShort}
                 </Button>
               </li>
             ))}
@@ -309,15 +308,12 @@ function MemberList({ boardId, data }: { boardId: string; data: BoardMembers }) 
           disabled={remove.isPending}
           onClick={() => {
             const you = data.members.find((m) => m.you);
-            if (
-              you &&
-              window.confirm("¿Salir del tablero? Necesitarás otra invitación para volver.")
-            )
+            if (you && window.confirm(t.confirmLeave))
               remove.mutate({ userId: you.userId, self: true });
           }}
         >
           <LogOutIcon aria-hidden="true" />
-          Salir del tablero
+          {t.leave}
         </Button>
       ) : null}
     </div>

@@ -4,6 +4,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { type FieldErrors, formValues, useNextParam, validate } from "./form";
 import { useTurnstile } from "./use-turnstile";
+import { authMessages } from "./messages";
 
 export function LoginPage() {
   const next = useNextParam();
@@ -12,6 +13,7 @@ export function LoginPage() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const t = authMessages();
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,18 +45,18 @@ export function LoginPage() {
 
   return (
     <AuthLayout
-      title="Iniciar sesión"
-      description="Accede a tu calendario y a tus tableros."
+      title={t.login.title}
+      description={t.login.description}
       footer={
         <Link to="/recuperar" className="underline underline-offset-4 hover:text-foreground">
-          ¿Has olvidado la contraseña?
+          {t.login.forgot}
         </Link>
       }
     >
       <form noValidate onSubmit={(event) => void onSubmit(event)} className="grid gap-4">
         <FormError>{formError}</FormError>
         <Field
-          label="Email"
+          label={t.common.email}
           name="email"
           type="email"
           autoComplete="username"
@@ -64,7 +66,7 @@ export function LoginPage() {
           error={errors.email}
         />
         <Field
-          label="Contraseña"
+          label={t.common.password}
           name="password"
           type="password"
           autoComplete="current-password"
@@ -76,7 +78,7 @@ export function LoginPage() {
           <p className="text-sm text-destructive">{errors.turnstileToken}</p>
         ) : null}
         <Button type="submit" disabled={pending}>
-          {pending ? "Comprobando…" : "Continuar"}
+          {pending ? t.common.checking : t.common.continue}
         </Button>
       </form>
     </AuthLayout>

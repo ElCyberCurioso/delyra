@@ -27,8 +27,8 @@ import {
   useBoards,
   usePendingInvitations,
 } from "./api";
-import { TEMPLATE_LABELS } from "./logic";
-import { ROLE_LABELS } from "./share-dialog";
+import { templateLabel } from "./logic";
+import { workMessages } from "./messages";
 
 /** Lista de tableros (F4-10) y alta con plantilla (F4-03). */
 export function BoardsPage(): ReactNode {
@@ -38,10 +38,10 @@ export function BoardsPage(): ReactNode {
       {() => (
         <div className="mx-auto grid max-w-5xl gap-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight">Tableros</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{workMessages().boards.title}</h1>
             <Button onClick={() => setCreating(true)}>
               <PlusIcon aria-hidden="true" />
-              Nuevo tablero
+              {workMessages().boards.new}
             </Button>
           </div>
           <PendingInvitations />
@@ -59,7 +59,7 @@ function BoardList({ onCreate }: { onCreate: () => void }) {
     return (
       <p role="status" className="flex items-center gap-2 text-muted-foreground">
         <LoaderCircleIcon aria-hidden="true" className="size-4 animate-spin" />
-        Cargando tableros…
+        {workMessages().boards.loading}
       </p>
     );
   }
@@ -68,7 +68,7 @@ function BoardList({ onCreate }: { onCreate: () => void }) {
       <div className="flex items-center gap-3">
         <p role="alert">{errorMessage(boards.error)}</p>
         <Button variant="outline" onClick={() => void boards.refetch()}>
-          Reintentar
+          {workMessages().boards.retry}
         </Button>
       </div>
     );
@@ -77,12 +77,9 @@ function BoardList({ onCreate }: { onCreate: () => void }) {
     return (
       <section className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-xl border border-dashed bg-card p-8 text-center">
         <SquareKanbanIcon aria-hidden="true" className="size-10 text-primary" />
-        <h2 className="text-lg font-semibold">Aún no tienes tableros</h2>
-        <p className="max-w-md text-muted-foreground">
-          Empieza con una plantilla: Personal para el día a día, Sprint para un equipo o Proyecto /
-          auditoría para trabajos por fases.
-        </p>
-        <Button onClick={onCreate}>Crear el primero</Button>
+        <h2 className="text-lg font-semibold">{workMessages().boards.emptyTitle}</h2>
+        <p className="max-w-md text-muted-foreground">{workMessages().boards.emptyBody}</p>
+        <Button onClick={onCreate}>{workMessages().boards.createFirst}</Button>
       </section>
     );
   }
@@ -97,22 +94,21 @@ function BoardList({ onCreate }: { onCreate: () => void }) {
           >
             <span className="font-medium">{board.name}</span>
             <span className="text-sm text-muted-foreground">
-              {TEMPLATE_LABELS[board.template].name} ·{" "}
-              {board.openCards === 1
-                ? "1 tarjeta abierta"
-                : `${String(board.openCards)} tarjetas abiertas`}
+              {templateLabel(board.template).name} ·{" "}
+              {workMessages().boards.openCards(board.openCards)}
             </span>
             {board.role !== "owner" ? (
               <span className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <UsersIcon aria-hidden="true" className="size-3.5" />
-                De {board.ownerName ?? "otra persona"} · {ROLE_LABELS[board.role]}
+                {workMessages().boards.ownedBy(
+                  board.ownerName ?? workMessages().boards.someone,
+                  workMessages().roles[board.role],
+                )}
               </span>
             ) : board.members > 0 ? (
               <span className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <UsersIcon aria-hidden="true" className="size-3.5" />
-                {board.members === 1
-                  ? "Compartido con 1 persona"
-                  : `Compartido con ${String(board.members)} personas`}
+                {workMessages().boards.sharedWith(board.members)}
               </span>
             ) : null}
           </Link>
@@ -147,7 +143,7 @@ function PendingInvitations() {
     <section aria-labelledby="invitaciones-titulo" className="grid gap-2">
       <h2 id="invitaciones-titulo" className="flex items-center gap-2 text-lg font-semibold">
         <MailIcon aria-hidden="true" className="size-5 text-primary" />
-        Te han invitado
+        {workMessages().boards.invitedTitle}
       </h2>
       <ul className="grid gap-2">
         {invitations.data.map((invitation) => (
@@ -158,7 +154,10 @@ function PendingInvitations() {
             <span className="min-w-0 flex-1 text-sm">
               <span className="font-medium">{invitation.boardName}</span>
               <span className="block text-muted-foreground">
-                {invitation.invitedBy ?? "Alguien"} te invita · {ROLE_LABELS[invitation.role]}
+                {workMessages().boards.invites(
+                  invitation.invitedBy ?? workMessages().boards.someoneInvites,
+                  workMessages().roles[invitation.role],
+                )}
               </span>
             </span>
             <span className="flex gap-2">
@@ -166,18 +165,18 @@ function PendingInvitations() {
                 size="sm"
                 disabled={answer.isPending}
                 onClick={() => answer.mutate({ id: invitation.id, accept: true })}
-                aria-label={`Aceptar la invitación a ${invitation.boardName}`}
+                aria-label={workMessages().boards.accept(invitation.boardName)}
               >
-                Aceptar
+                {workMessages().boards.acceptShort}
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
                 disabled={answer.isPending}
                 onClick={() => answer.mutate({ id: invitation.id, accept: false })}
-                aria-label={`Rechazar la invitación a ${invitation.boardName}`}
+                aria-label={workMessages().boards.decline(invitation.boardName)}
               >
-                Rechazar
+                {workMessages().boards.declineShort}
               </Button>
             </span>
           </li>
@@ -217,13 +216,11 @@ function NewBoardDialog({
       <DialogContent>
         <form onSubmit={submit} className="grid gap-4">
           <DialogHeader>
-            <DialogTitle>Nuevo tablero</DialogTitle>
-            <DialogDescription>
-              Elige una plantilla; luego puedes cambiar las columnas.
-            </DialogDescription>
+            <DialogTitle>{workMessages().boards.new}</DialogTitle>
+            <DialogDescription>{workMessages().boards.newDescription}</DialogDescription>
           </DialogHeader>
           <Field
-            label="Nombre"
+            label={workMessages().boards.name}
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={KANBAN_LIMITS.boardName}
@@ -231,7 +228,7 @@ function NewBoardDialog({
             autoFocus
           />
           <fieldset className="grid gap-2">
-            <legend className="mb-1 text-sm font-medium">Plantilla</legend>
+            <legend className="mb-1 text-sm font-medium">{workMessages().boards.template}</legend>
             {BOARD_TEMPLATES.map((value) => (
               <label
                 key={value}
@@ -246,9 +243,9 @@ function NewBoardDialog({
                   className="mt-1"
                 />
                 <span className="grid gap-0.5">
-                  <span className="text-sm font-medium">{TEMPLATE_LABELS[value].name}</span>
+                  <span className="text-sm font-medium">{templateLabel(value).name}</span>
                   <span className="text-sm text-muted-foreground">
-                    {TEMPLATE_LABELS[value].description}
+                    {templateLabel(value).description}
                   </span>
                 </span>
               </label>
@@ -257,7 +254,7 @@ function NewBoardDialog({
           <FormError>{create.isError ? errorMessage(create.error) : null}</FormError>
           <DialogFooter>
             <Button type="submit" disabled={create.isPending || name.trim() === ""}>
-              {create.isPending ? "Creando…" : "Crear tablero"}
+              {create.isPending ? workMessages().boards.creating : workMessages().boards.create}
             </Button>
           </DialogFooter>
         </form>

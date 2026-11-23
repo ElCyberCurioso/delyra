@@ -1,41 +1,49 @@
-import { AppShell, RequireSession, useLogout } from "@delyra/ui";
+import { AppShell, RequireSession, useChangeLocale, useLogout } from "@delyra/ui";
 import { useRouter } from "@tanstack/react-router";
 import { BackupsSection } from "./backups-section";
 import { PasswordSection, ProfileSection } from "./profile-section";
 import { ActivitySection, SessionsSection } from "./sessions-section";
 import { TelegramSection } from "./telegram-section";
 import { TwoFactorSection } from "./two-factor-section";
+import { settingsMessages } from "./messages";
 
 const NAV = [
-  { href: "#perfil", label: "Perfil y preferencias" },
-  { href: "#contrasena", label: "Contraseña" },
-  { href: "#verificacion", label: "Verificación en dos pasos" },
-  { href: "#telegram", label: "Telegram" },
-  { href: "#copias", label: "Copias de seguridad" },
-  { href: "#sesiones", label: "Sesiones activas" },
-  { href: "#actividad", label: "Actividad reciente" },
-];
+  "perfil",
+  "contrasena",
+  "verificacion",
+  "telegram",
+  "copias",
+  "sesiones",
+  "actividad",
+] as const;
 
 /** Ajustes de cuenta (F1-15) e historial de seguridad (F1-16). */
 export function SettingsPage() {
   const router = useRouter();
   const logout = useLogout();
+  const changeLocale = useChangeLocale();
+  const t = settingsMessages().page;
   return (
     <RequireSession navigate={(path) => router.history.replace(path)}>
       {(session) => (
-        <AppShell app="calendar" user={session.user} onSignOut={() => logout.mutate()}>
+        <AppShell
+          app="calendar"
+          user={session.user}
+          onSignOut={() => logout.mutate()}
+          onLocaleChange={(locale) => changeLocale.mutate(locale)}
+        >
           <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[13rem_minmax(0,1fr)]">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">Ajustes</h1>
-              <nav aria-label="Secciones de ajustes" className="mt-4 hidden lg:block">
+              <h1 className="text-2xl font-semibold tracking-tight">{t.title}</h1>
+              <nav aria-label={t.sections} className="mt-4 hidden lg:block">
                 <ul className="grid gap-1 text-sm">
-                  {NAV.map((item) => (
-                    <li key={item.href}>
+                  {NAV.map((id) => (
+                    <li key={id}>
                       <a
-                        href={item.href}
+                        href={`#${id}`}
                         className="block rounded-md px-2 py-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       >
-                        {item.label}
+                        {t.nav[id]}
                       </a>
                     </li>
                   ))}

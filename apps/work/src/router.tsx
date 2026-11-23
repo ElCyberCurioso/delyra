@@ -1,5 +1,5 @@
 import { CARD_PRIORITIES, type CardPriority } from "@delyra/shared";
-import { Button, FullPageSpinner } from "@delyra/ui";
+import { Button, FullPageSpinner, ui } from "@delyra/ui";
 import {
   createBrowserHistory,
   createRootRoute,
@@ -55,10 +55,10 @@ function NotFound(): ReactNode {
     <WorkLayout>
       {() => (
         <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Página no encontrada</h1>
-          <p className="text-muted-foreground">La dirección no existe o ha cambiado.</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{ui().notFound.title}</h1>
+          <p className="text-muted-foreground">{ui().notFound.description}</p>
           <Button asChild>
-            <Link to="/">Ir a mis tableros</Link>
+            <Link to="/">{ui().notFound.boards}</Link>
           </Button>
         </div>
       )}
@@ -94,7 +94,7 @@ function BoardRoute(): ReactNode {
     [navigate, boardId],
   );
   return (
-    <Suspense fallback={<FullPageSpinner label="Cargando tablero…" />}>
+    <Suspense fallback={<FullPageSpinner label={ui().notFound.loadingBoard} />}>
       <BoardPage boardId={boardId} search={search} setSearch={setSearch} />
     </Suspense>
   );

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { getLocale } from "../i18n";
 
 interface TurnstileApi {
   render: (container: HTMLElement, options: Record<string, unknown>) => string;
@@ -63,7 +64,7 @@ export function Turnstile({ siteKey, action, onToken, resetKey = 0 }: TurnstileP
           sitekey: siteKey,
           action,
           theme: "auto",
-          language: "es",
+          language: getLocale(),
           callback: (token: string) => onTokenRef.current(token),
           "expired-callback": () => onTokenRef.current(null),
           "error-callback": () => onTokenRef.current(null),

@@ -8,23 +8,11 @@ import {
   DialogTitle,
 } from "@delyra/ui";
 import { useCallback, useRef, useState } from "react";
+import { calendarMessages } from "./messages";
 
 type Action = "edit" | "delete" | "move";
 
-const COPY: Record<Action, { title: string; description: string }> = {
-  edit: {
-    title: "Guardar cambios",
-    description: "Este evento se repite. ¿A qué ocurrencias afecta?",
-  },
-  move: { title: "Mover evento", description: "Este evento se repite. ¿Qué quieres mover?" },
-  delete: { title: "Borrar evento", description: "Este evento se repite. ¿Qué quieres borrar?" },
-};
-
-const OPTIONS: { scope: EditScope; label: string }[] = [
-  { scope: "this", label: "Solo este" },
-  { scope: "following", label: "Este y los siguientes" },
-  { scope: "all", label: "Todos" },
-];
+const SCOPES: readonly EditScope[] = ["this", "following", "all"];
 
 /**
  * Pregunta el alcance de un cambio en un evento que se repite (F2-05). `ask` devuelve el
@@ -52,7 +40,8 @@ export function useScopeDialog() {
     setAction(null);
   };
 
-  const copy = action ? COPY[action] : null;
+  const t = calendarMessages().scope;
+  const copy = action ? t[action] : null;
   const dialog = (
     <Dialog open={action !== null} onOpenChange={(open) => !open && answer(null)}>
       <DialogContent className="sm:max-w-sm">
@@ -61,18 +50,18 @@ export function useScopeDialog() {
           <DialogDescription>{copy?.description}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-2">
-          {OPTIONS.filter((option) => scopes.includes(option.scope)).map((option) => (
+          {SCOPES.filter((scope) => scopes.includes(scope)).map((scope) => (
             <Button
-              key={option.scope}
+              key={scope}
               variant={action === "delete" ? "outline" : "default"}
               className={action === "delete" ? "text-destructive" : undefined}
-              onClick={() => answer(option.scope)}
+              onClick={() => answer(scope)}
             >
-              {option.label}
+              {t[scope]}
             </Button>
           ))}
           <Button variant="ghost" onClick={() => answer(null)}>
-            Cancelar
+            {t.cancel}
           </Button>
         </div>
       </DialogContent>

@@ -1,5 +1,6 @@
 import {
   DEFAULT_LOCALE,
+  type Locale,
   DEFAULT_TIME_ZONE,
   DEFAULT_WEEK_START,
   newId,
@@ -28,6 +29,8 @@ export async function createUser(
     passwordHash: string;
     role: Role;
     emailVerified: boolean;
+    /** Idioma inicial (el de la página desde la que se registra), F7-06. */
+    locale?: Locale;
   },
   now = Date.now(),
 ): Promise<User> {
@@ -51,7 +54,7 @@ export async function createUser(
     db.insert(userSettings).values({
       userId: id,
       timeZone: DEFAULT_TIME_ZONE,
-      locale: DEFAULT_LOCALE,
+      locale: input.locale ?? DEFAULT_LOCALE,
       weekStart: DEFAULT_WEEK_START,
       updatedAt: at,
     }),

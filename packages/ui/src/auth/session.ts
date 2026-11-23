@@ -3,11 +3,13 @@ import {
   type AuthConfigResponse,
   authConfigResponseSchema,
   findAppByOrigin,
+  type Locale,
   type MeResponse,
   meResponseSchema,
   safeNext,
 } from "@delyra/shared";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { setLocale } from "../i18n";
 import { currentAppOrigins } from "../layout/app-shell";
 import { clearOfflineData, forgetUser } from "../lib/offline";
 import { ApiError, apiFetch } from "./api";
@@ -92,6 +94,31 @@ export function goTo(href: string, navigate?: (path: string) => void) {
  * No se vacía la caché antes: `RequireSession` volvería a pedir `/me` y redirigiría por su cuenta
  * (con `?next=`), en carrera con esta navegación.
  */
+/**
+ * Cambia el idioma (F7-06). Con sesión se guarda en la cuenta (también lo usan los correos y
+ * Telegram); sin ella, solo en este navegador.
+ */
+export function useChangeLocale() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (locale: Locale) => {
+      const me = queryClient.getQueryData<SessionInfo>(ME_QUERY_KEY);
+      if (me?.state === "active" && me.settings) {
+        const { timeZone, weekStart } = me.settings;
+        await apiFetch("/api/me/settings", {
+          method: "PATCH",
+          body: { timeZone, weekStart, locale },
+        });
+        queryClient.setQueryData<SessionInfo>(ME_QUERY_KEY, {
+          ...me,
+          settings: { ...me.settings, locale },
+        });
+      }
+      await setLocale(locale);
+    },
+  });
+}
+
 export function useLogout() {
   return useMutation({
     mutationFn: () => apiFetch("/api/auth/logout", { method: "POST" }),

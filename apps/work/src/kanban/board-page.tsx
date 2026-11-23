@@ -22,6 +22,7 @@ import {
   Field,
   FormError,
   Input,
+  intlLocale,
   type Shortcut,
   ShortcutsDialog,
   toast,
@@ -32,6 +33,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArchiveIcon,
   ArrowLeftIcon,
+  ArrowRightIcon,
   DownloadIcon,
   FilterXIcon,
   LoaderCircleIcon,
@@ -73,9 +75,11 @@ import {
   matchesFilters,
   moveCardLocally,
   moveColumnLocally,
-  PRIORITY_LABELS,
+  priorityLabel,
+  sortedColumns,
 } from "./logic";
-import { ROLE_LABELS, ShareDialog } from "./share-dialog";
+import { workMessages } from "./messages";
+import { roleLabel, ShareDialog } from "./share-dialog";
 
 /** Tablero (F4-08 a F4-10). */
 export interface BoardPageProps {
@@ -112,17 +116,19 @@ function Board({
     return (
       <p role="status" className="flex items-center gap-2 text-muted-foreground">
         <LoaderCircleIcon aria-hidden="true" className="size-4 animate-spin" />
-        Cargando tablero…
+        {workMessages().board.loading}
       </p>
     );
   }
   if (board.isError) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center gap-4 py-16 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Tablero no disponible</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {workMessages().board.unavailable}
+        </h1>
         <p className="text-muted-foreground">{errorMessage(board.error)}</p>
         <Button asChild>
-          <Link to="/">Volver a mis tableros</Link>
+          <Link to="/">{workMessages().board.back}</Link>
         </Button>
       </div>
     );
@@ -200,14 +206,14 @@ function BoardView({
     onMutate: (v) => optimistic((b) => moveCardLocally(b, v.cardId, v.columnId, v.index)),
     onError: (error, _v, context) => {
       rollback(context);
-      toast.error(`No se pudo mover la tarjeta: ${errorMessage(error)}`);
+      toast.error(workMessages().board.moveCardFailed(errorMessage(error)));
     },
     onSuccess: ({ card, wipExceeded }) => {
       applyCard(queryClient, card);
       if (wipExceeded) {
         const column = board.columns.find((c) => c.id === card.columnId);
         toast.warning(
-          `«${column?.name ?? ""}» supera su límite WIP (${String(column?.wipLimit ?? "")}).`,
+          workMessages().board.wipExceeded(column?.name ?? "", String(column?.wipLimit ?? "")),
         );
       }
     },
@@ -219,7 +225,7 @@ function BoardView({
     onMutate: (v) => optimistic((b) => moveColumnLocally(b, v.columnId, v.index)),
     onError: (error, _v, context) => {
       rollback(context);
-      toast.error(`No se pudo mover la columna: ${errorMessage(error)}`);
+      toast.error(workMessages().board.moveColumnFailed(errorMessage(error)));
     },
     onSuccess: (detail) => queryClient.setQueryData(key, detail),
   });
@@ -233,13 +239,14 @@ function BoardView({
   const visibleCount = visible.size;
   // F7-07: atajos de teclado («?» muestra la ayuda).
   const [helpOpen, setHelpOpen] = useState(false);
+  const t = workMessages().board;
   const shortcuts: Shortcut[] = [
     ...(canEdit
       ? [
           {
             keys: ["c"],
             label: "C",
-            description: "Nueva columna",
+            description: t.shortcutColumn,
             run: () => setEditingColumn("new"),
           },
         ]
@@ -247,17 +254,16 @@ function BoardView({
     {
       keys: ["/"],
       label: "/",
-      description: "Buscar tarjetas",
-      run: () =>
-        document.querySelector<HTMLInputElement>("input[aria-label='Buscar tarjetas']")?.focus(),
+      description: t.shortcutSearch,
+      run: () => document.querySelector<HTMLInputElement>("input[data-search='cards']")?.focus(),
     },
     {
       keys: ["a"],
       label: "A",
-      description: "Tarjetas archivadas",
+      description: t.shortcutArchived,
       run: () => setArchivedOpen(true),
     },
-    { keys: ["?"], label: "?", description: "Esta ayuda", run: () => setHelpOpen(true) },
+    { keys: ["?"], label: "?", description: t.shortcutHelp, run: () => setHelpOpen(true) },
   ];
   useShortcuts(shortcuts);
 
@@ -266,7 +272,7 @@ function BoardView({
     <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
         <div className="flex min-w-0 flex-1 basis-64 items-center gap-1">
-          <Button asChild variant="ghost" size="icon" aria-label="Volver a mis tableros">
+          <Button asChild variant="ghost" size="icon" aria-label={workMessages().board.back}>
             <Link to="/">
               <ArrowLeftIcon aria-hidden="true" />
             </Link>
@@ -276,8 +282,8 @@ function BoardView({
           </h1>
           {role !== "owner" ? (
             <span className="shrink-0 rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
-              {ROLE_LABELS[role]}
-              {board.board.ownerName ? ` · de ${board.board.ownerName}` : ""}
+              {roleLabel(role)}
+              {board.board.ownerName ? t.ownedBy(board.board.ownerName) : ""}
             </span>
           ) : null}
         </div>
@@ -286,27 +292,27 @@ function BoardView({
           {canEdit ? (
             <Button variant="outline" size="sm" onClick={() => setEditingColumn("new")}>
               <PlusIcon aria-hidden="true" />
-              Columna
+              {t.column}
             </Button>
           ) : null}
           <Button variant="outline" size="sm" onClick={() => setArchivedOpen(true)}>
             <ArchiveIcon aria-hidden="true" />
-            Archivadas
+            {t.archived}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShareOpen(true)}>
             <UsersIcon aria-hidden="true" />
-            {role === "owner" ? "Compartir" : "Personas"}
+            {role === "owner" ? t.share : t.people}
             {board.board.members > 0 ? (
               <span className="text-muted-foreground tabular-nums">
                 {board.board.members + 1}
-                <span className="sr-only"> con acceso</span>
+                <span className="sr-only">{t.withAccess}</span>
               </span>
             ) : null}
           </Button>
           {canEdit ? (
             <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
               <SettingsIcon aria-hidden="true" />
-              Ajustes
+              {t.settings}
             </Button>
           ) : null}
           {/* F6-02: el tablero en CSV (hoja de cálculo) o JSON. */}
@@ -314,18 +320,18 @@ function BoardView({
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
                 <DownloadIcon aria-hidden="true" />
-                Exportar
+                {t.export}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
                 <a href={`/api/boards/${board.board.id}/export?format=csv`} download>
-                  Hoja de cálculo (.csv)
+                  {t.csv}
                 </a>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <a href={`/api/boards/${board.board.id}/export?format=json`} download>
-                  Datos completos (.json)
+                  {t.json}
                 </a>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -337,16 +343,15 @@ function BoardView({
       <ShortcutsDialog open={helpOpen} onOpenChange={setHelpOpen} shortcuts={shortcuts} />
       {filtered ? (
         <p role="status" className="text-sm text-muted-foreground">
-          {visibleCount === 1 ? "1 tarjeta coincide" : `${String(visibleCount)} tarjetas coinciden`}{" "}
-          con los filtros.
+          {t.matches(visibleCount)} {t.withFilters}
         </p>
       ) : null}
 
       {board.columns.length === 0 ? (
         <div className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-xl border border-dashed p-8 text-center">
-          <p className="text-muted-foreground">Este tablero aún no tiene columnas.</p>
+          <p className="text-muted-foreground">{t.noColumns}</p>
           {canEdit ? (
-            <Button onClick={() => setEditingColumn("new")}>Añadir la primera columna</Button>
+            <Button onClick={() => setEditingColumn("new")}>{t.firstColumn}</Button>
           ) : null}
         </div>
       ) : (
@@ -406,7 +411,11 @@ function Presence({ people }: { people: LivePerson[] }) {
           </span>
         ))}
       </span>
-      <span className="max-w-60 truncate">También aquí: {names.join(", ")}</span>
+      <span className="max-w-60 truncate">
+        {workMessages().board.alsoHere(
+          new Intl.ListFormat(intlLocale(), { type: "conjunction" }).format(names),
+        )}
+      </span>
     </p>
   );
 }
@@ -436,11 +445,9 @@ function Toolbar({
   }, [q, search.q, setSearch]);
   const any = hasFilters(toFilters(search));
   const active = [search.etiqueta, search.prioridad, search.vence].filter(Boolean).length;
+  const t = workMessages().toolbar;
   return (
-    <search
-      className="grid gap-2 sm:flex sm:flex-wrap sm:items-center"
-      aria-label="Filtros del tablero"
-    >
+    <search className="grid gap-2 sm:flex sm:flex-wrap sm:items-center" aria-label={t.label}>
       <div className="flex gap-2">
         <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
           <SearchIcon
@@ -449,8 +456,9 @@ function Toolbar({
           />
           <Input
             type="search"
-            aria-label="Buscar tarjetas"
-            placeholder="Buscar tarjetas…"
+            data-search="cards"
+            aria-label={t.search}
+            placeholder={t.searchPlaceholder}
             value={q}
             onChange={(e) => setQ(e.target.value)}
             className="h-10 pl-8 sm:h-9"
@@ -464,7 +472,8 @@ function Toolbar({
           onClick={() => setOpen((value) => !value)}
         >
           <SlidersHorizontalIcon aria-hidden="true" />
-          Filtros{active > 0 ? ` (${String(active)})` : ""}
+          {t.filters}
+          {active > 0 ? ` (${String(active)})` : ""}
         </Button>
       </div>
       <div
@@ -472,12 +481,12 @@ function Toolbar({
         className={cn("grid gap-2 sm:flex sm:flex-wrap sm:items-center", !open && "max-sm:hidden")}
       >
         <select
-          aria-label="Filtrar por etiqueta"
+          aria-label={t.byLabel}
           className={SELECT}
           value={search.etiqueta ?? ""}
           onChange={(e) => setSearch({ etiqueta: e.target.value || undefined })}
         >
-          <option value="">Todas las etiquetas</option>
+          <option value="">{t.allLabels}</option>
           {board.labels.map((label) => (
             <option key={label.id} value={label.id}>
               {label.name}
@@ -485,7 +494,7 @@ function Toolbar({
           ))}
         </select>
         <select
-          aria-label="Filtrar por prioridad"
+          aria-label={t.byPriority}
           className={SELECT}
           value={search.prioridad ?? ""}
           onChange={(e) =>
@@ -494,15 +503,15 @@ function Toolbar({
             })
           }
         >
-          <option value="">Cualquier prioridad</option>
+          <option value="">{t.anyPriority}</option>
           {CARD_PRIORITIES.map((p) => (
             <option key={p} value={p}>
-              {PRIORITY_LABELS[p]}
+              {priorityLabel(p)}
             </option>
           ))}
         </select>
         <select
-          aria-label="Filtrar por fecha límite"
+          aria-label={t.byDue}
           className={SELECT}
           value={search.vence ?? ""}
           onChange={(e) =>
@@ -514,9 +523,9 @@ function Toolbar({
             })
           }
         >
-          <option value="">Cualquier fecha</option>
-          <option value="vencidas">Vencidas</option>
-          <option value="semana">Esta semana</option>
+          <option value="">{t.anyDate}</option>
+          <option value="vencidas">{t.overdue}</option>
+          <option value="semana">{t.thisWeek}</option>
         </select>
         {any ? (
           <Button
@@ -534,7 +543,7 @@ function Toolbar({
             }}
           >
             <FilterXIcon aria-hidden="true" />
-            Quitar filtros
+            {t.clear}
           </Button>
         ) : null}
       </div>
@@ -595,11 +604,20 @@ function ColumnForm({
       void queryClient.invalidateQueries({ queryKey: key });
       void queryClient.invalidateQueries({ queryKey: BOARDS_KEY });
       onClose();
-      toast.success("Columna borrada");
+      toast.success(workMessages().column.deleted);
     },
     onError: (error) => toast.error(errorMessage(error)),
   });
   const cards = editing ? board.cards.filter((c) => c.columnId === editing.id).length : 0;
+  const t = workMessages().column;
+  // WCAG 2.5.7: alternativa a arrastrar la columna (un solo toque, sin gesto).
+  const order = sortedColumns(board).map((c) => c.id);
+  const position = editing ? order.indexOf(editing.id) : -1;
+  const move = useMutation({
+    mutationFn: (index: number) => moveColumn(editing?.id ?? "", index),
+    onSuccess: (detail) => queryClient.setQueryData(key, detail),
+    onError: (error) => toast.error(errorMessage(error)),
+  });
   const submit = (event: FormEvent) => {
     event.preventDefault();
     save.mutate();
@@ -607,13 +625,11 @@ function ColumnForm({
   return (
     <form onSubmit={submit} className="grid gap-4">
       <DialogHeader>
-        <DialogTitle>{editing ? "Ajustes de la columna" : "Nueva columna"}</DialogTitle>
-        <DialogDescription>
-          El límite WIP avisa cuando la columna tiene más tarjetas de las que conviene.
-        </DialogDescription>
+        <DialogTitle>{editing ? t.settings : t.new}</DialogTitle>
+        <DialogDescription>{t.wipHelp}</DialogDescription>
       </DialogHeader>
       <Field
-        label="Nombre"
+        label={t.name}
         value={name}
         onChange={(e) => setName(e.target.value)}
         maxLength={KANBAN_LIMITS.columnName}
@@ -621,13 +637,13 @@ function ColumnForm({
         autoFocus
       />
       <Field
-        label="Límite WIP"
+        label={t.wip}
         type="number"
         min={1}
         max={999}
         value={wip}
         onChange={(e) => setWip(e.target.value)}
-        hint="Déjalo vacío si no quieres límite."
+        hint={t.wipHint}
       />
       <label className="flex items-start gap-2 text-sm">
         <input
@@ -637,12 +653,37 @@ function ColumnForm({
           className="mt-0.5"
         />
         <span>
-          Columna de terminadas
-          <span className="block text-muted-foreground">
-            Las tarjetas que entran se marcan como hechas y se archivan solas pasado un tiempo.
-          </span>
+          {t.done}
+          <span className="block text-muted-foreground">{t.doneHint}</span>
         </span>
       </label>
+      {editing && order.length > 1 ? (
+        <fieldset className="grid gap-2">
+          <legend className="text-sm font-medium">{t.position}</legend>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={position <= 0 || move.isPending}
+              onClick={() => move.mutate(position - 1)}
+            >
+              <ArrowLeftIcon aria-hidden="true" />
+              {t.moveLeft}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={position >= order.length - 1 || move.isPending}
+              onClick={() => move.mutate(position + 1)}
+            >
+              <ArrowRightIcon aria-hidden="true" />
+              {t.moveRight}
+            </Button>
+          </div>
+        </fieldset>
+      ) : null}
       <FormError>{save.isError ? errorMessage(save.error) : null}</FormError>
       <DialogFooter className="sm:justify-between">
         {editing ? (
@@ -654,18 +695,18 @@ function ColumnForm({
             onClick={() => {
               const warning =
                 cards > 0
-                  ? `¿Borrar «${editing.name}» y sus ${String(cards)} tarjetas? No se puede deshacer.`
-                  : `¿Borrar «${editing.name}»?`;
+                  ? t.confirmDeleteCards(editing.name, cards)
+                  : t.confirmDelete(editing.name);
               if (window.confirm(warning)) remove.mutate();
             }}
           >
-            Borrar columna
+            {t.delete}
           </Button>
         ) : (
           <span />
         )}
         <Button type="submit" disabled={save.isPending || !name.trim()}>
-          {editing ? "Guardar" : "Añadir columna"}
+          {editing ? t.save : t.add}
         </Button>
       </DialogFooter>
     </form>
@@ -706,7 +747,7 @@ function BoardSettings({ board, onClose }: { board: BoardDetail; onClose: () => 
       queryClient.setQueryData(key, detail);
       void queryClient.invalidateQueries({ queryKey: BOARDS_KEY });
       onClose();
-      toast.success("Tablero guardado");
+      toast.success(workMessages().settings.saved);
     },
   });
   const label = useMutation({
@@ -727,16 +768,17 @@ function BoardSettings({ board, onClose }: { board: BoardDetail; onClose: () => 
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: key });
       void queryClient.invalidateQueries({ queryKey: BOARDS_KEY });
-      toast.success("Tablero borrado");
+      toast.success(workMessages().settings.deleted);
       void navigate({ to: "/" });
     },
     onError: (error) => toast.error(errorMessage(error)),
   });
+  const t = workMessages().settings;
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Ajustes del tablero</DialogTitle>
-        <DialogDescription>Nombre, autoarchivado y etiquetas.</DialogDescription>
+        <DialogTitle>{t.title}</DialogTitle>
+        <DialogDescription>{t.description}</DialogDescription>
       </DialogHeader>
       <form
         className="grid gap-4"
@@ -746,20 +788,20 @@ function BoardSettings({ board, onClose }: { board: BoardDetail; onClose: () => 
         }}
       >
         <Field
-          label="Nombre"
+          label={t.name}
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={KANBAN_LIMITS.boardName}
           required
         />
         <Field
-          label="Archivar las terminadas tras (días)"
+          label={t.autoarchive}
           type="number"
           min={0}
           max={365}
           value={days}
           onChange={(e) => setDays(e.target.value)}
-          hint="0 = no archivar nunca. Se revisa cada noche."
+          hint={t.autoarchiveHint}
         />
         <FormError>{save.isError ? errorMessage(save.error) : null}</FormError>
         <Button
@@ -767,13 +809,13 @@ function BoardSettings({ board, onClose }: { board: BoardDetail; onClose: () => 
           className="justify-self-end"
           disabled={save.isPending || !name.trim()}
         >
-          Guardar
+          {t.save}
         </Button>
       </form>
 
       <section className="grid gap-2 border-t pt-4" aria-labelledby="etiquetas-titulo">
         <h3 id="etiquetas-titulo" className="text-sm font-semibold">
-          Etiquetas
+          {t.labels}
         </h3>
         <ul className="flex flex-wrap gap-1.5">
           {board.labels.map((l) => (
@@ -789,13 +831,10 @@ function BoardSettings({ board, onClose }: { board: BoardDetail; onClose: () => 
               {l.name}
               <button
                 type="button"
-                aria-label={`Borrar la etiqueta ${l.name}`}
-                className="rounded-full p-0.5 hover:bg-accent pointer-coarse:p-1.5"
+                aria-label={t.deleteLabel(l.name)}
+                className="grid size-6 place-items-center rounded-full hover:bg-accent pointer-coarse:size-9"
                 onClick={() => {
-                  if (
-                    window.confirm(`¿Borrar la etiqueta «${l.name}»? Se quitará de sus tarjetas.`)
-                  )
-                    removeLabel.mutate(l.id);
+                  if (window.confirm(t.confirmDeleteLabel(l.name))) removeLabel.mutate(l.id);
                 }}
               >
                 <XIcon aria-hidden="true" className="size-3.5" />
@@ -811,16 +850,16 @@ function BoardSettings({ board, onClose }: { board: BoardDetail; onClose: () => 
           }}
         >
           <Input
-            aria-label="Nombre de la nueva etiqueta"
-            placeholder="Nueva etiqueta"
+            aria-label={t.newLabelName}
+            placeholder={t.newLabel}
             value={labelName}
             onChange={(e) => setLabelName(e.target.value)}
             maxLength={KANBAN_LIMITS.labelName}
             className="w-44"
           />
           <fieldset className="flex gap-1">
-            <legend className="sr-only">Color</legend>
-            {LABEL_COLORS.map((color) => (
+            <legend className="sr-only">{t.color}</legend>
+            {LABEL_COLORS.map((color, index) => (
               <label key={color} className="cursor-pointer">
                 <input
                   type="radio"
@@ -834,7 +873,7 @@ function BoardSettings({ board, onClose }: { board: BoardDetail; onClose: () => 
                   className="block size-6 rounded-full ring-offset-2 ring-offset-background peer-checked:ring-2 peer-checked:ring-ring peer-focus-visible:ring-2 peer-focus-visible:ring-ring"
                   style={{ backgroundColor: color }}
                 />
-                <span className="sr-only">{color}</span>
+                <span className="sr-only">{t.colorNames[index] ?? color}</span>
               </label>
             ))}
           </fieldset>
@@ -844,28 +883,23 @@ function BoardSettings({ board, onClose }: { board: BoardDetail; onClose: () => 
             size="sm"
             disabled={!labelName.trim() || label.isPending}
           >
-            Añadir
+            {t.add}
           </Button>
         </form>
       </section>
 
       {board.board.role === "owner" ? (
         <section className="grid gap-2 border-t pt-4">
-          <h3 className="text-sm font-semibold text-destructive">Zona peligrosa</h3>
+          <h3 className="text-sm font-semibold text-destructive">{t.danger}</h3>
           <Button
             variant="destructive"
             className="justify-self-start"
             disabled={remove.isPending}
             onClick={() => {
-              if (
-                window.confirm(
-                  `¿Borrar «${board.board.name}» con todas sus tarjetas y adjuntos? No se puede deshacer.`,
-                )
-              )
-                remove.mutate();
+              if (window.confirm(t.confirmDelete(board.board.name))) remove.mutate();
             }}
           >
-            Borrar tablero
+            {t.delete}
           </Button>
         </section>
       ) : null}
@@ -891,26 +925,27 @@ function ArchivedDialog({
     onSuccess: (card) => {
       applyCard(queryClient, card);
       void queryClient.invalidateQueries({ queryKey: archivedKey(board.board.id) });
-      toast.success(`«${card.title}» vuelve al tablero`);
+      toast.success(workMessages().archived.back(card.title));
     },
     onError: (error) => toast.error(errorMessage(error)),
   });
   const columnName = (id: string) => board.columns.find((c) => c.id === id)?.name ?? "";
+  const t = workMessages().archived;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[80dvh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Tarjetas archivadas</DialogTitle>
-          <DialogDescription>Restaura una tarjeta para devolverla a su columna.</DialogDescription>
+          <DialogTitle>{t.title}</DialogTitle>
+          <DialogDescription>{t.description}</DialogDescription>
         </DialogHeader>
         {archived.isPending ? (
           <p role="status" className="text-muted-foreground">
-            Cargando…
+            {t.loading}
           </p>
         ) : archived.isError ? (
           <p role="alert">{errorMessage(archived.error)}</p>
         ) : archived.data.length === 0 ? (
-          <p className="text-muted-foreground">No hay tarjetas archivadas.</p>
+          <p className="text-muted-foreground">{t.none}</p>
         ) : (
           <ul className="grid gap-2">
             {archived.data.map((card) => (
@@ -932,7 +967,7 @@ function ArchivedDialog({
                     disabled={restore.isPending}
                     onClick={() => restore.mutate(card.id)}
                   >
-                    Restaurar
+                    {t.restore}
                   </Button>
                 ) : null}
               </li>

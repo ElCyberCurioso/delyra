@@ -2,6 +2,7 @@ import {
   type BoardDetail,
   type BoardSummary,
   type BoardTemplate,
+  type Locale,
   type CardDetail,
   type CardSummary,
   dateOnlyToUtc,
@@ -42,6 +43,32 @@ async function runBatch(repo: KanbanRepository, statements: BatchItem<"sqlite">[
 }
 
 // ── Plantillas (F4-03) ───────────────────────────────────────────────────────
+
+/** Columnas y etiquetas de las plantillas en inglés (F7-06): se crean en el idioma de la petición. */
+const TEMPLATE_NAMES_EN: Readonly<Record<string, string>> = {
+  "Por hacer": "To do",
+  Haciendo: "Doing",
+  Hecho: "Done",
+  Casa: "Home",
+  Recados: "Errands",
+  Importante: "Important",
+  Backlog: "Backlog",
+  "En curso": "In progress",
+  "En revisión": "In review",
+  Bug: "Bug",
+  Mejora: "Improvement",
+  "Deuda técnica": "Tech debt",
+  Pendiente: "Pending",
+  "En análisis": "Analysing",
+  Hallazgos: "Findings",
+  Informe: "Report",
+  Cerrado: "Closed",
+  Crítica: "Critical",
+  Alta: "High",
+  Media: "Medium",
+  Baja: "Low",
+  Informativa: "Informational",
+};
 
 interface TemplateColumn {
   name: string;
@@ -169,7 +196,9 @@ export async function listBoards(repo: KanbanRepository): Promise<BoardSummary[]
 export async function createBoard(
   repo: KanbanRepository,
   input: { name: string; template: BoardTemplate },
+  locale: Locale = "es",
 ): Promise<Board> {
+  const named = (name: string) => (locale === "en" ? (TEMPLATE_NAMES_EN[name] ?? name) : name);
   if ((await repo.countBoards()) >= 100) {
     throw new AppError(409, { detail: "Has llegado al máximo de 100 tableros" });
   }
@@ -187,7 +216,7 @@ export async function createBoard(
       db.insert(boardColumns).values(
         repo.newColumn({
           boardId: board.id,
-          name: column.name,
+          name: named(column.name),
           position: keys[i] ?? "a0",
           wipLimit: column.wipLimit ?? null,
           isDone: column.isDone ?? false,
@@ -199,7 +228,7 @@ export async function createBoard(
         id: newId(),
         ownerId: repo.ownerId,
         boardId: board.id,
-        name,
+        name: named(name),
         color,
         createdAt: new Date(),
       }),

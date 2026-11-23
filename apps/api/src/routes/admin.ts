@@ -9,6 +9,7 @@ import { type Context, Hono } from "hono";
 import { createDb } from "../db/client";
 import { users } from "../db/schema";
 import { AppError } from "../lib/errors";
+import { requestLocale } from "../lib/locale";
 import { readBody } from "../lib/http";
 import { currentAuth, requireAdmin } from "../middleware/session";
 import { audit } from "../services/audit";
@@ -47,7 +48,10 @@ async function deliverInvitation(
   let emailed = false;
   if (mailer.available) {
     try {
-      await mailer.send(invitationEmail(email, link, expiresAt));
+      // F7-06: en el idioma con el que trabaja quien invita.
+      await mailer.send(
+        invitationEmail(email, link, expiresAt, requestLocale(c.req.header("accept-language"))),
+      );
       emailed = true;
     } catch {
       emailed = false;

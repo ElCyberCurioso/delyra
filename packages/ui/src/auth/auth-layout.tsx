@@ -1,6 +1,33 @@
+import { SUPPORTED_LOCALES } from "@delyra/shared";
+import { LanguagesIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Toaster } from "../components/toaster";
+import { getLocale, LOCALE_NAMES, setLocale, ui } from "../i18n";
 import { Brand } from "../layout/brand";
+
+/** Cambio de idioma sin sesión (F7-06): se recuerda en este navegador. */
+export function LanguageSwitch({ className = "mt-6" }: { className?: string }) {
+  const others = SUPPORTED_LOCALES.filter((locale) => locale !== getLocale());
+  return (
+    <nav
+      aria-label={ui().language.switchTo}
+      className={`${className} flex items-center gap-2 text-sm`}
+    >
+      <LanguagesIcon aria-hidden="true" className="size-4 text-muted-foreground" />
+      {others.map((locale) => (
+        <button
+          key={locale}
+          type="button"
+          lang={locale}
+          onClick={() => void setLocale(locale)}
+          className="min-h-6 rounded underline underline-offset-4 hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
+          {LOCALE_NAMES[locale]}
+        </button>
+      ))}
+    </nav>
+  );
+}
 
 /** Tarjeta centrada para login, registro, 2FA y recuperación. */
 export function AuthLayout({
@@ -28,6 +55,7 @@ export function AuthLayout({
         <div className="mt-6">{children}</div>
       </main>
       {footer ? <div className="mt-4 text-sm text-muted-foreground">{footer}</div> : null}
+      <LanguageSwitch />
       <Toaster />
     </div>
   );

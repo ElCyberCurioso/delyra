@@ -248,7 +248,8 @@ export class GoogleCalendarClient {
     url.search = new URLSearchParams(params).toString();
     const response = await this.fetchImpl(url, {
       headers: { Authorization: `Bearer ${this.token}`, Accept: "application/json" },
-      redirect: "error",
+      // Workers no admite `redirect: "error"`: con «manual», un 3xx no es `ok` y falla.
+      redirect: "manual",
       signal: AbortSignal.timeout(30_000),
     });
     if (response.status === 401) {

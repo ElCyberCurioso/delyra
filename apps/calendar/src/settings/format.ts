@@ -1,8 +1,10 @@
 import { SUGGESTED_TIME_ZONES } from "@delyra/shared";
+import { getLocale, intlLocale, LOCALE_NAMES } from "@delyra/ui";
+import { settingsMessages } from "./messages";
 
 /** Fecha y hora en la zona del usuario: «21 nov 2026, 18:42». */
 export function formatDateTime(iso: string, timeZone: string): string {
-  return new Intl.DateTimeFormat("es-ES", {
+  return new Intl.DateTimeFormat(intlLocale(), {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone,
@@ -28,52 +30,28 @@ const SYSTEMS: readonly [string, string][] = [
 
 /** «Chrome en Windows» a partir del User-Agent; sin librerías y sin pretender exactitud. */
 export function describeUserAgent(userAgent: string | null): string {
-  if (!userAgent) return "Dispositivo desconocido";
-  const browser = BROWSERS.find(([token]) => userAgent.includes(token))?.[1] ?? "Navegador";
+  const t = settingsMessages().device;
+  if (!userAgent) return t.unknown;
+  const browser = BROWSERS.find(([token]) => userAgent.includes(token))?.[1] ?? t.browser;
   const os = SYSTEMS.find(([token]) => userAgent.includes(token))?.[1];
-  return os ? `${browser} en ${os}` : browser;
+  return os ? t.on(browser, os) : browser;
 }
 
 /** Nombre del país a partir del código ISO que añade Cloudflare. */
 export function countryName(code: string | null): string | null {
   if (!code) return null;
   try {
-    return new Intl.DisplayNames(["es"], { type: "region" }).of(code) ?? code;
+    return new Intl.DisplayNames([getLocale()], { type: "region" }).of(code) ?? code;
   } catch {
     return code;
   }
 }
 
-export const AUDIT_LABELS: Readonly<Record<string, string>> = {
-  "user.registered": "Cuenta creada",
-  "login.success": "Inicio de sesión",
-  "login.failure": "Contraseña incorrecta al iniciar sesión",
-  "login.locked": "Inicio de sesión bloqueado por demasiados intentos",
-  "second_factor.success": "Verificación en dos pasos superada",
-  "second_factor.failure": "Código de verificación incorrecto",
-  "second_factor.recovery_code_used": "Entrada con un código de recuperación",
-  "totp.enrolled": "Verificación en dos pasos activada",
-  "totp.reconfigured": "App autenticadora cambiada",
-  "recovery_codes.regenerated": "Códigos de recuperación regenerados",
-  "password.reset_requested": "Solicitud de recuperación de contraseña",
-  "password.reset": "Contraseña restablecida desde el correo",
-  "password.changed": "Contraseña cambiada",
-  "profile.updated": "Perfil actualizado",
-  "settings.updated": "Preferencias actualizadas",
-  "reauth.failure": "Confirmación de identidad fallida en Ajustes",
-  "telegram.linked": "Telegram vinculado",
-  "telegram.unlinked": "Telegram desvinculado",
-  "session.logout": "Cierre de sesión",
-  "session.revoked": "Sesión cerrada desde Ajustes",
-  "admin.user_disabled": "Cuenta desactivada por un administrador",
-  "admin.user_enabled": "Cuenta reactivada por un administrador",
-  "admin.totp_reset": "Verificación en dos pasos reiniciada por un administrador",
-  "admin.system_backup": "Backup del sistema lanzado a mano",
-  "backup.restore_started": "Restauración de una copia de seguridad",
-  "backup.restore_undone": "Restauración deshecha",
-  "board.invitation_created": "Invitación a un tablero de Trabajo",
-  "board.invitation_accepted": "Invitación a un tablero aceptada",
-};
+/** Nombre legible de un evento del historial de seguridad (o el código si es nuevo). */
+export function auditLabel(event: string): string {
+  const labels: Readonly<Record<string, string>> = settingsMessages().audit;
+  return labels[event] ?? event;
+}
 
 /** Eventos que conviene destacar: pueden indicar que alguien intenta entrar. */
 export const SUSPICIOUS_EVENTS = new Set([
@@ -91,13 +69,16 @@ export function timeZoneOptions(current: string): { value: string; label: string
   return zones.map((zone) => ({ value: zone, label: zone.replaceAll("_", " ") }));
 }
 
-export const WEEK_START_OPTIONS = [
-  { value: "1", label: "Lunes" },
-  { value: "0", label: "Domingo" },
-  { value: "6", label: "Sábado" },
-] as const;
+export function weekStartOptions() {
+  const t = settingsMessages().weekStart;
+  return [
+    { value: "1", label: t.monday },
+    { value: "0", label: t.sunday },
+    { value: "6", label: t.saturday },
+  ];
+}
 
 export const LOCALE_OPTIONS = [
-  { value: "es", label: "Español" },
-  { value: "en", label: "English" },
+  { value: "es", label: LOCALE_NAMES.es },
+  { value: "en", label: LOCALE_NAMES.en },
 ] as const;

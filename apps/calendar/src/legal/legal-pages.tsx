@@ -1,26 +1,47 @@
-import { Brand } from "@delyra/ui";
+import { Brand, getLocale, LanguageSwitch } from "@delyra/ui";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { PrivacyEn, TermsEn } from "./legal-en";
 
 /**
  * Páginas públicas que exige la pantalla de consentimiento de Google (F5-04): política de
- * privacidad y condiciones de uso. No necesitan sesión.
+ * privacidad y condiciones de uso. No necesitan sesión. En español e inglés (F7-06).
  */
 
-const UPDATED = "22 de noviembre de 2026";
+const COPY = {
+  es: {
+    updated: "Última actualización: 22 de noviembre de 2026",
+    nav: "Páginas legales",
+    privacy: "Privacidad",
+    terms: "Condiciones",
+    privacyTitle: "Política de privacidad",
+    termsTitle: "Condiciones de uso",
+  },
+  en: {
+    updated: "Last updated: 22 November 2026",
+    nav: "Legal pages",
+    privacy: "Privacy",
+    terms: "Terms",
+    privacyTitle: "Privacy policy",
+    termsTitle: "Terms of use",
+  },
+} as const;
+
+const copy = () => COPY[getLocale()];
 
 function LegalLayout({ title, children }: { title: string; children: ReactNode }) {
+  const t = copy();
   return (
     <div className="min-h-dvh bg-background px-4 py-8 text-foreground">
       <div className="mx-auto max-w-2xl">
-        <header className="mb-8 flex items-center justify-between gap-4">
+        <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <Brand href="/" />
-          <nav aria-label="Páginas legales" className="flex gap-4 text-sm">
+          <nav aria-label={t.nav} className="flex gap-4 text-sm">
             <Link to="/privacidad" className="text-muted-foreground hover:text-foreground">
-              Privacidad
+              {t.privacy}
             </Link>
             <Link to="/terminos" className="text-muted-foreground hover:text-foreground">
-              Condiciones
+              {t.terms}
             </Link>
           </nav>
         </header>
@@ -30,10 +51,11 @@ function LegalLayout({ title, children }: { title: string; children: ReactNode }
         >
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-            <p className="mt-1 text-muted-foreground">Última actualización: {UPDATED}</p>
+            <p className="mt-1 text-muted-foreground">{t.updated}</p>
           </div>
           {children}
         </main>
+        <LanguageSwitch className="mt-10" />
       </div>
     </div>
   );
@@ -41,7 +63,23 @@ function LegalLayout({ title, children }: { title: string; children: ReactNode }
 
 export function PrivacyPage() {
   return (
-    <LegalLayout title="Política de privacidad">
+    <LegalLayout title={copy().privacyTitle}>
+      {getLocale() === "en" ? <PrivacyEn /> : <PrivacyEs />}
+    </LegalLayout>
+  );
+}
+
+export function TermsPage() {
+  return (
+    <LegalLayout title={copy().termsTitle}>
+      {getLocale() === "en" ? <TermsEn /> : <TermsEs />}
+    </LegalLayout>
+  );
+}
+
+function PrivacyEs() {
+  return (
+    <>
       <p>
         Delyra es un calendario y gestor de tareas personal de uso privado, con acceso solo por
         invitación. Esta página explica qué datos trata y para qué.
@@ -117,13 +155,13 @@ export function PrivacyPage() {
         </a>{" "}
         y pedir la exportación o el borrado de tu cuenta a quien te invitó a Delyra.
       </p>
-    </LegalLayout>
+    </>
   );
 }
 
-export function TermsPage() {
+function TermsEs() {
   return (
-    <LegalLayout title="Condiciones de uso">
+    <>
       <p>
         Delyra es un servicio privado, gratuito y solo por invitación. Al usarlo aceptas estas
         condiciones.
@@ -156,6 +194,6 @@ export function TermsPage() {
         </Link>
         .
       </p>
-    </LegalLayout>
+    </>
   );
 }

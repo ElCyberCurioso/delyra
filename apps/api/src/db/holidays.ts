@@ -13,6 +13,8 @@ export const publicHolidays = sqliteTable(
     /** `AAAA-MM-DD` */
     date: text("date").notNull(),
     name: text("name").notNull(),
+    /** Nombre en inglés (F7-06); puede faltar en los calculados sin red. */
+    nameEn: text("name_en"),
     /** Comunidades separadas por comas (`ES-MD,ES-CL`); vacío = nacional. */
     regions: text("regions").notNull().default(""),
     fetchedAt: integer("fetched_at").notNull(),

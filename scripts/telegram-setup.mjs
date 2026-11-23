@@ -96,23 +96,34 @@ await telegram(token, "setWebhook", {
 });
 console.log(`✔ Webhook: ${values.url}`);
 
-await telegram(token, "setMyCommands", {
-  language_code: "es",
-  commands: [
-    { command: "hoy", description: "Agenda de hoy" },
-    { command: "manana", description: "Agenda de mañana" },
-    { command: "semana", description: "Próximos 7 días" },
-    { command: "nuevo", description: "Crear un evento: /nuevo Dentista mañana 17:30" },
-    { command: "tareas", description: "Tareas pendientes" },
-    {
-      command: "silenciar",
-      description: "Silenciar alertas: /silenciar 2 (horas) u /silenciar no",
-    },
-    { command: "desvincular", description: "Desvincular esta cuenta de Telegram" },
-    { command: "ayuda", description: "Qué puedo hacer" },
-  ],
-});
-console.log("✔ Comandos del bot registrados");
+const spanishCommands = [
+  { command: "hoy", description: "Agenda de hoy" },
+  { command: "manana", description: "Agenda de mañana" },
+  { command: "semana", description: "Próximos 7 días" },
+  { command: "nuevo", description: "Crear un evento: /nuevo Dentista mañana 17:30" },
+  { command: "tareas", description: "Tareas pendientes" },
+  {
+    command: "silenciar",
+    description: "Silenciar alertas: /silenciar 2 (horas) u /silenciar no",
+  },
+  { command: "desvincular", description: "Desvincular esta cuenta de Telegram" },
+  { command: "ayuda", description: "Qué puedo hacer" },
+];
+// F7-06: en inglés para quien tiene Telegram en inglés (el bot entiende los dos juegos siempre).
+const englishCommands = [
+  { command: "today", description: "Today's agenda" },
+  { command: "tomorrow", description: "Tomorrow's agenda" },
+  { command: "week", description: "Next 7 days" },
+  { command: "new", description: "Create an event: /new Dentist tomorrow 5:30pm" },
+  { command: "tasks", description: "Pending tasks" },
+  { command: "mute", description: "Mute alerts: /mute 2 (hours) or /mute off" },
+  { command: "unlink", description: "Unlink this Telegram account" },
+  { command: "help", description: "What I can do" },
+];
+await telegram(token, "setMyCommands", { commands: spanishCommands });
+await telegram(token, "setMyCommands", { language_code: "es", commands: spanishCommands });
+await telegram(token, "setMyCommands", { language_code: "en", commands: englishCommands });
+console.log("✔ Comandos del bot registrados (español por defecto, inglés para Telegram en inglés)");
 
 console.log(`
 Último paso: en apps/api/wrangler.jsonc → env.production.vars pon

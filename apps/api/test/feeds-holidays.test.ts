@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDb } from "../src/db/client";
 import { calendarFeeds } from "../src/db/schema";
 import { parseIcs } from "../src/lib/ics";
-import { easterSunday, nationalFallback } from "../src/services/holidays";
+import { easterSunday, fetchHolidays, nationalFallback } from "../src/services/holidays";
 import { registerUser, TestClient } from "./helpers";
 
 /** Feed ICS privado (F7-02) y festivos (F7-03). */
@@ -113,7 +113,14 @@ describe("feed ICS privado (F7-02)", () => {
 });
 
 const NAGER_2027 = [
-  { date: "2027-01-01", localName: "Año Nuevo", global: true, counties: null, types: ["Public"] },
+  {
+    date: "2027-01-01",
+    localName: "Año Nuevo",
+    name: "New Year's Day",
+    global: true,
+    counties: null,
+    types: ["Public"],
+  },
   {
     date: "2027-05-02",
     localName: "Fiesta de la Comunidad de Madrid",
@@ -189,6 +196,37 @@ describe("festivos (F7-03)", () => {
     expect((await client.request("PUT", "/api/holidays/region", { region: "XX" })).status).toBe(
       422,
     );
+  });
+
+  it("en inglés, con el nombre inglés del servicio o del cálculo sin red (F7-06)", async () => {
+    fakeNager();
+    const { client } = await registerUser();
+    const english = async (from: string, to: string) =>
+      (
+        await (
+          await client.request("GET", `/api/holidays?from=${from}&to=${to}`, undefined, {
+            "Accept-Language": "en-GB,en;q=0.9",
+          })
+        ).json<{ holidays: Holiday[] }>()
+      ).holidays.map((h) => h.name);
+    // Sin nombre inglés en el servicio se queda el local.
+    expect(await english("2027-01-01", "2027-12-31")).toEqual([
+      "New Year's Day",
+      "Fiesta de la Comunidad de Madrid",
+      "<script>",
+    ]);
+    // Un año sin datos se calcula ya en inglés.
+    expect(await english("2033-04-01", "2033-04-30")).toContain("Good Friday");
+  });
+
+  it("la descarga usa opciones que acepta el runtime de Workers (regresión)", async () => {
+    // `redirect: "error"` no existe en Workers: la petición fallaba siempre en producción.
+    const rows = await fetchHolidays(2027, (input, init) => {
+      const request = new Request(input, init);
+      expect(request.redirect).toBe("manual");
+      return Promise.resolve(Response.json(NAGER_2027));
+    });
+    expect(rows.map((r) => r.name)).toContain("Año Nuevo");
   });
 
   it("sin servicio, los nacionales calculados (con Viernes Santo)", async () => {

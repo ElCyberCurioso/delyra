@@ -24,6 +24,7 @@ import { formValues } from "../auth/form";
 import { RecoveryCodeList, SavedCodesConfirmation, TotpQr } from "../auth/totp-parts";
 import { formatDateTime } from "./format";
 import { Section } from "./section";
+import { settingsMessages } from "./messages";
 
 export const SECURITY_QUERY_KEY = ["account", "security"] as const;
 
@@ -37,6 +38,7 @@ function ReauthForm({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const t = settingsMessages();
 
   async function handle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -44,7 +46,7 @@ function ReauthForm({
     const password = values.password ?? "";
     const code = (values.code ?? "").replace(/\s+/g, "");
     if (!password || code.length < 6) {
-      setError("Escribe tu contraseña y un código de tu app (o de recuperación).");
+      setError(t.twoFactor.reauthMissing);
       return;
     }
     setError(null);
@@ -62,7 +64,7 @@ function ReauthForm({
     <form noValidate onSubmit={(event) => void handle(event)} className="grid gap-4">
       <FormError>{error}</FormError>
       <Field
-        label="Contraseña"
+        label={t.common.password}
         name="password"
         type="password"
         autoComplete="current-password"
@@ -70,15 +72,15 @@ function ReauthForm({
         autoFocus
       />
       <Field
-        label="Código actual"
+        label={t.twoFactor.currentCode}
         name="code"
         autoComplete="one-time-code"
-        hint="El de tu app autenticadora o un código de recuperación."
+        hint={t.twoFactor.currentCodeHint}
         maxLength={11}
         required
       />
       <Button type="submit" disabled={pending}>
-        {pending ? "Comprobando…" : submitLabel}
+        {pending ? t.common.checking : submitLabel}
       </Button>
     </form>
   );
@@ -86,25 +88,22 @@ function ReauthForm({
 
 function RegenerateCodesDialog({ onClose }: { onClose: () => void }) {
   const [codes, setCodes] = useState<string[] | null>(null);
+  const t = settingsMessages().twoFactor;
   return (
     <Dialog open onOpenChange={(open) => !open && !codes && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Códigos de recuperación nuevos</DialogTitle>
-          <DialogDescription>
-            {codes
-              ? "Los anteriores ya no valen. Guarda estos: no volverás a verlos."
-              : "Confirma que eres tú. Los códigos que tienes ahora dejarán de valer."}
-          </DialogDescription>
+          <DialogTitle>{t.newCodesTitle}</DialogTitle>
+          <DialogDescription>{codes ? t.newCodesSaved : t.newCodesConfirm}</DialogDescription>
         </DialogHeader>
         {codes ? (
           <div className="grid gap-4">
             <RecoveryCodeList codes={codes} />
-            <SavedCodesConfirmation label="Hecho" onDone={onClose} />
+            <SavedCodesConfirmation label={t.done} onDone={onClose} />
           </div>
         ) : (
           <ReauthForm
-            submitLabel="Generar códigos nuevos"
+            submitLabel={t.generate}
             onSubmit={async (body) => {
               const result = await apiFetch("/api/me/recovery-codes", {
                 method: "POST",
@@ -124,19 +123,20 @@ function ReconfigureTotpDialog({ onClose }: { onClose: () => void }) {
   const [enrollment, setEnrollment] = useState<{ secret: string; otpauthUri: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const t = settingsMessages();
 
   async function confirm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const code = (formValues(event.currentTarget).code ?? "").replace(/\s+/g, "");
     if (!/^\d{6}$/.test(code)) {
-      setError("Introduce los 6 dígitos que muestra la app nueva.");
+      setError(t.twoFactor.newAppDigits);
       return;
     }
     setError(null);
     setPending(true);
     try {
       await apiFetch("/api/me/totp/reconfigure/confirm", { method: "POST", body: { code } });
-      toast.success("App autenticadora cambiada. Se han cerrado tus otras sesiones.");
+      toast.success(t.twoFactor.appChanged);
       onClose();
     } catch (caught) {
       setError(errorMessage(caught));
@@ -149,11 +149,9 @@ function ReconfigureTotpDialog({ onClose }: { onClose: () => void }) {
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Cambiar de app autenticadora</DialogTitle>
+          <DialogTitle>{t.twoFactor.changeApp}</DialogTitle>
           <DialogDescription>
-            {enrollment
-              ? "Escanea el código con la app nueva y escribe el código que muestre. Hasta entonces sigue valiendo la anterior."
-              : "Confirma que eres tú con tu contraseña y el código actual."}
+            {enrollment ? t.twoFactor.changeAppScan : t.twoFactor.changeAppConfirm}
           </DialogDescription>
         </DialogHeader>
         {enrollment ? (
@@ -162,7 +160,7 @@ function ReconfigureTotpDialog({ onClose }: { onClose: () => void }) {
             <form noValidate onSubmit={(event) => void confirm(event)} className="grid gap-4">
               <FormError>{error}</FormError>
               <Field
-                label="Código de la app nueva"
+                label={t.twoFactor.newAppCode}
                 name="code"
                 autoComplete="one-time-code"
                 inputMode="numeric"
@@ -171,13 +169,13 @@ function ReconfigureTotpDialog({ onClose }: { onClose: () => void }) {
                 required
               />
               <Button type="submit" disabled={pending}>
-                {pending ? "Comprobando…" : "Usar la app nueva"}
+                {pending ? t.common.checking : t.twoFactor.useNewApp}
               </Button>
             </form>
           </div>
         ) : (
           <ReauthForm
-            submitLabel="Continuar"
+            submitLabel={t.common.continue}
             onSubmit={async (body) => {
               setEnrollment(
                 await apiFetch("/api/me/totp/reconfigure", {
@@ -211,29 +209,26 @@ export function TwoFactorSection({ session }: { session: ActiveSession }) {
 
   const remaining = security.data?.remainingRecoveryCodes;
   const timeZone = session.settings.timeZone;
+  const t = settingsMessages();
 
   return (
-    <Section
-      id="verificacion"
-      title="Verificación en dos pasos"
-      description="Obligatoria en Delyra. Para cambiar algo te pediremos la contraseña y un código."
-    >
+    <Section id="verificacion" title={t.twoFactor.title} description={t.twoFactor.description}>
       <dl className="mb-4 grid gap-3 text-sm sm:grid-cols-2">
         <div className="rounded-md border p-3">
           <dt className="flex items-center gap-2 font-medium">
             <SmartphoneIcon aria-hidden="true" className="size-4" />
-            App autenticadora
+            {t.twoFactor.app}
           </dt>
           <dd className="mt-1 text-muted-foreground">
             {security.data?.totpConfirmedAt
-              ? `Activa desde el ${formatDateTime(security.data.totpConfirmedAt, timeZone)}`
-              : "Cargando…"}
+              ? t.twoFactor.activeSince(formatDateTime(security.data.totpConfirmedAt, timeZone))
+              : t.common.loading}
           </dd>
         </div>
         <div className="rounded-md border p-3">
           <dt className="flex items-center gap-2 font-medium">
             <KeyRoundIcon aria-hidden="true" className="size-4" />
-            Códigos de recuperación
+            {t.twoFactor.recoveryCodes}
           </dt>
           <dd
             className={
@@ -243,19 +238,19 @@ export function TwoFactorSection({ session }: { session: ActiveSession }) {
             }
           >
             {remaining === undefined
-              ? "Cargando…"
+              ? t.common.loading
               : remaining === 0
-                ? "No te queda ninguno: genera códigos nuevos."
-                : `Te quedan ${String(remaining)} de 10.`}
+                ? t.twoFactor.noneLeft
+                : t.twoFactor.left(remaining)}
           </dd>
         </div>
       </dl>
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={() => setDialog("totp")}>
-          Cambiar de app autenticadora
+          {t.twoFactor.changeApp}
         </Button>
         <Button variant="outline" onClick={() => setDialog("codes")}>
-          Generar códigos nuevos
+          {t.twoFactor.generate}
         </Button>
       </div>
       {dialog === "codes" ? <RegenerateCodesDialog onClose={close} /> : null}

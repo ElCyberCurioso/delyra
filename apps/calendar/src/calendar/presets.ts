@@ -1,4 +1,6 @@
 import { dateOnlyToUtc } from "@delyra/shared";
+import { intlLocale } from "@delyra/ui";
+import { calendarMessages } from "./messages";
 
 /** Repeticiones habituales ↔ RRULE (el editor también admite una regla avanzada). */
 
@@ -15,7 +17,6 @@ export interface RepeatState {
 }
 
 const BYDAY = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"] as const;
-const WEEKDAY_NAMES = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
 
 function dayInfo(startDate: string) {
   const date = new Date(dateOnlyToUtc(startDate));
@@ -42,15 +43,20 @@ function baseRule(preset: RepeatPreset, startDate: string): string | null {
 }
 
 export function repeatOptions(startDate: string): { value: RepeatPreset; label: string }[] {
-  const { weekday, monthDay } = dayInfo(startDate);
+  const { monthDay } = dayInfo(startDate);
+  const t = calendarMessages().repeat;
+  const weekdayName = new Intl.DateTimeFormat(intlLocale(), {
+    weekday: "long",
+    timeZone: "UTC",
+  }).format(new Date(dateOnlyToUtc(startDate)));
   return [
-    { value: "none", label: "No se repite" },
-    { value: "daily", label: "Cada día" },
-    { value: "weekdays", label: "De lunes a viernes" },
-    { value: "weekly", label: `Cada semana, el ${WEEKDAY_NAMES[weekday] ?? "lunes"}` },
-    { value: "monthly", label: `Cada mes, el día ${String(monthDay)}` },
-    { value: "yearly", label: "Cada año" },
-    { value: "custom", label: "Personalizada (RRULE)" },
+    { value: "none", label: t.none },
+    { value: "daily", label: t.daily },
+    { value: "weekdays", label: t.weekdays },
+    { value: "weekly", label: t.weekly(weekdayName) },
+    { value: "monthly", label: t.monthly(monthDay) },
+    { value: "yearly", label: t.yearly },
+    { value: "custom", label: t.custom },
   ];
 }
 
@@ -97,29 +103,38 @@ export function fromRrule(rrule: string | null, startDate: string): RepeatState 
 
 // ── Alertas ────────────────────────────────────────────────────────────────
 
-export const TIMED_REMINDERS: readonly { value: number; label: string }[] = [
-  { value: 0, label: "Al empezar" },
-  { value: 5, label: "5 minutos antes" },
-  { value: 10, label: "10 minutos antes" },
-  { value: 15, label: "15 minutos antes" },
-  { value: 30, label: "30 minutos antes" },
-  { value: 60, label: "1 hora antes" },
-  { value: 120, label: "2 horas antes" },
-  { value: 1440, label: "1 día antes" },
-  { value: 2880, label: "2 días antes" },
-  { value: 10_080, label: "1 semana antes" },
-];
+const TIMED_OFFSETS = [0, 5, 10, 15, 30, 60, 120, 1440, 2880, 10_080] as const;
+const ALL_DAY_OFFSETS = [-540, 900, 2340, 9540] as const;
 
-export const ALL_DAY_REMINDERS: readonly { value: number; label: string }[] = [
-  { value: -540, label: "El mismo día a las 9:00" },
-  { value: 900, label: "El día anterior a las 9:00" },
-  { value: 2340, label: "2 días antes a las 9:00" },
-  { value: 9540, label: "1 semana antes a las 9:00" },
-];
+function timedLabel(offset: number): string {
+  const t = calendarMessages().reminders;
+  if (offset === 0) return t.atStart;
+  if (offset === 10_080) return t.weekBefore;
+  if (offset % 1440 === 0) return t.daysBefore(offset / 1440);
+  if (offset % 60 === 0) return t.hoursBefore(offset / 60);
+  return t.minutesBefore(offset);
+}
+
+const ALL_DAY_LABELS = {
+  [-540]: "sameDay9",
+  900: "dayBefore9",
+  2340: "twoDaysBefore9",
+  9540: "weekBefore9",
+} as const;
+
+export function timedReminders(): { value: number; label: string }[] {
+  return TIMED_OFFSETS.map((value) => ({ value, label: timedLabel(value) }));
+}
+
+export function allDayReminders(): { value: number; label: string }[] {
+  const t = calendarMessages().reminders;
+  return ALL_DAY_OFFSETS.map((value) => ({ value, label: t[ALL_DAY_LABELS[value]] }));
+}
 
 export function reminderLabel(offset: number, allDay: boolean): string {
-  const list = allDay ? ALL_DAY_REMINDERS : TIMED_REMINDERS;
+  const list = allDay ? allDayReminders() : timedReminders();
   const known = list.find((option) => option.value === offset);
   if (known) return known.label;
-  return offset >= 0 ? `${String(offset)} minutos antes` : `${String(-offset)} minutos después`;
+  const t = calendarMessages().reminders;
+  return offset >= 0 ? t.minutesBefore(offset) : t.minutesAfter(-offset);
 }

@@ -2,6 +2,9 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 
+// Las pruebas comprueban los textos en español (jsdom dice «en-US»). F7-06.
+localStorage.setItem("delyra-locale", "es");
+
 /** `(min-width: Npx)` / `(max-width: Npx)` según el ancho de jsdom (1024 px); lo demás, no. */
 function matchesWidth(query: string): boolean {
   const width = window.innerWidth;

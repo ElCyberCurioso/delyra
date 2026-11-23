@@ -1,3 +1,4 @@
+import { ui } from "../i18n";
 import type { Shortcut } from "../lib/use-shortcuts";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./dialog";
 
@@ -15,8 +16,8 @@ export function ShortcutsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Atajos de teclado</DialogTitle>
-          <DialogDescription>Funcionan cuando no estás escribiendo en un campo.</DialogDescription>
+          <DialogTitle>{ui().shortcuts.title}</DialogTitle>
+          <DialogDescription>{ui().shortcuts.description}</DialogDescription>
         </DialogHeader>
         <dl className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 text-sm">
           {shortcuts.map((shortcut) => (

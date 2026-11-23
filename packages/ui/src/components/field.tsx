@@ -1,4 +1,5 @@
 import { type ComponentProps, type ReactNode, useId } from "react";
+import { translateServer } from "../i18n";
 import { cn } from "../lib/utils";
 import { Input } from "./input";
 
@@ -31,7 +32,7 @@ export function Field({ label, error, hint, className, ...props }: FieldProps) {
       ) : null}
       {error ? (
         <p id={errorId} className="text-sm text-destructive">
-          {error}
+          {translateServer(error)}
         </p>
       ) : null}
     </div>
@@ -46,7 +47,7 @@ export function FormError({ children }: { children?: ReactNode }) {
       role="alert"
       className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
     >
-      {children}
+      {typeof children === "string" ? translateServer(children) : children}
     </p>
   );
 }
@@ -99,7 +100,7 @@ export function SelectField({
       ) : null}
       {error ? (
         <p id={errorId} className="text-sm text-destructive">
-          {error}
+          {translateServer(error)}
         </p>
       ) : null}
     </div>

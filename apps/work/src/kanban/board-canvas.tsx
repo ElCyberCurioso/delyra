@@ -55,10 +55,11 @@ import {
   cardIdsByColumn,
   dueLabel,
   isOverdue,
-  PRIORITY_LABELS,
+  priorityLabel,
   serverIndex,
   sortedColumns,
 } from "./logic";
+import { workMessages } from "./messages";
 
 /**
  * Tablero con arrastrar y soltar (F4-08): tarjetas entre columnas y columnas entre sí, con
@@ -208,38 +209,37 @@ export function BoardCanvas(props: BoardCanvasProps) {
     return lastOver.current !== null ? [{ id: lastOver.current }] : [];
   };
 
+  const t = workMessages().canvas;
   const columnName = (id: string | null) => columns.find((c) => c.id === id)?.name ?? "";
   const titleOf = (id: UniqueIdentifier) =>
     cardsById.get(String(id))?.title ?? columnName(String(id));
   /** «sobre «Otra», en «Columna»» o «en «Columna»» si está sobre la columna (vacía). */
   const whereIs = (over: UniqueIdentifier) => {
     const key = String(over);
-    if (isColumn(key)) return `en «${columnName(key)}»`;
-    return `sobre «${titleOf(key)}», en «${columnName(containerOf(key))}»`;
+    if (isColumn(key)) return t.inColumn(columnName(key));
+    return t.overCard(titleOf(key), columnName(containerOf(key)));
   };
   const announcements: Announcements = {
     onDragStart: ({ active: a }) =>
-      isColumn(a.id)
-        ? `Has cogido la columna «${titleOf(a.id)}».`
-        : `Has cogido «${titleOf(a.id)}».`,
+      isColumn(a.id) ? t.pickedColumn(titleOf(a.id)) : t.picked(titleOf(a.id)),
     onDragOver: ({ active: a, over }) => {
       if (!over) return undefined;
       if (isColumn(a.id)) {
         return over.id === a.id
-          ? `Columna «${titleOf(a.id)}» en su sitio.`
-          : `Columna «${titleOf(a.id)}» junto a «${titleOf(over.id)}».`;
+          ? t.columnInPlace(titleOf(a.id))
+          : t.columnNext(titleOf(a.id), titleOf(over.id));
       }
       return over.id === a.id
-        ? `«${titleOf(a.id)}» está en su sitio, en «${columnName(containerOf(a.id))}».`
-        : `«${titleOf(a.id)}» está ${whereIs(over.id)}.`;
+        ? t.inPlace(titleOf(a.id), columnName(containerOf(a.id)))
+        : t.isAt(titleOf(a.id), whereIs(over.id));
     },
     onDragEnd: ({ active: a, over }) =>
       over
         ? isColumn(a.id)
-          ? `Columna «${titleOf(a.id)}» colocada.`
-          : `«${titleOf(a.id)}» soltada ${whereIs(over.id)}.`
-        : `«${titleOf(a.id)}» vuelve a su sitio.`,
-    onDragCancel: ({ active: a }) => `Movimiento cancelado. «${titleOf(a.id)}» vuelve a su sitio.`,
+          ? t.columnPlaced(titleOf(a.id))
+          : t.dropped(titleOf(a.id), whereIs(over.id))
+        : t.back(titleOf(a.id)),
+    onDragCancel: ({ active: a }) => t.cancelled(titleOf(a.id)),
   };
 
   const onDragStart = ({ active: a }: DragStartEvent) => {
@@ -325,8 +325,7 @@ export function BoardCanvas(props: BoardCanvasProps) {
       accessibility={{
         announcements,
         screenReaderInstructions: {
-          draggable:
-            "Pulsa espacio para coger. Mueve con las flechas y vuelve a pulsar espacio para soltar; Escape cancela. Intro abre la tarjeta.",
+          draggable: t.instructions,
         },
       }}
     >
@@ -339,7 +338,7 @@ export function BoardCanvas(props: BoardCanvasProps) {
             // En el móvil las columnas encajan de una en una al deslizar (salvo al arrastrar).
             active === null && "max-sm:snap-x max-sm:snap-mandatory",
           )}
-          aria-label="Columnas"
+          aria-label={t.columns}
         >
           {ordered.map((column) => (
             <SortableColumn
@@ -394,6 +393,7 @@ function SortableColumn({
   const style: CSSProperties = { transform: CSS.Translate.toString(transform), transition };
   const over = column.wipLimit !== null && total > column.wipLimit;
   const headingId = `columna-${column.id}`;
+  const t = workMessages().canvas;
   return (
     <li
       ref={setNodeRef}
@@ -412,7 +412,7 @@ function SortableColumn({
             ref={setActivatorNodeRef}
             {...attributes}
             {...listeners}
-            aria-label={`Mover la columna ${column.name}`}
+            aria-label={t.moveColumn(column.name)}
             className="cursor-grab touch-manipulation rounded p-1 text-muted-foreground hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none active:cursor-grabbing pointer-coarse:p-2.5"
           >
             <GripVerticalIcon aria-hidden="true" className="size-4" />
@@ -426,17 +426,17 @@ function SortableColumn({
             "rounded-full px-2 py-0.5 text-xs tabular-nums",
             over ? "bg-destructive/15 font-medium text-destructive" : "text-muted-foreground",
           )}
-          title={column.wipLimit !== null ? `Límite WIP: ${String(column.wipLimit)}` : undefined}
+          title={column.wipLimit !== null ? t.wipLimit(column.wipLimit) : undefined}
         >
           {column.wipLimit !== null ? `${String(total)}/${String(column.wipLimit)}` : total}
-          {over ? <span className="sr-only"> (supera el límite WIP)</span> : null}
+          {over ? <span className="sr-only">{t.overWip}</span> : null}
         </span>
         {readOnly ? null : (
           <Button
             variant="ghost"
             size="icon"
             className="size-7 pointer-coarse:size-10"
-            aria-label={`Ajustes de la columna ${column.name}`}
+            aria-label={t.columnSettings(column.name)}
             onClick={() => onEditColumn(column)}
           >
             <Settings2Icon aria-hidden="true" />
@@ -520,7 +520,7 @@ function SortableCard({
         {...attributes}
         {...listeners}
         onKeyDown={onKeyDown}
-        aria-roledescription="tarjeta"
+        aria-roledescription={workMessages().canvas.card}
         aria-label={card.title}
         data-testid="card"
         onClick={() => onOpenCard(card.id)}
@@ -544,9 +544,10 @@ const PRIORITY_STYLES = {
 export function CardView({ card, labels, timeZone, now, overlay = false }: CardViewProps) {
   const cardLabels = labels.filter((l) => card.labelIds.includes(l.id));
   const overdue = isOverdue(card, now, timeZone);
+  const t = workMessages().canvas;
   const meta: ReactNode[] = [];
   if (card.hasDescription) {
-    meta.push(<AlignLeftIcon key="d" aria-label="Tiene descripción" className="size-3.5" />);
+    meta.push(<AlignLeftIcon key="d" aria-label={t.hasDescription} className="size-3.5" />);
   }
   if (card.checklist.total > 0) {
     meta.push(
@@ -554,7 +555,7 @@ export function CardView({ card, labels, timeZone, now, overlay = false }: CardV
         <CheckSquareIcon aria-hidden="true" className="size-3.5" />
         <span>
           {card.checklist.done}/{card.checklist.total}
-          <span className="sr-only"> de la lista hechas</span>
+          <span className="sr-only">{t.checklistDone}</span>
         </span>
       </span>,
     );
@@ -564,7 +565,7 @@ export function CardView({ card, labels, timeZone, now, overlay = false }: CardV
       <span key="m" className="inline-flex items-center gap-1">
         <MessageSquareIcon aria-hidden="true" className="size-3.5" />
         {card.comments}
-        <span className="sr-only"> comentarios</span>
+        <span className="sr-only">{t.comments}</span>
       </span>,
     );
   }
@@ -573,7 +574,7 @@ export function CardView({ card, labels, timeZone, now, overlay = false }: CardV
       <span key="a" className="inline-flex items-center gap-1">
         <PaperclipIcon aria-hidden="true" className="size-3.5" />
         {card.attachments}
-        <span className="sr-only"> adjuntos</span>
+        <span className="sr-only">{t.attachments}</span>
       </span>,
     );
   }
@@ -611,7 +612,7 @@ export function CardView({ card, labels, timeZone, now, overlay = false }: CardV
             <span
               className={cn("rounded px-1.5 py-0.5 font-medium", PRIORITY_STYLES[card.priority])}
             >
-              {PRIORITY_LABELS[card.priority]}
+              {priorityLabel(card.priority)}
             </span>
           ) : null}
           {card.due ? (
@@ -623,9 +624,9 @@ export function CardView({ card, labels, timeZone, now, overlay = false }: CardV
               )}
             >
               <CalendarClockIcon aria-hidden="true" className="size-3.5" />
-              <span className="sr-only">Vence: </span>
+              <span className="sr-only">{t.due}</span>
               {dueLabel(card.due, timeZone, now)}
-              {overdue ? <span className="sr-only"> (vencida)</span> : null}
+              {overdue ? <span className="sr-only">{t.overdue}</span> : null}
             </span>
           ) : null}
           {meta}
@@ -645,6 +646,7 @@ function AddCard({
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
+  const t = workMessages().canvas;
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!title.trim()) return;
@@ -666,8 +668,8 @@ function AddCard({
           onClick={() => setOpen(true)}
         >
           <PlusIcon aria-hidden="true" />
-          Añadir tarjeta
-          <span className="sr-only"> en {columnName}</span>
+          {t.addCard}
+          <span className="sr-only">{t.inColumnSr(columnName)}</span>
         </Button>
       </div>
     );
@@ -675,22 +677,22 @@ function AddCard({
   return (
     <form onSubmit={(e) => void submit(e)} className="grid gap-2 p-2 pt-0">
       <Input
-        aria-label={`Título de la nueva tarjeta en ${columnName}`}
+        aria-label={t.newCardTitle(columnName)}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Escape") setOpen(false);
         }}
-        placeholder="¿Qué hay que hacer?"
+        placeholder={t.newCardPlaceholder}
         maxLength={300}
         autoFocus
       />
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={busy || !title.trim()}>
-          Añadir
+          {t.add}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
-          Cancelar
+          {t.cancel}
         </Button>
       </div>
     </form>

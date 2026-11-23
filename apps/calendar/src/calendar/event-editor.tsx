@@ -26,13 +26,14 @@ import { useQuery } from "@tanstack/react-query";
 import { BellIcon, Trash2Icon, XIcon } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { createEvent, deleteEvent, fetchEvent, updateEvent, useInvalidateEvents } from "./api";
+import { calendarMessages } from "./messages";
 import {
-  ALL_DAY_REMINDERS,
+  allDayReminders,
   fromRrule,
   reminderLabel,
   type RepeatState,
   repeatOptions,
-  TIMED_REMINDERS,
+  timedReminders,
   toRrule,
 } from "./presets";
 import { useScopeDialog } from "./scope-dialog";
@@ -172,12 +173,13 @@ function RemindersField({
   allDay: boolean;
   onChange: (next: number[]) => void;
 }) {
-  const options = (allDay ? ALL_DAY_REMINDERS : TIMED_REMINDERS).filter(
+  const options = (allDay ? allDayReminders() : timedReminders()).filter(
     (option) => !value.includes(option.value),
   );
+  const t = calendarMessages().editor;
   return (
     <fieldset className="grid gap-2">
-      <legend className="mb-1.5 text-sm font-medium">Alertas</legend>
+      <legend className="mb-1.5 text-sm font-medium">{t.reminders}</legend>
       {value.length > 0 ? (
         <ul className="flex flex-wrap gap-2">
           {value.map((offset) => (
@@ -189,8 +191,8 @@ function RemindersField({
               {reminderLabel(offset, allDay)}
               <button
                 type="button"
-                aria-label={`Quitar alerta: ${reminderLabel(offset, allDay)}`}
-                className="rounded-full p-0.5 hover:bg-accent"
+                aria-label={t.removeReminder(reminderLabel(offset, allDay))}
+                className="grid size-6 place-items-center rounded-full hover:bg-accent"
                 onClick={() => onChange(value.filter((v) => v !== offset))}
               >
                 <XIcon aria-hidden="true" className="size-3.5" />
@@ -201,7 +203,7 @@ function RemindersField({
       ) : null}
       {options.length > 0 && value.length < 10 ? (
         <select
-          aria-label="Añadir alerta"
+          aria-label={t.addReminder}
           className="h-9 w-full rounded-md border border-input bg-background px-3 text-base sm:w-64 sm:text-sm"
           value=""
           onChange={(event) => {
@@ -209,7 +211,7 @@ function RemindersField({
             if (event.target.value !== "") onChange([...value, offset].sort((a, b) => b - a));
           }}
         >
-          <option value="">Añadir alerta…</option>
+          <option value="">{t.addReminderOption}</option>
           {options.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -217,9 +219,7 @@ function RemindersField({
           ))}
         </select>
       ) : null}
-      <p className="text-xs text-muted-foreground">
-        Los avisos se enviarán por Telegram cuando lo conectes.
-      </p>
+      <p className="text-xs text-muted-foreground">{t.remindersHint}</p>
     </fieldset>
   );
 }
@@ -248,20 +248,19 @@ function EditorForm({
     setForm((current) => ({ ...current, [key]: value }));
 
   const editing = target.kind === "edit" ? target.occurrence : null;
+  const t = calendarMessages().editor;
   const birthday = form.type === "birthday";
   const isFeb29 = form.startDate.slice(5) === "02-29";
 
   function validate(): string | null {
-    if (!form.title.trim()) return "Ponle un título.";
-    if (!form.calendarId) return "Elige un calendario.";
-    if (!form.startDate) return "Indica la fecha.";
+    if (!form.title.trim()) return t.needTitle;
+    if (!form.calendarId) return t.needCalendar;
+    if (!form.startDate) return t.needDate;
     const times = apiTimes(form, timeZone);
     const start = times.allDay ? dateOnlyToUtc(times.start) : Date.parse(times.start);
     const end = times.allDay ? dateOnlyToUtc(times.end) : Date.parse(times.end);
-    if (!(end > start)) return "El fin debe ser posterior al inicio.";
-    if (form.repeat.preset === "custom" && !form.repeat.custom.trim()) {
-      return "Escribe la regla de repetición o elige otra opción.";
-    }
+    if (!(end > start)) return t.endAfterStart;
+    if (form.repeat.preset === "custom" && !form.repeat.custom.trim()) return t.needRule;
     return null;
   }
 
@@ -292,10 +291,10 @@ function EditorForm({
     try {
       if (!editing) {
         await createEvent({ type: form.type, ...body(), ...times, tz: timeZone, rrule, reminders });
-        toast.success(birthday ? "Cumpleaños guardado" : "Evento creado");
+        toast.success(birthday ? t.birthdaySaved : t.eventCreated);
       } else if (birthday || !editing.recurring) {
         await updateEvent(editing.eventId, { ...body(), ...times, rrule, reminders, scope: "all" });
-        toast.success("Cambios guardados");
+        toast.success(t.saved);
       } else {
         const scope = await ask("edit");
         if (!scope) return;
@@ -320,7 +319,7 @@ function EditorForm({
             reminders,
           });
         }
-        toast.success("Cambios guardados");
+        toast.success(t.saved);
       }
       await invalidate();
       onClose();
@@ -374,7 +373,7 @@ function EditorForm({
       } else {
         await deleteEvent(editing.eventId, "all", null);
       }
-      toast.success("Evento borrado");
+      toast.success(t.deleted);
       await invalidate();
       onClose();
     } catch (caught) {
@@ -390,7 +389,7 @@ function EditorForm({
     <form noValidate onSubmit={(event) => void save(event)} className="grid gap-4">
       <FormError>{error}</FormError>
       {!editing ? (
-        <div role="radiogroup" aria-label="Tipo" className="flex gap-2">
+        <div role="radiogroup" aria-label={t.type} className="flex gap-2">
           {(["event", "birthday"] as const).map((type) => (
             <Button
               key={type}
@@ -412,23 +411,23 @@ function EditorForm({
                 }));
               }}
             >
-              {type === "event" ? "Evento" : "Cumpleaños"}
+              {type === "event" ? t.event : t.birthday}
             </Button>
           ))}
         </div>
       ) : null}
 
       <Field
-        label="Título"
+        label={t.title}
         value={form.title}
         onChange={(e) => set("title", e.target.value)}
-        placeholder={birthday ? "Cumpleaños de…" : "Añade un título"}
+        placeholder={birthday ? t.birthdayPlaceholder : t.titlePlaceholder}
         maxLength={200}
         autoFocus={!editing}
         required
       />
       <SelectField
-        label="Calendario"
+        label={t.calendar}
         value={form.calendarId}
         onChange={(e) => set("calendarId", e.target.value)}
         options={calendarOptions}
@@ -438,31 +437,31 @@ function EditorForm({
         <>
           <Row>
             <Field
-              label="Fecha"
+              label={t.date}
               type="date"
               value={form.startDate}
               onChange={(e) => set("startDate", e.target.value)}
               required
             />
             <Field
-              label="Año de nacimiento (opcional)"
+              label={t.birthYear}
               type="number"
               inputMode="numeric"
               min={1900}
               max={2200}
               value={form.birthYear}
               onChange={(e) => set("birthYear", e.target.value)}
-              hint="Para mostrar la edad que cumple."
+              hint={t.birthYearHint}
             />
           </Row>
           {isFeb29 ? (
             <SelectField
-              label="En los años no bisiestos se celebra"
+              label={t.feb29}
               value={form.feb29Rule}
               onChange={(e) => set("feb29Rule", e.target.value as Feb29Rule)}
               options={[
-                { value: "feb28", label: "El 28 de febrero" },
-                { value: "mar1", label: "El 1 de marzo" },
+                { value: "feb28", label: t.feb28 },
+                { value: "mar1", label: t.mar1 },
               ]}
             />
           ) : null}
@@ -476,12 +475,12 @@ function EditorForm({
               checked={form.allDay}
               onChange={(e) => set("allDay", e.target.checked)}
             />
-            Todo el día
+            {t.allDay}
           </label>
           <Row>
             <div className="grid grid-cols-[1fr_auto] items-end gap-2">
               <Field
-                label="Empieza"
+                label={t.starts}
                 type="date"
                 value={form.startDate}
                 onChange={(e) => {
@@ -496,7 +495,7 @@ function EditorForm({
               />
               {!form.allDay ? (
                 <Field
-                  label="Hora de inicio"
+                  label={t.startTime}
                   className="[&_label]:sr-only"
                   type="time"
                   value={form.startTime}
@@ -506,7 +505,7 @@ function EditorForm({
             </div>
             <div className="grid grid-cols-[1fr_auto] items-end gap-2">
               <Field
-                label="Termina"
+                label={t.ends}
                 type="date"
                 value={form.endDate}
                 min={form.startDate}
@@ -515,7 +514,7 @@ function EditorForm({
               />
               {!form.allDay ? (
                 <Field
-                  label="Hora de fin"
+                  label={t.endTime}
                   className="[&_label]:sr-only"
                   type="time"
                   value={form.endTime}
@@ -526,7 +525,7 @@ function EditorForm({
           </Row>
           <Row>
             <SelectField
-              label="Repetición"
+              label={t.repeat}
               value={form.repeat.preset}
               onChange={(e) =>
                 set("repeat", { ...form.repeat, preset: e.target.value as RepeatState["preset"] })
@@ -535,7 +534,7 @@ function EditorForm({
             />
             {form.repeat.preset !== "none" && form.repeat.preset !== "custom" ? (
               <SelectField
-                label="Fin de la repetición"
+                label={t.repeatEnd}
                 value={form.repeat.end.kind}
                 onChange={(e) => {
                   const kind = e.target.value;
@@ -550,25 +549,25 @@ function EditorForm({
                   });
                 }}
                 options={[
-                  { value: "never", label: "Nunca" },
-                  { value: "until", label: "Un día concreto" },
-                  { value: "count", label: "Tras unas veces" },
+                  { value: "never", label: t.never },
+                  { value: "until", label: t.until },
+                  { value: "count", label: t.count },
                 ]}
               />
             ) : null}
           </Row>
           {form.repeat.preset === "custom" ? (
             <Field
-              label="Regla RRULE"
+              label={t.rrule}
               value={form.repeat.custom}
               onChange={(e) => set("repeat", { ...form.repeat, custom: e.target.value })}
               placeholder="FREQ=MONTHLY;BYDAY=-1FR"
-              hint="RFC 5545, sin DTSTART. Diaria, semanal, mensual o anual."
+              hint={t.rruleHint}
             />
           ) : null}
           {form.repeat.end.kind === "until" && form.repeat.preset !== "custom" ? (
             <Field
-              label="Último día"
+              label={t.lastDay}
               type="date"
               value={form.repeat.end.date}
               min={form.startDate}
@@ -579,7 +578,7 @@ function EditorForm({
           ) : null}
           {form.repeat.end.kind === "count" && form.repeat.preset !== "custom" ? (
             <Field
-              label="Número de veces"
+              label={t.times}
               type="number"
               min={1}
               max={1000}
@@ -604,13 +603,13 @@ function EditorForm({
       {!birthday ? (
         <>
           <Field
-            label="Ubicación"
+            label={t.location}
             value={form.location}
             onChange={(e) => set("location", e.target.value)}
             maxLength={300}
           />
           <Field
-            label="Enlace"
+            label={t.link}
             type="url"
             value={form.url}
             onChange={(e) => set("url", e.target.value)}
@@ -620,7 +619,7 @@ function EditorForm({
         </>
       ) : null}
       <Textarea
-        label="Notas"
+        label={t.notes}
         value={form.notes}
         onChange={(e) => set("notes", e.target.value)}
         maxLength={10_000}
@@ -637,12 +636,12 @@ function EditorForm({
               onClick={() => void remove()}
             >
               <Trash2Icon aria-hidden="true" />
-              {editing.recurring ? "Borrar…" : "Sí, borrar"}
+              {editing.recurring ? t.deleteSeries : t.confirmDelete}
             </Button>
           ) : (
             <Button type="button" variant="ghost" onClick={() => setConfirmDelete(true)}>
               <Trash2Icon aria-hidden="true" />
-              Borrar
+              {t.delete}
             </Button>
           )
         ) : (
@@ -650,10 +649,10 @@ function EditorForm({
         )}
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={onClose}>
-            Cancelar
+            {t.cancel}
           </Button>
           <Button type="submit" disabled={pending}>
-            {pending ? "Guardando…" : "Guardar"}
+            {pending ? t.saving : t.save}
           </Button>
         </div>
       </div>
@@ -674,6 +673,7 @@ function ReadOnlyEvent({
   timeZone: string;
   onClose: () => void;
 }) {
+  const t = calendarMessages().editor;
   return (
     <div className="grid gap-4 text-sm">
       <div>
@@ -683,7 +683,7 @@ function ReadOnlyEvent({
       <dl className="grid gap-2">
         {calendar ? (
           <div className="flex items-center gap-2">
-            <dt className="sr-only">Calendario</dt>
+            <dt className="sr-only">{t.calendar}</dt>
             <span
               aria-hidden="true"
               className="size-3 rounded-full"
@@ -694,23 +694,20 @@ function ReadOnlyEvent({
         ) : null}
         {occurrence.location ? (
           <div>
-            <dt className="font-medium">Ubicación</dt>
+            <dt className="font-medium">{t.location}</dt>
             <dd className="break-words">{occurrence.location}</dd>
           </div>
         ) : null}
         {occurrence.notes ? (
           <div>
-            <dt className="font-medium">Notas</dt>
+            <dt className="font-medium">{t.notes}</dt>
             <dd className="break-words whitespace-pre-wrap">{occurrence.notes}</dd>
           </div>
         ) : null}
       </dl>
-      <p className="rounded-md bg-muted p-3 text-muted-foreground">
-        Viene de una suscripción de Google Calendar y se actualiza sola cada hora. Para cambiarlo,
-        hazlo en Google Calendar.
-      </p>
+      <p className="rounded-md bg-muted p-3 text-muted-foreground">{t.subscriptionNote}</p>
       <DialogFooter>
-        <Button onClick={onClose}>Cerrar</Button>
+        <Button onClick={onClose}>{t.close}</Button>
       </DialogFooter>
     </div>
   );
@@ -742,22 +739,21 @@ export function EventEditor({
   });
   // Sin calendarios aún (primera carga) el formulario no tendría uno por defecto.
   const ready = target !== null && writable.length > 0 && (eventId === null || detail.isSuccess);
+  const t = calendarMessages().editor;
   const title = readOnly
-    ? "Evento de una suscripción"
+    ? t.subscriptionTitle
     : target?.kind === "edit"
       ? target.occurrence.type === "birthday"
-        ? "Editar cumpleaños"
-        : "Editar evento"
-      : "Nuevo evento";
+        ? t.editBirthday
+        : t.editEvent
+      : t.newEvent;
 
   return (
     <Dialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription className="sr-only">
-            Título, fechas, repetición, alertas y detalles del evento.
-          </DialogDescription>
+          <DialogDescription className="sr-only">{t.description}</DialogDescription>
         </DialogHeader>
         {detail.isError ? <p role="alert">{errorMessage(detail.error)}</p> : null}
         {readOnly && target.kind === "edit" ? (
@@ -777,7 +773,7 @@ export function EventEditor({
             onClose={onClose}
           />
         ) : (
-          <p className="py-8 text-center text-sm text-muted-foreground">Cargando…</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">{t.loading}</p>
         )}
       </DialogContent>
     </Dialog>

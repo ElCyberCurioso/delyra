@@ -167,6 +167,38 @@ describe("comandos (F3-08)", () => {
   });
 });
 
+describe("en inglés (F7-06)", () => {
+  it("con la cuenta en inglés, el bot contesta en inglés y entiende /today y /new", async () => {
+    const { client, chatId } = await linkedUser();
+    await client.request("PATCH", "/api/me/settings", {
+      timeZone: "Europe/Madrid",
+      locale: "en",
+      weekStart: 1,
+    });
+    await postUpdate(textUpdate(chatId, "/today"));
+    expect(telegram.lastText()).toContain("📅 Today");
+    await postUpdate(textUpdate(chatId, "/new Dentist tomorrow 5:30pm"));
+    expect(telegram.lastText()).toContain("Created: <b>Dentist</b>");
+    expect(telegram.lastText()).toContain("tomorrow, 17:30–18:30");
+    // Los comandos en español siguen valiendo.
+    await postUpdate(textUpdate(chatId, "/ayuda"));
+    expect(telegram.lastText()).toContain("/today — Today's agenda");
+  });
+
+  it("sin cuenta vinculada, usa el idioma de Telegram", async () => {
+    const chatId = newChatId();
+    await postUpdate({
+      message: {
+        message_id: 1,
+        chat: { id: chatId, type: "private" },
+        from: { language_code: "en" },
+        text: "/today",
+      },
+    });
+    expect(telegram.lastText()).toContain("First link your account");
+  });
+});
+
 describe("botones de las alertas (F3-07)", () => {
   async function reminderFor(user: Awaited<ReturnType<typeof linkedUser>>) {
     const response = await user.client.post("/api/events", {

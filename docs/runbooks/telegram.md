@@ -53,7 +53,11 @@ Para cambiar el token (por ejemplo, si se filtra: `/revoke` en @BotFather), vuel
 5. `/silenciar 1`: una alerta durante esa hora no llega; `/silenciar no` las reactiva.
 6. Resumen diario a una hora cercana: llega una sola vez ese día.
 7. Iniciar sesión en otro navegador: llega el aviso de seguridad.
-8. Sin la cabecera del secreto el webhook responde 401:
+8. Con la cuenta en inglés (F7-06): `/today`, `/new Dentist tomorrow 5:30pm`; las alertas, el
+   resumen y los avisos llegan en inglés. Los comandos en español siguen valiendo. Tras desplegar
+   la F7-06 hay que volver a ejecutar `pnpm telegram:setup` una vez para registrar la lista de
+   comandos en inglés (si no, Telegram solo sugiere los españoles).
+9. Sin la cabecera del secreto el webhook responde 401:
 
    ```sh
    curl -i -X POST https://delyra.app/api/telegram/webhook -H "Content-Type: application/json" -d '{}'

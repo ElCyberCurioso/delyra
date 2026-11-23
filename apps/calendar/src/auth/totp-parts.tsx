@@ -1,7 +1,8 @@
-import { Button, toast } from "@delyra/ui";
+import { Button, intlLocale, toast } from "@delyra/ui";
 import { CopyIcon, DownloadIcon } from "lucide-react";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
+import { authMessages } from "./messages";
 
 /** `ABCD EFGH …` para teclearla a mano si no se puede escanear el QR. */
 function groupSecret(secret: string) {
@@ -30,7 +31,7 @@ export function TotpQr({ otpauthUri, secret }: { otpauthUri: string; secret: str
             src={qr}
             width={208}
             height={208}
-            alt="Código QR para añadir Delyra a tu app autenticadora"
+            alt={authMessages().totp.qrAlt}
             className="rounded-md bg-white p-1"
           />
         ) : (
@@ -39,7 +40,7 @@ export function TotpQr({ otpauthUri, secret }: { otpauthUri: string; secret: str
       </div>
       <details className="text-sm">
         <summary className="cursor-pointer text-muted-foreground">
-          ¿No puedes escanearlo? Introduce la clave a mano
+          {authMessages().totp.manual}
         </summary>
         <code className="mt-2 block rounded-md bg-muted px-3 py-2 font-mono break-all select-all">
           {groupSecret(secret)}
@@ -50,12 +51,13 @@ export function TotpQr({ otpauthUri, secret }: { otpauthUri: string; secret: str
 }
 
 function downloadCodes(codes: string[]) {
+  const t = authMessages().totp;
   const text = [
-    "Delyra · códigos de recuperación",
-    `Generados: ${new Date().toLocaleString("es-ES")}`,
+    t.fileTitle,
+    t.fileGenerated(new Date().toLocaleString(intlLocale())),
     "",
-    "Cada código sirve una sola vez para entrar si pierdes el móvil.",
-    "Guárdalos en tu gestor de contraseñas o en un lugar seguro.",
+    t.fileOnce,
+    t.fileStore,
     "",
     ...codes,
     "",
@@ -63,17 +65,18 @@ function downloadCodes(codes: string[]) {
   const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
   const link = document.createElement("a");
   link.href = url;
-  link.download = "delyra-codigos-recuperacion.txt";
+  link.download = t.fileName;
   link.click();
   URL.revokeObjectURL(url);
 }
 
 /** Lista de códigos de recuperación con botones para copiarlos o descargarlos. */
 export function RecoveryCodeList({ codes }: { codes: string[] }) {
+  const t = authMessages().totp;
   return (
     <div className="grid gap-3">
       <ol
-        aria-label="Códigos de recuperación"
+        aria-label={t.codesLabel}
         className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border bg-muted/40 p-3 font-mono text-sm"
       >
         {codes.map((code) => (
@@ -85,17 +88,17 @@ export function RecoveryCodeList({ codes }: { codes: string[] }) {
           variant="outline"
           onClick={() => {
             void navigator.clipboard.writeText(codes.join("\n")).then(
-              () => toast.success("Códigos copiados"),
-              () => toast.error("No se pudieron copiar"),
+              () => toast.success(t.copied),
+              () => toast.error(t.copyFailed),
             );
           }}
         >
           <CopyIcon aria-hidden="true" />
-          Copiar
+          {t.copy}
         </Button>
         <Button variant="outline" onClick={() => downloadCodes(codes)}>
           <DownloadIcon aria-hidden="true" />
-          Descargar
+          {t.download}
         </Button>
       </div>
     </div>
@@ -103,13 +106,7 @@ export function RecoveryCodeList({ codes }: { codes: string[] }) {
 }
 
 /** Casilla «los he guardado» que desbloquea el botón de continuar. */
-export function SavedCodesConfirmation({
-  onDone,
-  label = "Continuar",
-}: {
-  onDone: () => void;
-  label?: string;
-}) {
+export function SavedCodesConfirmation({ onDone, label }: { onDone: () => void; label?: string }) {
   const [saved, setSaved] = useState(false);
   return (
     <div className="grid gap-3">
@@ -120,10 +117,10 @@ export function SavedCodesConfirmation({
           checked={saved}
           onChange={(event) => setSaved(event.target.checked)}
         />
-        He guardado los códigos en un lugar seguro.
+        {authMessages().totp.saved}
       </label>
       <Button disabled={!saved} onClick={onDone}>
-        {label}
+        {label ?? authMessages().common.continue}
       </Button>
     </div>
   );

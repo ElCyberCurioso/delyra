@@ -138,8 +138,12 @@ export function telegramClient(token: string, fetchImpl: typeof fetch = fetch) {
       });
     },
 
-    setMyCommands(commands: { command: string; description: string }[]) {
-      return call<boolean>("setMyCommands", { commands, language_code: "es" });
+    /** Sin `languageCode`, son los comandos por defecto (para cualquier idioma). */
+    setMyCommands(commands: { command: string; description: string }[], languageCode?: string) {
+      return call<boolean>("setMyCommands", {
+        commands,
+        ...(languageCode ? { language_code: languageCode } : {}),
+      });
     },
   };
 }

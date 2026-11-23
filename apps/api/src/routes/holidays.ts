@@ -10,6 +10,7 @@ import {
   setHolidayRegion,
 } from "../services/holidays";
 import type { AppEnv } from "../types";
+import { requestLocale } from "../lib/locale";
 
 /** Festivos de la región elegida (F7-03), como capa de solo lectura del calendario. */
 
@@ -37,7 +38,11 @@ export const holidayRoutes = new Hono<AppEnv>()
       // Si falta algún año, se intenta descargar en el momento (y si falla, se usa el respaldo).
       await ensureHolidays(db, years, Date.now(), c.get("logger"));
     }
-    return c.json({ region, holidays: await holidaysBetween(db, region, query.from, query.to) });
+    const locale = requestLocale(c.req.header("accept-language"));
+    return c.json({
+      region,
+      holidays: await holidaysBetween(db, region, query.from, query.to, locale),
+    });
   })
 
   .put("/region", async (c) => {

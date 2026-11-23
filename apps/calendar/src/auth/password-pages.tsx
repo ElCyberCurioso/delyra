@@ -4,16 +4,19 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { apiFieldErrors, type FieldErrors, formValues, useFragmentToken } from "./form";
 import { useTurnstile } from "./use-turnstile";
+import { authMessages } from "./messages";
 
-const backToLogin = (
-  <Link
-    to="/login"
-    search={{ next: undefined }}
-    className="underline underline-offset-4 hover:text-foreground"
-  >
-    Volver a iniciar sesión
-  </Link>
-);
+function BackToLogin() {
+  return (
+    <Link
+      to="/login"
+      search={{ next: undefined }}
+      className="underline underline-offset-4 hover:text-foreground"
+    >
+      {authMessages().common.backToLogin}
+    </Link>
+  );
+}
 
 /** Solicitud del enlace de recuperación. La respuesta es la misma exista o no la cuenta. */
 export function ForgotPasswordPage() {
@@ -22,6 +25,7 @@ export function ForgotPasswordPage() {
   const [emailError, setEmailError] = useState<string | undefined>();
   const [sent, setSent] = useState(false);
   const [pending, setPending] = useState(false);
+  const t = authMessages();
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -30,7 +34,7 @@ export function ForgotPasswordPage() {
     setEmailError(email.success ? undefined : email.error.issues[0]?.message);
     if (!email.success) return;
     if (!turnstile.token) {
-      setError("Completa la verificación anti-bots.");
+      setError(t.common.completeTurnstile);
       return;
     }
     setPending(true);
@@ -51,9 +55,9 @@ export function ForgotPasswordPage() {
   if (sent) {
     return (
       <AuthLayout
-        title="Revisa tu correo"
-        description="Si hay una cuenta con ese email, te hemos enviado un enlace para elegir una contraseña nueva. Caduca en 30 minutos."
-        footer={backToLogin}
+        title={t.forgot.sentTitle}
+        description={t.forgot.sentDescription}
+        footer={<BackToLogin />}
       >
         <span />
       </AuthLayout>
@@ -61,15 +65,11 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <AuthLayout
-      title="Recuperar la contraseña"
-      description="Te enviaremos un enlace para elegir otra. Tu verificación en dos pasos no cambia."
-      footer={backToLogin}
-    >
+    <AuthLayout title={t.forgot.title} description={t.forgot.description} footer={<BackToLogin />}>
       <form noValidate onSubmit={(event) => void onSubmit(event)} className="grid gap-4">
         <FormError>{error}</FormError>
         <Field
-          label="Email"
+          label={t.common.email}
           name="email"
           type="email"
           autoComplete="username"
@@ -80,7 +80,7 @@ export function ForgotPasswordPage() {
         />
         {turnstile.element}
         <Button type="submit" disabled={pending}>
-          {pending ? "Enviando…" : "Enviar enlace"}
+          {pending ? t.forgot.sending : t.forgot.send}
         </Button>
       </form>
     </AuthLayout>
@@ -94,6 +94,7 @@ export function ResetPasswordPage() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const t = authMessages();
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -102,7 +103,7 @@ export function ResetPasswordPage() {
     const password = passwordSchema.safeParse(values.password);
     const found: FieldErrors = {};
     if (!password.success) found.password = password.error.issues[0]?.message;
-    else if (values.password !== values.confirm) found.confirm = "Las contraseñas no coinciden";
+    else if (values.password !== values.confirm) found.confirm = t.common.passwordsDontMatch;
     setErrors(found);
     if (Object.keys(found).length > 0) return;
     setPending(true);
@@ -111,7 +112,7 @@ export function ResetPasswordPage() {
         method: "POST",
         body: { token, password: values.password },
       });
-      toast.success("Contraseña cambiada. Inicia sesión con la nueva.");
+      toast.success(t.reset.changed);
       await navigate({ to: "/login", search: { next: undefined } });
     } catch (caught) {
       setErrors(apiFieldErrors(caught));
@@ -124,38 +125,34 @@ export function ResetPasswordPage() {
   if (!token) {
     return (
       <AuthLayout
-        title="Enlace no válido"
-        description="El enlace está incompleto. Ábrelo directamente desde el correo o pide otro."
-        footer={backToLogin}
+        title={t.reset.invalidTitle}
+        description={t.reset.invalidDescription}
+        footer={<BackToLogin />}
       >
         <Button asChild className="w-full">
-          <Link to="/recuperar">Pedir otro enlace</Link>
+          <Link to="/recuperar">{t.reset.requestAnother}</Link>
         </Button>
       </AuthLayout>
     );
   }
 
   return (
-    <AuthLayout
-      title="Elige una contraseña nueva"
-      description="Se cerrarán todas tus sesiones abiertas."
-      footer={backToLogin}
-    >
+    <AuthLayout title={t.reset.title} description={t.reset.description} footer={<BackToLogin />}>
       <form noValidate onSubmit={(event) => void onSubmit(event)} className="grid gap-4">
         <FormError>{error}</FormError>
         <Field
-          label="Contraseña nueva"
+          label={t.reset.newPassword}
           name="password"
           type="password"
           autoComplete="new-password"
           required
           autoFocus
           minLength={PASSWORD_MIN_LENGTH}
-          hint={`Mínimo ${String(PASSWORD_MIN_LENGTH)} caracteres.`}
+          hint={t.reset.minLength(PASSWORD_MIN_LENGTH)}
           error={errors.password}
         />
         <Field
-          label="Repite la contraseña"
+          label={t.common.repeatPassword}
           name="confirm"
           type="password"
           autoComplete="new-password"
@@ -163,7 +160,7 @@ export function ResetPasswordPage() {
           error={errors.confirm}
         />
         <Button type="submit" disabled={pending}>
-          {pending ? "Guardando…" : "Cambiar contraseña"}
+          {pending ? t.reset.saving : t.reset.change}
         </Button>
       </form>
     </AuthLayout>

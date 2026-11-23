@@ -15,8 +15,9 @@ import {
 } from "@delyra/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
-import { formValues, useNextParam } from "./form";
 import { type FormEvent, useEffect, useState } from "react";
+import { formValues, useNextParam } from "./form";
+import { authMessages } from "./messages";
 
 /** Segundo paso del login: código de la app autenticadora o código de recuperación. */
 export function VerifyPage() {
@@ -27,6 +28,7 @@ export function VerifyPage() {
   const [useRecovery, setUseRecovery] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const t = authMessages();
 
   const state = me.data?.state;
   useEffect(() => {
@@ -40,11 +42,11 @@ export function VerifyPage() {
     event.preventDefault();
     const code = (formValues(event.currentTarget).code ?? "").replace(/\s+/g, "");
     if (!useRecovery && !/^\d{6}$/.test(code)) {
-      setFormError("Introduce los 6 dígitos que muestra tu app.");
+      setFormError(t.common.sixDigits);
       return;
     }
     if (useRecovery && code.length < 10) {
-      setFormError("Introduce un código de recuperación completo (xxxxx-xxxxx).");
+      setFormError(t.verify.recoveryIncomplete);
       return;
     }
     setFormError(null);
@@ -56,9 +58,7 @@ export function VerifyPage() {
         schema: secondFactorResponseSchema,
       });
       if (useRecovery) {
-        toast.warning(
-          `Te quedan ${String(result.remainingRecoveryCodes)} códigos de recuperación. Genera otros nuevos desde Ajustes si se agotan.`,
-        );
+        toast.warning(t.verify.remainingCodes(result.remainingRecoveryCodes));
       }
       await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
       goTo(resolveNext(next), (path) => router.history.push(path));
@@ -75,10 +75,10 @@ export function VerifyPage() {
 
   if (state !== "pending_2fa") {
     return (
-      <AuthLayout title="Sesión caducada" description="Vuelve a introducir tu email y contraseña.">
+      <AuthLayout title={t.verify.expiredTitle} description={t.verify.expiredDescription}>
         <Button asChild className="w-full">
           <Link to="/login" search={{ next }}>
-            Iniciar sesión
+            {t.common.signIn}
           </Link>
         </Button>
       </AuthLayout>
@@ -87,18 +87,14 @@ export function VerifyPage() {
 
   return (
     <AuthLayout
-      title="Verificación en dos pasos"
-      description={
-        useRecovery
-          ? "Escribe uno de los códigos de recuperación que guardaste. Cada código sirve una vez."
-          : "Abre tu app autenticadora y escribe el código de 6 dígitos de Delyra."
-      }
+      title={t.verify.title}
+      description={useRecovery ? t.verify.recoveryDescription : t.verify.totpDescription}
     >
       <form noValidate onSubmit={(event) => void onSubmit(event)} className="grid gap-4">
         <FormError>{formError}</FormError>
         <Field
           key={useRecovery ? "recovery" : "totp"}
-          label={useRecovery ? "Código de recuperación" : "Código"}
+          label={useRecovery ? t.verify.recoveryCode : t.verify.code}
           name="code"
           autoComplete="one-time-code"
           inputMode={useRecovery ? "text" : "numeric"}
@@ -109,7 +105,7 @@ export function VerifyPage() {
           required
         />
         <Button type="submit" disabled={pending}>
-          {pending ? "Verificando…" : "Verificar"}
+          {pending ? t.verify.verifying : t.verify.verify}
         </Button>
         <Button
           variant="link"
@@ -119,9 +115,7 @@ export function VerifyPage() {
             setFormError(null);
           }}
         >
-          {useRecovery
-            ? "Usar la app autenticadora"
-            : "No tengo el móvil: usar un código de recuperación"}
+          {useRecovery ? t.verify.useApp : t.verify.useRecovery}
         </Button>
       </form>
     </AuthLayout>

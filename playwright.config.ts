@@ -22,6 +22,8 @@ export default defineConfig({
   reporter: ci ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
     trace: "retain-on-failure",
+    // F7-06: la app sigue el idioma del navegador; las pruebas comprueban los textos en español.
+    locale: "es-ES",
   },
   projects: [
     { name: "calendar", use: { ...devices["Desktop Chrome"], baseURL: calendarURL } },

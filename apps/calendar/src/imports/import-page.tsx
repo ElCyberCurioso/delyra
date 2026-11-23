@@ -13,8 +13,11 @@ import {
   Field,
   FormError,
   RequireSession,
+  intlLocale,
   SelectField,
   toast,
+  translateServer,
+  useChangeLocale,
   useLogout,
 } from "@delyra/ui";
 import { useQueryClient } from "@tanstack/react-query";
@@ -33,6 +36,7 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { CALENDARS_KEY, EVENTS_KEY, useCalendars, useInvalidateEvents } from "../calendar/api";
 import { ColorPicker } from "../calendar/calendar-list";
 import { Section } from "../settings/section";
+import { importMessages } from "./messages";
 import {
   authorizeGoogle,
   discardImport,
@@ -55,24 +59,22 @@ import {
  * conexión con la cuenta (OAuth, F5-04) y suscripción a la dirección iCal secreta (F5-06).
  */
 
-const GOOGLE_MESSAGES: Record<string, string> = {
-  denied: "Has cancelado la conexión con Google. No se ha importado nada.",
-  state:
-    "La respuesta de Google no era válida o había caducado. Vuelve a pulsar «Conectar con Google».",
-  busy: "Ya tienes una importación en marcha. Espera a que termine.",
-  error: "No se ha podido conectar con Google. Vuelve a intentarlo.",
-};
+function googleMessage(code: string): string | null {
+  const messages: Readonly<Record<string, string>> = importMessages().google;
+  return messages[code] ?? null;
+}
 
-const dateFormat = new Intl.DateTimeFormat("es-ES", { dateStyle: "medium" });
-const dateTimeFormat = new Intl.DateTimeFormat("es-ES", { dateStyle: "short", timeStyle: "short" });
-
-const plural = (n: number, one: string, many: string) =>
-  `${n.toLocaleString("es-ES")} ${n === 1 ? one : many}`;
+const formatDate = (iso: string) =>
+  new Intl.DateTimeFormat(intlLocale(), { dateStyle: "medium" }).format(new Date(iso));
+const formatDateTime = (iso: string) =>
+  new Intl.DateTimeFormat(intlLocale(), { dateStyle: "short", timeStyle: "short" }).format(
+    new Date(iso),
+  );
 
 function period(calendar: ImportCalendarPreview): string | null {
   if (!calendar.firstStart || !calendar.lastStart) return null;
-  const first = dateFormat.format(new Date(calendar.firstStart));
-  const last = dateFormat.format(new Date(calendar.lastStart));
+  const first = formatDate(calendar.firstStart);
+  const last = formatDate(calendar.lastStart);
   return first === last ? first : `${first} – ${last}`;
 }
 
@@ -83,11 +85,12 @@ function FileImport({ onStarted }: { onStarted: (id: string) => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const t = importMessages().file;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!file) {
-      setError("Elige el .zip o el .ics que has exportado.");
+      setError(t.missing);
       return;
     }
     setError(null);
@@ -104,18 +107,18 @@ function FileImport({ onStarted }: { onStarted: (id: string) => void }) {
   return (
     <Section
       id="archivo"
-      title="Desde un archivo exportado"
+      title={t.title}
       description={
         <>
-          En Google Calendar, abre <strong>Configuración → Importar y exportar → Exportar</strong>.
-          Descargarás un .zip con un .ics por calendario. También vale un .ics suelto.
+          {t.open} <strong>{t.path}</strong>
+          {t.after}
         </>
       }
     >
       <form noValidate onSubmit={(e) => void submit(e)} className="grid gap-3">
         <FormError>{error}</FormError>
         <label className="grid gap-1.5 text-sm">
-          <span className="font-medium">Archivo (.zip o .ics, hasta 25 MB)</span>
+          <span className="font-medium">{t.label}</span>
           <input
             ref={input}
             type="file"
@@ -131,7 +134,7 @@ function FileImport({ onStarted }: { onStarted: (id: string) => void }) {
             ) : (
               <FileUpIcon aria-hidden="true" />
             )}
-            Subir y ver qué contiene
+            {t.upload}
           </Button>
         </div>
       </form>
@@ -143,12 +146,9 @@ function GoogleConnect() {
   const status = useGoogleStatus();
   const [pending, setPending] = useState(false);
   const enabled = status.data?.enabled === true;
+  const t = importMessages().account;
   return (
-    <Section
-      id="cuenta"
-      title="Desde tu cuenta de Google"
-      description="Delyra lee tus calendarios, colores, eventos y recordatorios una sola vez, con permiso de solo lectura. No guarda ningún acceso permanente a tu cuenta."
-    >
+    <Section id="cuenta" title={t.title} description={t.description}>
       {status.isPending ? null : enabled ? (
         <Button
           disabled={pending}
@@ -163,21 +163,19 @@ function GoogleConnect() {
           }}
         >
           <LogInIcon aria-hidden="true" />
-          Conectar con Google
+          {t.connect}
         </Button>
       ) : (
-        <p className="text-sm text-muted-foreground">
-          La conexión directa con Google aún no está disponible. Usa la exportación en archivo.
-        </p>
+        <p className="text-sm text-muted-foreground">{t.unavailable}</p>
       )}
       <p className="mt-3 text-xs text-muted-foreground">
-        Consulta la{" "}
+        {t.see}{" "}
         <Link to="/privacidad" className="underline">
-          política de privacidad
+          {t.privacy}
         </Link>{" "}
-        y las{" "}
+        {t.and}{" "}
         <Link to="/terminos" className="underline">
-          condiciones
+          {t.terms}
         </Link>
         .
       </p>
@@ -189,6 +187,7 @@ function SubscriptionRow({ subscription }: { subscription: SubscriptionInfo }) {
   const queryClient = useQueryClient();
   const invalidateEvents = useInvalidateEvents();
   const [pending, setPending] = useState(false);
+  const t = importMessages();
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: SUBSCRIPTIONS_KEY });
     await queryClient.invalidateQueries({ queryKey: CALENDARS_KEY });
@@ -214,10 +213,10 @@ function SubscriptionRow({ subscription }: { subscription: SubscriptionInfo }) {
           }
         >
           {subscription.status === "error"
-            ? subscription.error
-            : `${plural(subscription.events, "evento", "eventos")}${
+            ? translateServer(subscription.error ?? "")
+            : `${t.counts.events(subscription.events)}${
                 subscription.lastSyncedAt
-                  ? ` · actualizado ${dateTimeFormat.format(new Date(subscription.lastSyncedAt))}`
+                  ? t.subscriptions.updated(formatDateTime(subscription.lastSyncedAt))
                   : ""
               }`}
         </p>
@@ -236,20 +235,15 @@ function SubscriptionRow({ subscription }: { subscription: SubscriptionInfo }) {
           }}
         >
           <RefreshCwIcon aria-hidden="true" className={pending ? "animate-spin" : undefined} />
-          Sincronizar
+          {t.subscriptions.sync}
         </Button>
         <Button
           variant="ghost"
           size="sm"
-          aria-label={`Quitar la suscripción ${subscription.name}`}
+          aria-label={t.subscriptions.remove(subscription.name)}
           disabled={pending}
           onClick={() => {
-            if (
-              !window.confirm(
-                `¿Quitar «${subscription.name}»? Se borrará su calendario en Delyra (no el de Google).`,
-              )
-            )
-              return;
+            if (!window.confirm(t.subscriptions.confirmRemove(subscription.name))) return;
             setPending(true);
             unsubscribe(subscription.id)
               .then(refresh)
@@ -270,6 +264,7 @@ function Subscriptions() {
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const t = importMessages().subscriptions;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -278,7 +273,7 @@ function Subscriptions() {
     try {
       const created = await subscribe(url.trim());
       setUrl("");
-      toast.success(`Suscrito a «${created.name}»`);
+      toast.success(t.subscribed(created.name));
       await queryClient.invalidateQueries({ queryKey: SUBSCRIPTIONS_KEY });
       await queryClient.invalidateQueries({ queryKey: CALENDARS_KEY });
     } catch (caught) {
@@ -291,19 +286,18 @@ function Subscriptions() {
   return (
     <Section
       id="suscripciones"
-      title="Suscripción a la dirección iCal secreta"
+      title={t.title}
       description={
         <>
-          Mantiene un calendario de solo lectura al día (cada hora). En Google Calendar: ajustes del
-          calendario → <strong>Integrar el calendario → Dirección secreta en formato iCal</strong>.
-          Trátala como una contraseña.
+          {t.intro} <strong>{t.path}</strong>
+          {t.password}
         </>
       }
     >
       <form noValidate onSubmit={(e) => void submit(e)} className="grid gap-3">
         <FormError>{error}</FormError>
         <Field
-          label="Dirección secreta en formato iCal"
+          label={t.address}
           type="url"
           inputMode="url"
           autoComplete="off"
@@ -319,7 +313,7 @@ function Subscriptions() {
             ) : (
               <LinkIcon aria-hidden="true" />
             )}
-            Suscribirse
+            {t.subscribe}
           </Button>
         </div>
       </form>
@@ -338,16 +332,9 @@ function RecentImports({ onOpen }: { onOpen: (id: string) => void }) {
   const imports = useImports();
   const list = imports.data ?? [];
   if (list.length === 0) return null;
-  const label: Record<ImportInfo["status"], string> = {
-    analyzing: "Leyendo…",
-    ready: "Pendiente de elegir calendarios",
-    importing: "Importando…",
-    succeeded: "Importada",
-    failed: "Ha fallado",
-    expired: "Caducada",
-  };
+  const t = importMessages().recent;
   return (
-    <Section id="recientes" title="Importaciones recientes">
+    <Section id="recientes" title={t.title}>
       <ul className="grid gap-1 text-sm">
         {list.map((item) => (
           <li key={item.id}>
@@ -357,10 +344,10 @@ function RecentImports({ onOpen }: { onOpen: (id: string) => void }) {
               className="flex w-full flex-wrap items-center justify-between gap-x-3 rounded-md px-2 py-2 text-left hover:bg-accent"
             >
               <span className="min-w-0 truncate font-medium">
-                {item.source === "google" ? "Cuenta de Google" : (item.filename ?? "Archivo")}
+                {item.source === "google" ? t.google : (item.filename ?? t.file)}
               </span>
               <span className="text-muted-foreground">
-                {label[item.status]} · {dateTimeFormat.format(new Date(item.createdAt))}
+                {t.status[item.status]} · {formatDateTime(item.createdAt)}
               </span>
             </button>
           </li>
@@ -405,13 +392,12 @@ function CalendarChoice({
   onChange: (choice: Choice) => void;
 }) {
   const value = choice.target === "existing" ? choice.calendarId : choice.target;
+  const t = importMessages();
   const facts = [
-    plural(calendar.events, "evento", "eventos"),
-    calendar.recurring > 0 ? plural(calendar.recurring, "serie", "series") : null,
-    calendar.birthdays > 0 ? plural(calendar.birthdays, "cumpleaños", "cumpleaños") : null,
-    calendar.withReminders > 0
-      ? `${plural(calendar.withReminders, "con alerta", "con alertas")}`
-      : null,
+    t.counts.events(calendar.events),
+    calendar.recurring > 0 ? t.counts.series(calendar.recurring) : null,
+    calendar.birthdays > 0 ? t.counts.birthdays(calendar.birthdays) : null,
+    calendar.withReminders > 0 ? t.counts.withReminders(calendar.withReminders) : null,
     period(calendar),
   ].filter(Boolean);
   return (
@@ -430,7 +416,7 @@ function CalendarChoice({
         <p className="text-sm text-muted-foreground">{facts.join(" · ")}</p>
       </div>
       <SelectField
-        label={`Destino de «${calendar.name}»`}
+        label={t.preview.destination(calendar.name)}
         value={value}
         onChange={(e) => {
           const next = e.target.value;
@@ -444,15 +430,15 @@ function CalendarChoice({
           } else onChange({ target: "existing", calendarId: next });
         }}
         options={[
-          { value: "new", label: "Un calendario nuevo" },
-          ...own.map((c) => ({ value: c.id, label: `Añadir a «${c.name}»` })),
-          { value: "skip", label: "No importar" },
+          { value: "new", label: t.preview.newCalendar },
+          ...own.map((c) => ({ value: c.id, label: t.preview.addTo(c.name) })),
+          { value: "skip", label: t.preview.skip },
         ]}
       />
       {choice.target === "new" ? (
         <div className="grid gap-3 sm:grid-cols-2">
           <Field
-            label="Nombre del calendario nuevo"
+            label={t.preview.newName}
             value={choice.name}
             maxLength={60}
             onChange={(e) => onChange({ ...choice, name: e.target.value })}
@@ -472,6 +458,7 @@ function PreviewForm({ item, onDone }: { item: ImportInfo; onDone: () => void })
   const [reminders, setReminders] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const t = importMessages().preview;
   const choiceOf = (calendar: ImportCalendarPreview, index: number) =>
     choices[calendar.key] ?? initialChoice(calendar, index, own);
 
@@ -489,11 +476,11 @@ function PreviewForm({ item, onDone }: { item: ImportInfo; onDone: () => void })
       }),
     };
     if (body.calendars.every((c) => c.target === "skip")) {
-      setError("Elige al menos un calendario para importar.");
+      setError(t.chooseOne);
       return;
     }
     if (body.calendars.some((c) => c.target === "new" && c.name === "")) {
-      setError("Ponle nombre a los calendarios nuevos.");
+      setError(t.nameNew);
       return;
     }
     setError(null);
@@ -507,13 +494,10 @@ function PreviewForm({ item, onDone }: { item: ImportInfo; onDone: () => void })
     }
   }
 
-  if (calendars.isPending) return <p className="text-sm text-muted-foreground">Cargando…</p>;
+  if (calendars.isPending) return <p className="text-sm text-muted-foreground">{t.loading}</p>;
   return (
     <form noValidate onSubmit={(e) => void submit(e)} className="grid gap-4">
-      <p className="text-sm text-muted-foreground">
-        Elige dónde va cada calendario. Si repites la importación, los eventos que ya estaban se
-        reconocen y no se duplican.
-      </p>
+      <p className="text-sm text-muted-foreground">{t.intro}</p>
       <FormError>{error}</FormError>
       <ul className="grid gap-3">
         {item.calendars.map((calendar, index) => (
@@ -533,13 +517,13 @@ function PreviewForm({ item, onDone }: { item: ImportInfo; onDone: () => void })
           checked={reminders}
           onChange={(e) => setReminders(e.target.checked)}
         />
-        <span>Convertir los recordatorios de Google en alertas de Telegram</span>
+        <span>{t.reminders}</span>
       </label>
       <Warnings warnings={item.warnings} />
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={pending}>
           {pending ? <Loader2Icon aria-hidden="true" className="animate-spin" /> : null}
-          Importar
+          {t.import}
         </Button>
         <Button
           type="button"
@@ -554,7 +538,7 @@ function PreviewForm({ item, onDone }: { item: ImportInfo; onDone: () => void })
               .catch((caught: unknown) => toast.error(errorMessage(caught)));
           }}
         >
-          Descartar
+          {t.discard}
         </Button>
       </div>
     </form>
@@ -567,11 +551,11 @@ function Warnings({ warnings }: { warnings: readonly string[] }) {
     <details className="rounded-lg border bg-muted/40 p-3 text-sm">
       <summary className="flex cursor-pointer items-center gap-2 font-medium">
         <TriangleAlertIcon aria-hidden="true" className="size-4 text-amber-600" />
-        {plural(warnings.length, "aviso", "avisos")} sobre el contenido
+        {importMessages().counts.warnings(warnings.length)} {importMessages().preview.aboutContent}
       </summary>
       <ul className="mt-2 list-disc pl-5 text-muted-foreground">
         {warnings.map((warning) => (
-          <li key={warning}>{warning}</li>
+          <li key={warning}>{translateServer(warning)}</li>
         ))}
       </ul>
     </details>
@@ -594,7 +578,7 @@ function Progress({ done, total, label }: { done: number; total: number; label: 
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={percent}
-            aria-label="Progreso de la importación"
+            aria-label={importMessages().progress.label}
           >
             <div
               className="h-full bg-primary transition-[width]"
@@ -602,7 +586,7 @@ function Progress({ done, total, label }: { done: number; total: number; label: 
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            {done.toLocaleString("es-ES")} de {plural(total, "evento", "eventos")}
+            {importMessages().progress.of(done, importMessages().counts.events(total))}
           </p>
         </>
       ) : null}
@@ -613,22 +597,23 @@ function Progress({ done, total, label }: { done: number; total: number; label: 
 function Report({ item }: { item: ImportInfo }) {
   const report = item.report;
   if (!report) return null;
+  const t = importMessages();
   return (
     <div className="grid gap-4">
       <p className="flex items-center gap-2 font-medium">
         <CheckCircle2Icon aria-hidden="true" className="size-5 text-green-600" />
-        Importación terminada
+        {t.report.done}
       </p>
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          ["Nuevos", report.created],
-          ["Actualizados", report.updated],
-          ["Ya estaban", report.unchanged],
-          ["Descartados", report.skipped],
+          [t.report.created, report.created],
+          [t.report.updated, report.updated],
+          [t.report.unchanged, report.unchanged],
+          [t.report.skipped, report.skipped],
         ].map(([label, value]) => (
           <div key={String(label)} className="rounded-lg border p-3">
             <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className="text-xl font-semibold">{Number(value).toLocaleString("es-ES")}</dd>
+            <dd className="text-xl font-semibold">{Number(value).toLocaleString(intlLocale())}</dd>
           </div>
         ))}
       </dl>
@@ -638,9 +623,9 @@ function Report({ item }: { item: ImportInfo }) {
             <li key={calendar.key}>
               <span className="font-medium">{calendar.name}</span>:{" "}
               {[
-                plural(calendar.created, "nuevo", "nuevos"),
-                plural(calendar.updated, "actualizado", "actualizados"),
-                plural(calendar.unchanged, "sin cambios", "sin cambios"),
+                t.counts.created(calendar.created),
+                t.counts.updated(calendar.updated),
+                t.counts.unchanged(calendar.unchanged),
               ].join(", ")}
             </li>
           ))}
@@ -665,43 +650,31 @@ function ImportWizard({ id, onBack }: { id: string; onBack: () => void }) {
     void queryClient.invalidateQueries({ queryKey: EVENTS_KEY });
   }, [status, queryClient]);
 
-  const title =
-    item?.source === "google"
-      ? "Importar tu cuenta de Google"
-      : `Importar ${item?.filename ?? "el archivo"}`;
+  const t = importMessages().wizard;
+  const title = item?.source === "google" ? t.google : t.file(item?.filename ?? t.theFile);
   return (
     <Section id="importacion" title={title}>
       {query.isError ? <FormError>{errorMessage(query.error)}</FormError> : null}
       {!item ? (
         query.isPending ? (
-          <p className="text-sm text-muted-foreground">Cargando…</p>
+          <p className="text-sm text-muted-foreground">{importMessages().preview.loading}</p>
         ) : null
       ) : item.status === "analyzing" ? (
-        <Progress
-          done={0}
-          total={0}
-          label={
-            item.source === "google"
-              ? "Descargando tus calendarios de Google…"
-              : "Leyendo el archivo…"
-          }
-        />
+        <Progress done={0} total={0} label={item.source === "google" ? t.downloading : t.reading} />
       ) : item.status === "ready" ? (
         <PreviewForm item={item} onDone={onBack} />
       ) : item.status === "importing" ? (
-        <Progress
-          done={item.progress.done}
-          total={item.progress.total}
-          label="Importando eventos…"
-        />
+        <Progress done={item.progress.done} total={item.progress.total} label={t.importing} />
       ) : item.status === "succeeded" ? (
         <Report item={item} />
       ) : (
         <p role="alert" className="flex items-start gap-2 text-sm text-destructive">
           <TriangleAlertIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
           {item.status === "expired"
-            ? "Esta vista previa ha caducado. Vuelve a subir el archivo o a conectar con Google."
-            : (item.error ?? "La importación ha fallado.")}
+            ? t.expired
+            : item.error
+              ? translateServer(item.error)
+              : t.failed}
         </p>
       )}
       {item &&
@@ -711,11 +684,11 @@ function ImportWizard({ id, onBack }: { id: string; onBack: () => void }) {
         <div className="mt-4 flex flex-wrap gap-2">
           {item.status === "succeeded" ? (
             <Button asChild>
-              <Link to="/">Ver el calendario</Link>
+              <Link to="/">{t.view}</Link>
             </Button>
           ) : null}
           <Button variant="outline" onClick={onBack}>
-            Importar otra cosa
+            {t.another}
           </Button>
         </div>
       ) : null}
@@ -728,6 +701,7 @@ function ImportWizard({ id, onBack }: { id: string; onBack: () => void }) {
 export function ImportPage() {
   const router = useRouter();
   const logout = useLogout();
+  const changeLocale = useChangeLocale();
   const { searchStr } = useLocation();
   const params = new URLSearchParams(searchStr);
   const importId = params.get("import");
@@ -738,22 +712,25 @@ export function ImportPage() {
   return (
     <RequireSession navigate={(path) => router.history.replace(path)}>
       {(session) => (
-        <AppShell app="calendar" user={session.user} onSignOut={() => logout.mutate()}>
+        <AppShell
+          app="calendar"
+          user={session.user}
+          onSignOut={() => logout.mutate()}
+          onLocaleChange={(locale) => changeLocale.mutate(locale)}
+        >
           <div className="mx-auto grid max-w-3xl gap-6">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">
-                Importar desde Google Calendar
+                {importMessages().page.title}
               </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Trae tus calendarios, eventos, repeticiones, colores y recordatorios.
-              </p>
+              <p className="mt-1 text-sm text-muted-foreground">{importMessages().page.intro}</p>
             </div>
-            {google && GOOGLE_MESSAGES[google] ? (
+            {google && googleMessage(google) ? (
               <p
                 role="alert"
                 className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm"
               >
-                {GOOGLE_MESSAGES[google]}
+                {googleMessage(google)}
               </p>
             ) : null}
             {importId ? (

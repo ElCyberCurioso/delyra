@@ -1,4 +1,4 @@
-import { DEFAULT_CALENDARS, newId } from "@delyra/shared";
+import { DEFAULT_CALENDAR_NAMES, DEFAULT_CALENDARS, type Locale, newId } from "@delyra/shared";
 import { and, asc, count, eq } from "drizzle-orm";
 import type { Database } from "../db/client";
 import { type Calendar, calendars } from "../db/schema";
@@ -77,14 +77,14 @@ export function calendarRepository(db: Database, ownerId: string) {
     },
 
     /** Personal, Trabajo y Cumpleaños, si el usuario aún no tiene ningún calendario (F2-03). */
-    async ensureDefaults(): Promise<void> {
+    async ensureDefaults(locale: Locale = "es"): Promise<void> {
       if ((await this.count()) > 0) return;
       const now = new Date();
       await db.insert(calendars).values(
         DEFAULT_CALENDARS.map((calendar, position) => ({
           id: newId(),
           ownerId,
-          name: calendar.name,
+          name: DEFAULT_CALENDAR_NAMES[locale][calendar.kind] ?? calendar.name,
           color: calendar.color,
           kind: calendar.kind,
           position,

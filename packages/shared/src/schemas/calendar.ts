@@ -38,6 +38,14 @@ export const DEFAULT_CALENDARS: readonly { kind: CalendarKind; name: string; col
   { kind: "birthdays", name: "Cumpleaños", color: "#d6409f" },
 ];
 
+/** Nombre de un calendario por defecto en el idioma de la cuenta (F7-06). */
+export const DEFAULT_CALENDAR_NAMES: Readonly<
+  Record<"es" | "en", Readonly<Record<string, string>>>
+> = {
+  es: { personal: "Personal", work: "Trabajo", birthdays: "Cumpleaños" },
+  en: { personal: "Personal", work: "Work", birthdays: "Birthdays" },
+};
+
 /** Alertas por defecto de un cumpleaños: el día anterior y el mismo día, a las 9:00. */
 export const BIRTHDAY_DEFAULT_REMINDERS = [
   { offsetMinutes: 15 * 60, channel: "telegram" },

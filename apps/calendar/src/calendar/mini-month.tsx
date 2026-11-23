@@ -1,7 +1,8 @@
 import { dateOnlyToUtc, utcToDateOnly } from "@delyra/shared";
-import { Button, cn } from "@delyra/ui";
+import { Button, cn, intlLocale } from "@delyra/ui";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useState } from "react";
+import { calendarMessages } from "./messages";
 
 const DAY_MS = 86_400_000;
 
@@ -30,11 +31,12 @@ export function MiniMonth({
     setMonth(utcToDateOnly(date.getTime()).slice(0, 7));
   };
   const weekdays = Array.from({ length: 7 }, (_, i) =>
-    new Intl.DateTimeFormat("es-ES", { weekday: "narrow", timeZone: "UTC" }).format(
+    new Intl.DateTimeFormat(intlLocale(), { weekday: "narrow", timeZone: "UTC" }).format(
       new Date(Date.UTC(2024, 0, 7 + ((weekStart + i) % 7))),
     ),
   );
-  const label = new Intl.DateTimeFormat("es-ES", {
+  const t = calendarMessages().miniMonth;
+  const label = new Intl.DateTimeFormat(intlLocale(), {
     month: "long",
     year: "numeric",
     timeZone: "UTC",
@@ -49,7 +51,7 @@ export function MiniMonth({
             variant="ghost"
             size="icon"
             className="size-7"
-            aria-label="Mes anterior"
+            aria-label={t.previous}
             onClick={() => shiftMonth(-1)}
           >
             <ChevronLeftIcon aria-hidden="true" />
@@ -58,7 +60,7 @@ export function MiniMonth({
             variant="ghost"
             size="icon"
             className="size-7"
-            aria-label="Mes siguiente"
+            aria-label={t.next}
             onClick={() => shiftMonth(1)}
           >
             <ChevronRightIcon aria-hidden="true" />
@@ -77,7 +79,7 @@ export function MiniMonth({
             <button
               key={day}
               type="button"
-              aria-label={new Intl.DateTimeFormat("es-ES", {
+              aria-label={new Intl.DateTimeFormat(intlLocale(), {
                 dateStyle: "full",
                 timeZone: "UTC",
               }).format(new Date(dateOnlyToUtc(day)))}
@@ -85,7 +87,7 @@ export function MiniMonth({
               onClick={() => onSelect(day)}
               className={cn(
                 "mx-auto flex size-7 items-center justify-center rounded-full hover:bg-accent",
-                !inMonth && "text-muted-foreground/60",
+                !inMonth && "text-muted-foreground",
                 day === selected && "bg-primary/15 font-semibold text-primary",
                 day === today &&
                   "bg-primary font-semibold text-primary-foreground hover:bg-primary/90",

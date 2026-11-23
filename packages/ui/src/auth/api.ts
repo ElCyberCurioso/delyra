@@ -1,4 +1,5 @@
 import { type ProblemDetails, problemDetailsSchema } from "@delyra/shared";
+import { getLocale, translateServer, ui } from "../i18n";
 
 /** Error de la API con el problem+json ya validado (si lo hubo). */
 export class ApiError extends Error {
@@ -6,15 +7,16 @@ export class ApiError extends Error {
   readonly problem: ProblemDetails | null;
 
   constructor(status: number, problem: ProblemDetails | null) {
-    super(problem?.detail ?? problem?.title ?? `La API respondió HTTP ${String(status)}`);
+    super(problem?.detail ?? problem?.title ?? ui().errors.apiStatus(status));
     this.name = "ApiError";
     this.status = status;
     this.problem = problem;
   }
 
-  /** Mensaje de un campo concreto (errores 422), si lo hay. */
+  /** Mensaje de un campo concreto (errores 422), si lo hay, en el idioma actual. */
   fieldError(path: string): string | undefined {
-    return this.problem?.errors?.find((error) => error.path === path)?.message;
+    const message = this.problem?.errors?.find((error) => error.path === path)?.message;
+    return message === undefined ? undefined : translateServer(message);
   }
 }
 
@@ -34,7 +36,10 @@ export async function apiFetch<T = undefined>(
   path: string,
   { method = "GET", body, schema, signal }: ApiRequestOptions<T> = {},
 ): Promise<T> {
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "Accept-Language": getLocale(),
+  };
   if (method !== "GET") headers["Content-Type"] = "application/json";
   const response = await fetch(new URL(path, window.location.origin), {
     method,
@@ -60,9 +65,9 @@ export async function apiFetch<T = undefined>(
 /** Mensaje legible para cualquier error de una llamada. */
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.status === 429) return "Demasiados intentos. Espera unos minutos y vuelve a probar.";
-    return error.message;
+    if (error.status === 429) return ui().errors.tooManyAttempts;
+    return translateServer(error.message);
   }
-  if (error instanceof TypeError) return "No hay conexión con el servidor.";
-  return "Algo ha fallado. Vuelve a intentarlo.";
+  if (error instanceof TypeError) return ui().errors.offline;
+  return ui().errors.generic;
 }

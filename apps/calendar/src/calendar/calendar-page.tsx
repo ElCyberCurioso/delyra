@@ -23,10 +23,12 @@ import {
   DialogHeader,
   DialogTitle,
   errorMessage,
+  getLocale,
   RequireSession,
   type Shortcut,
   ShortcutsDialog,
   toast,
+  useChangeLocale,
   useLogout,
   useMediaQuery,
   useShortcuts,
@@ -38,6 +40,7 @@ import type {
   EventDropArg,
   EventInput,
 } from "@fullcalendar/core";
+import enGbLocale from "@fullcalendar/core/locales/en-gb";
 import esLocale from "@fullcalendar/core/locales/es";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { type EventResizeDoneArg } from "@fullcalendar/interaction";
@@ -64,6 +67,7 @@ import {
 } from "./api";
 import { CalendarList } from "./calendar-list";
 import { type EditorTarget, EventEditor } from "./event-editor";
+import { calendarMessages } from "./messages";
 import { MiniMonth } from "./mini-month";
 import { useScopeDialog } from "./scope-dialog";
 import {
@@ -79,12 +83,12 @@ import { QuickAdd, SearchBox } from "./toolbar-inputs";
 
 /** `narrow`: solo en pantallas estrechas; `wide`: solo en anchas. La semana no cabe en un móvil. */
 const VIEWS = [
-  { id: "dayGridMonth", label: "Mes", only: null },
-  { id: "timeGridWeek", label: "Semana", only: "wide" },
-  { id: "timeGridThreeDay", label: "3 días", only: "narrow" },
-  { id: "timeGridDay", label: "Día", only: null },
-  { id: "listWeek", label: "Lista", only: null },
-  { id: "multiMonthYear", label: "Año", only: null },
+  { id: "dayGridMonth", only: null },
+  { id: "timeGridWeek", only: "wide" },
+  { id: "timeGridThreeDay", only: "narrow" },
+  { id: "timeGridDay", only: null },
+  { id: "listWeek", only: null },
+  { id: "multiMonthYear", only: null },
 ] as const;
 type ViewId = (typeof VIEWS)[number]["id"];
 
@@ -186,6 +190,7 @@ function Workspace({ session }: { session: ActiveSession }) {
   const calendarList = useMemo(() => calendars.data ?? [], [calendars.data]);
   const router = useRouter();
   const { searchStr } = useLocation();
+  const t = calendarMessages();
 
   // «Abrir» desde una alerta de Telegram: /?evento=<id> abre el evento en su fecha (F3-06).
   useEffect(() => {
@@ -215,7 +220,7 @@ function Workspace({ session }: { session: ActiveSession }) {
         calendarRef.current?.getApi().gotoDate(date);
         setEditor({ kind: "edit", occurrence });
       })
-      .catch(() => toast.error("No se ha encontrado el evento"));
+      .catch(() => toast.error(calendarMessages().page.eventNotFound));
   }, [searchStr, router, timeZone]);
   const events = useMemo<EventInput[]>(() => {
     const byId = new Map(calendarList.map((c) => [c.id, c]));
@@ -259,39 +264,39 @@ function Workspace({ session }: { session: ActiveSession }) {
   const goToView = (id: ViewId) => {
     if (views.some((v) => v.id === id)) api()?.changeView(id);
   };
+  const s = t.shortcuts;
   const shortcuts: Shortcut[] = [
     {
       keys: ["n"],
       label: "N",
-      description: "Nuevo evento",
+      description: s.newEvent,
       run: () => setEditor({ kind: "create", allDay: false, ...nextHourSlot(timeZone) }),
     },
-    { keys: ["t"], label: "T", description: "Ir a hoy", run: () => api()?.today() },
+    { keys: ["t"], label: "T", description: s.today, run: () => api()?.today() },
     {
       keys: ["j", "ArrowRight"],
       label: "J / →",
-      description: "Siguiente",
+      description: s.next,
       run: () => api()?.next(),
     },
-    { keys: ["k", "ArrowLeft"], label: "K / ←", description: "Anterior", run: () => api()?.prev() },
-    { keys: ["m"], label: "M", description: "Vista de mes", run: () => goToView("dayGridMonth") },
+    { keys: ["k", "ArrowLeft"], label: "K / ←", description: s.previous, run: () => api()?.prev() },
+    { keys: ["m"], label: "M", description: s.month, run: () => goToView("dayGridMonth") },
     {
       keys: ["w"],
       label: "W",
-      description: "Vista de semana (3 días en el móvil)",
+      description: s.week,
       run: () => goToView(narrow ? "timeGridThreeDay" : "timeGridWeek"),
     },
-    { keys: ["d"], label: "D", description: "Vista de día", run: () => goToView("timeGridDay") },
-    { keys: ["l"], label: "L", description: "Vista de lista", run: () => goToView("listWeek") },
-    { keys: ["y"], label: "Y", description: "Vista de año", run: () => goToView("multiMonthYear") },
+    { keys: ["d"], label: "D", description: s.day, run: () => goToView("timeGridDay") },
+    { keys: ["l"], label: "L", description: s.list, run: () => goToView("listWeek") },
+    { keys: ["y"], label: "Y", description: s.year, run: () => goToView("multiMonthYear") },
     {
       keys: ["/"],
       label: "/",
-      description: "Buscar eventos",
-      run: () =>
-        document.querySelector<HTMLInputElement>("input[aria-label='Buscar eventos']")?.focus(),
+      description: s.search,
+      run: () => document.querySelector<HTMLInputElement>("input[data-search='events']")?.focus(),
     },
-    { keys: ["?"], label: "?", description: "Esta ayuda", run: () => setHelpOpen(true) },
+    { keys: ["?"], label: "?", description: s.help, run: () => setHelpOpen(true) },
   ];
   useShortcuts(shortcuts);
 
@@ -321,7 +326,8 @@ function Workspace({ session }: { session: ActiveSession }) {
     arg.jsEvent.preventDefault();
     const holiday = arg.event.extendedProps.holiday as Holiday | undefined;
     if (holiday) {
-      toast(`${holiday.name}${holiday.regional ? " (festivo autonómico)" : " (festivo nacional)"}`);
+      const page = calendarMessages().page;
+      toast(`${holiday.name}${holiday.regional ? page.regionalHoliday : page.nationalHoliday}`);
       return;
     }
     const task = arg.event.extendedProps.task as DueCard | undefined;
@@ -355,7 +361,7 @@ function Workspace({ session }: { session: ActiveSession }) {
     }
     if (scope === "all" && occurrence.recurring && allDay !== occurrence.allDay) {
       arg.revert();
-      toast.info("Para pasar toda la serie a día completo (o al revés), usa el editor.");
+      toast.info(calendarMessages().page.wholeSeries);
       return;
     }
 
@@ -426,12 +432,12 @@ function Workspace({ session }: { session: ActiveSession }) {
       />
       <CalendarList calendars={calendarList} />
       <fieldset>
-        <legend className="mb-1 text-sm font-medium">Mostrar</legend>
+        <legend className="mb-1 text-sm font-medium">{t.page.show}</legend>
         {(
           [
-            ["all", "Todo"],
-            ["event", "Eventos"],
-            ["birthday", "Cumpleaños"],
+            ["all", t.page.all],
+            ["event", t.page.events],
+            ["birthday", t.page.birthdays],
           ] as const
         ).map(([value, label]) => (
           <label key={value} className="flex items-center gap-2 py-1 text-sm">
@@ -462,7 +468,7 @@ function Workspace({ session }: { session: ActiveSession }) {
             className="size-2.5 rounded-sm"
             style={{ backgroundColor: TASK_COLOR }}
           />
-          Tareas con fecha límite
+          {t.page.tasks}
         </label>
         <label className="grid gap-1 py-1 text-sm">
           <span className="flex items-center gap-2">
@@ -471,9 +477,10 @@ function Workspace({ session }: { session: ActiveSession }) {
               className="size-2.5 rounded-sm"
               style={{ backgroundColor: HOLIDAY_COLOR }}
             />
-            Festivos
+            {t.page.holidays}
           </span>
           <select
+            aria-label={t.page.holidays}
             className="h-9 w-full rounded-md border bg-background px-2 text-base sm:text-sm"
             value={holidays.data?.region ?? DEFAULT_HOLIDAY_REGION}
             onChange={(e) => {
@@ -485,7 +492,11 @@ function Workspace({ session }: { session: ActiveSession }) {
           >
             {HOLIDAY_REGIONS.map((region) => (
               <option key={region.code} value={region.code}>
-                {region.name}
+                {region.code === "off"
+                  ? t.page.regionOff
+                  : region.code === "ES"
+                    ? t.page.regionNational
+                    : region.name}
               </option>
             ))}
           </select>
@@ -497,31 +508,36 @@ function Workspace({ session }: { session: ActiveSession }) {
   return (
     <div className="grid h-[calc(100dvh-7rem)] min-h-[36rem] gap-4 lg:grid-cols-[15rem_minmax(0,1fr)]">
       <aside
-        aria-label="Navegación del calendario"
+        aria-label={t.page.navigation}
         className="hidden flex-col gap-6 overflow-y-auto lg:flex"
       >
         <Button
           onClick={() => setEditor({ kind: "create", allDay: false, ...nextHourSlot(timeZone) })}
         >
           <PlusIcon aria-hidden="true" />
-          Nuevo evento
+          {t.page.newEvent}
         </Button>
         {panel("lateral")}
       </aside>
 
-      <section aria-label="Calendario" className="flex min-h-0 flex-col gap-3">
+      <section aria-label={t.page.calendar} className="flex min-h-0 flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1">
             <Button variant="outline" size="sm" onClick={() => api()?.today()}>
-              Hoy
+              {t.page.today}
             </Button>
-            <Button variant="ghost" size="icon" aria-label="Anterior" onClick={() => api()?.prev()}>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={t.page.previous}
+              onClick={() => api()?.prev()}
+            >
               <ChevronLeftIcon aria-hidden="true" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              aria-label="Siguiente"
+              aria-label={t.page.next}
               onClick={() => api()?.next()}
             >
               <ChevronRightIcon aria-hidden="true" />
@@ -534,13 +550,13 @@ function Workspace({ session }: { session: ActiveSession }) {
             <Button
               variant="outline"
               size="icon"
-              aria-label="Calendarios y filtros"
+              aria-label={t.page.panel}
               onClick={() => setPanelOpen(true)}
             >
               <PanelLeftIcon aria-hidden="true" />
             </Button>
           )}
-          <div role="radiogroup" aria-label="Vista" className="flex rounded-md border p-0.5">
+          <div role="radiogroup" aria-label={t.page.view} className="flex rounded-md border p-0.5">
             {views.map((option) => (
               <button
                 key={option.id}
@@ -555,7 +571,7 @@ function Workspace({ session }: { session: ActiveSession }) {
                     : "text-muted-foreground hover:bg-accent",
                 )}
               >
-                {option.label}
+                {t.views[option.id]}
               </button>
             ))}
           </div>
@@ -585,7 +601,7 @@ function Workspace({ session }: { session: ActiveSession }) {
             ]}
             initialView={view}
             headerToolbar={false}
-            locale={esLocale}
+            locale={getLocale() === "en" ? enGbLocale : esLocale}
             firstDay={weekStart}
             weekNumbers={!narrow}
             dayHeaderFormat={narrow ? { weekday: "short", day: "numeric" } : undefined}
@@ -618,17 +634,15 @@ function Workspace({ session }: { session: ActiveSession }) {
       <Dialog open={panelOpen} onOpenChange={setPanelOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Calendarios y filtros</DialogTitle>
-            <DialogDescription className="sr-only">
-              Elige el día, qué calendarios se ven y qué tipo de entradas se muestran.
-            </DialogDescription>
+            <DialogTitle>{t.page.panel}</DialogTitle>
+            <DialogDescription className="sr-only">{t.page.panelDescription}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-6">{panel("hoja")}</div>
         </DialogContent>
       </Dialog>
       {desktop ? null : (
         <Button
-          aria-label="Nuevo evento"
+          aria-label={t.page.newEvent}
           className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 size-14 rounded-full shadow-lg"
           onClick={() => setEditor({ kind: "create", allDay: false, ...nextHourSlot(timeZone) })}
         >
@@ -668,10 +682,16 @@ function todayFrom(iso: string, timeZone: string): string {
 export function CalendarPage() {
   const router = useRouter();
   const logout = useLogout();
+  const changeLocale = useChangeLocale();
   return (
     <RequireSession navigate={(path) => router.history.replace(path)}>
       {(session) => (
-        <AppShell app="calendar" user={session.user} onSignOut={() => logout.mutate()}>
+        <AppShell
+          app="calendar"
+          user={session.user}
+          onSignOut={() => logout.mutate()}
+          onLocaleChange={(locale) => changeLocale.mutate(locale)}
+        >
           <Workspace session={session} />
         </AppShell>
       )}

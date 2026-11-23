@@ -14,12 +14,14 @@ import {
   FormError,
   ME_QUERY_KEY,
   SelectField,
+  setLocale,
   toast,
 } from "@delyra/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { apiFieldErrors, type FieldErrors, formValues } from "../auth/form";
-import { LOCALE_OPTIONS, timeZoneOptions, WEEK_START_OPTIONS } from "./format";
+import { LOCALE_OPTIONS, timeZoneOptions, weekStartOptions } from "./format";
+import { settingsMessages } from "./messages";
 import { Section } from "./section";
 
 /** Nombre, zona horaria, idioma e inicio de semana. */
@@ -29,6 +31,7 @@ export function ProfileSection({ session }: { session: ActiveSession }) {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const t = settingsMessages().profile;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -40,7 +43,7 @@ export function ProfileSection({ session }: { session: ActiveSession }) {
     const timeZone = timeZoneSchema.safeParse(values.timeZone);
     if (!timeZone.success) found.timeZone = timeZone.error.issues[0]?.message;
     const locale = localeSchema.safeParse(values.locale);
-    if (!locale.success) found.locale = "Idioma no válido";
+    if (!locale.success) found.locale = t.invalidLocale;
     setErrors(found);
     if (!name.success || !timeZone.success || !locale.success) return;
 
@@ -62,7 +65,9 @@ export function ProfileSection({ session }: { session: ActiveSession }) {
         await apiFetch("/api/me/settings", { method: "PATCH", body: next });
       }
       await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
-      toast.success("Cambios guardados");
+      // F7-06: el idioma nuevo se aplica al momento (la página se vuelve a pintar).
+      await setLocale(next.locale);
+      toast.success(settingsMessages().profile.saved);
     } catch (error) {
       setErrors(apiFieldErrors(error));
       setFormError(errorMessage(error));
@@ -72,15 +77,11 @@ export function ProfileSection({ session }: { session: ActiveSession }) {
   }
 
   return (
-    <Section
-      id="perfil"
-      title="Perfil y preferencias"
-      description="Las fechas y horas de Delyra se muestran en tu zona horaria."
-    >
+    <Section id="perfil" title={t.title} description={t.description}>
       <form noValidate onSubmit={(event) => void onSubmit(event)} className="grid max-w-md gap-4">
         <FormError>{formError}</FormError>
         <Field
-          label="Nombre"
+          label={t.name}
           name="name"
           autoComplete="name"
           defaultValue={user.name}
@@ -89,16 +90,16 @@ export function ProfileSection({ session }: { session: ActiveSession }) {
           error={errors.name}
         />
         <Field
-          label="Email"
+          label={settingsMessages().common.email}
           name="email-readonly"
           type="email"
           value={user.email}
           readOnly
           disabled
-          hint="Para cambiarlo, pide a un administrador una invitación nueva."
+          hint={t.emailHint}
         />
         <SelectField
-          label="Zona horaria"
+          label={t.timeZone}
           name="timeZone"
           defaultValue={settings.timeZone}
           options={timeZoneOptions(settings.timeZone)}
@@ -106,23 +107,23 @@ export function ProfileSection({ session }: { session: ActiveSession }) {
         />
         <div className="grid gap-4 sm:grid-cols-2">
           <SelectField
-            label="Idioma"
+            label={t.language}
             name="locale"
             defaultValue={settings.locale}
             options={LOCALE_OPTIONS}
-            hint="Se usa en los correos."
+            hint={t.languageHint}
             error={errors.locale}
           />
           <SelectField
-            label="La semana empieza en"
+            label={t.weekStart}
             name="weekStart"
             defaultValue={String(settings.weekStart)}
-            options={WEEK_START_OPTIONS}
+            options={weekStartOptions()}
           />
         </div>
         <div>
           <Button type="submit" disabled={pending}>
-            {pending ? "Guardando…" : "Guardar cambios"}
+            {pending ? t.saving : t.save}
           </Button>
         </div>
       </form>
@@ -136,6 +137,7 @@ export function PasswordSection() {
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const queryClient = useQueryClient();
+  const t = settingsMessages().password;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -147,7 +149,7 @@ export function PasswordSection() {
     if (!parsed.success) {
       for (const issue of parsed.error.issues) found[String(issue.path[0])] ??= issue.message;
     } else if (values.newPassword !== values.confirm) {
-      found.confirm = "Las contraseñas no coinciden";
+      found.confirm = t.dontMatch;
     }
     setErrors(found);
     if (!parsed.success || Object.keys(found).length > 0) return;
@@ -157,7 +159,7 @@ export function PasswordSection() {
       await apiFetch("/api/me/password", { method: "POST", body: parsed.data });
       form.reset();
       await queryClient.invalidateQueries({ queryKey: ["account"] });
-      toast.success("Contraseña cambiada. Se han cerrado tus otras sesiones.");
+      toast.success(t.changed);
     } catch (error) {
       setErrors(apiFieldErrors(error));
       setFormError(errorMessage(error));
@@ -167,15 +169,11 @@ export function PasswordSection() {
   }
 
   return (
-    <Section
-      id="contrasena"
-      title="Contraseña"
-      description="Al cambiarla se cierran tus sesiones en otros dispositivos."
-    >
+    <Section id="contrasena" title={t.title} description={t.description}>
       <form noValidate onSubmit={(event) => void onSubmit(event)} className="grid max-w-md gap-4">
         <FormError>{formError}</FormError>
         <Field
-          label="Contraseña actual"
+          label={t.current}
           name="currentPassword"
           type="password"
           autoComplete="current-password"
@@ -183,17 +181,17 @@ export function PasswordSection() {
           error={errors.currentPassword}
         />
         <Field
-          label="Contraseña nueva"
+          label={t.new}
           name="newPassword"
           type="password"
           autoComplete="new-password"
           required
           minLength={PASSWORD_MIN_LENGTH}
-          hint={`Mínimo ${String(PASSWORD_MIN_LENGTH)} caracteres.`}
+          hint={t.minLength(PASSWORD_MIN_LENGTH)}
           error={errors.newPassword}
         />
         <Field
-          label="Repite la contraseña nueva"
+          label={t.repeat}
           name="confirm"
           type="password"
           autoComplete="new-password"
@@ -202,7 +200,7 @@ export function PasswordSection() {
         />
         <div>
           <Button type="submit" disabled={pending}>
-            {pending ? "Cambiando…" : "Cambiar contraseña"}
+            {pending ? t.changing : t.change}
           </Button>
         </div>
       </form>

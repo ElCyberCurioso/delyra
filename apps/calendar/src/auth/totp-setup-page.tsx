@@ -17,13 +17,12 @@ import { useRouter } from "@tanstack/react-router";
 import { type FormEvent, useEffect, useState } from "react";
 import { formValues, useNextParam } from "./form";
 import { RecoveryCodeList, SavedCodesConfirmation, TotpQr } from "./totp-parts";
+import { authMessages } from "./messages";
 
 function RecoveryCodes({ codes, onDone }: { codes: string[]; onDone: () => void }) {
+  const t = authMessages().totp;
   return (
-    <AuthLayout
-      title="Guarda tus códigos de recuperación"
-      description="Si pierdes el móvil, cada uno de estos códigos te deja entrar una vez. No volverás a verlos."
-    >
+    <AuthLayout title={t.saveTitle} description={t.saveDescription}>
       <div className="grid gap-4">
         <RecoveryCodeList codes={codes} />
         <SavedCodesConfirmation onDone={onDone} />
@@ -42,6 +41,7 @@ export function TotpSetupPage() {
   const [pending, setPending] = useState(false);
   const [codes, setCodes] = useState<string[] | null>(null);
   const state = me.data?.state;
+  const t = authMessages();
 
   // Cada llamada genera una semilla nueva: una sola vez y sin refrescos automáticos.
   const setup = useQuery({
@@ -71,7 +71,7 @@ export function TotpSetupPage() {
     event.preventDefault();
     const code = (formValues(event.currentTarget).code ?? "").replace(/\s+/g, "");
     if (!/^\d{6}$/.test(code)) {
-      setFormError("Introduce los 6 dígitos que muestra tu app.");
+      setFormError(t.common.sixDigits);
       return;
     }
     setFormError(null);
@@ -105,22 +105,16 @@ export function TotpSetupPage() {
   if (state !== "pending_totp") return <FullPageSpinner />;
   if (setup.isError) {
     return (
-      <AuthLayout
-        title="No se pudo preparar la verificación"
-        description={errorMessage(setup.error)}
-      >
+      <AuthLayout title={t.totp.setupFailed} description={errorMessage(setup.error)}>
         <Button className="w-full" onClick={() => void setup.refetch()}>
-          Reintentar
+          {t.common.retry}
         </Button>
       </AuthLayout>
     );
   }
 
   return (
-    <AuthLayout
-      title="Activa la verificación en dos pasos"
-      description="Es obligatoria. Escanea el código con una app autenticadora (Google Authenticator, 1Password, Bitwarden, Aegis…)."
-    >
+    <AuthLayout title={t.totp.setupTitle} description={t.totp.setupDescription}>
       <div className="grid gap-4">
         {setup.data ? (
           <TotpQr otpauthUri={setup.data.otpauthUri} secret={setup.data.secret} />
@@ -130,7 +124,7 @@ export function TotpSetupPage() {
         <form noValidate onSubmit={(event) => void onSubmit(event)} className="grid gap-4">
           <FormError>{formError}</FormError>
           <Field
-            label="Código de 6 dígitos"
+            label={t.totp.codeLabel}
             name="code"
             autoComplete="one-time-code"
             inputMode="numeric"
@@ -139,7 +133,7 @@ export function TotpSetupPage() {
             required
           />
           <Button type="submit" disabled={pending || !setup.data}>
-            {pending ? "Comprobando…" : "Activar"}
+            {pending ? t.common.checking : t.totp.activate}
           </Button>
         </form>
       </div>

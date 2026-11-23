@@ -8,6 +8,7 @@ import {
   utcToDateOnly,
   wallToInstant,
 } from "@delyra/shared";
+import { intlLocale } from "@delyra/ui";
 
 /**
  * FullCalendar trabaja aquí en «UTC» y recibe horas de pared de la zona del usuario: un evento a
@@ -96,19 +97,24 @@ export function describeWhen(
 ) {
   if (occurrence.allDay) {
     const start = new Date(dateOnlyToUtc(occurrence.start));
-    return new Intl.DateTimeFormat("es-ES", {
+    return new Intl.DateTimeFormat(intlLocale(), {
       weekday: "short",
       day: "numeric",
       month: "short",
       timeZone: "UTC",
     }).format(start);
   }
-  const day = new Intl.DateTimeFormat("es-ES", {
+  const day = new Intl.DateTimeFormat(intlLocale(), {
     weekday: "short",
     day: "numeric",
     month: "short",
     timeZone,
   }).format(new Date(occurrence.start));
-  const time = new Intl.DateTimeFormat("es-ES", { hour: "2-digit", minute: "2-digit", timeZone });
+  const time = new Intl.DateTimeFormat(intlLocale(), {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone,
+  });
   return `${day}, ${time.format(new Date(occurrence.start))}–${time.format(new Date(occurrence.end))}`;
 }

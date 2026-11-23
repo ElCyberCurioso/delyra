@@ -15,6 +15,7 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CopyIcon, RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
+import { calendarMessages } from "./messages";
 
 /** Feed ICS privado de un calendario (F7-02): dirección secreta para otras apps. */
 
@@ -38,6 +39,7 @@ export function FeedDialog({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const url = feed.data?.feed?.url ?? null;
+  const t = calendarMessages().feed;
 
   async function run(action: () => Promise<unknown>) {
     setError(null);
@@ -63,63 +65,59 @@ export function FeedDialog({
     <Dialog open={calendar !== null} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Ver «{calendar?.name}» en otras apps</DialogTitle>
-          <DialogDescription>
-            Una dirección privada en formato iCal para suscribirte desde Google Calendar, el iPhone
-            u Outlook. Se actualiza sola; es de solo lectura.
-          </DialogDescription>
+          <DialogTitle>{t.title(calendar?.name ?? "")}</DialogTitle>
+          <DialogDescription>{t.description}</DialogDescription>
         </DialogHeader>
         <FormError>{error}</FormError>
         {feed.isPending ? (
-          <p className="text-sm text-muted-foreground">Cargando…</p>
+          <p className="text-sm text-muted-foreground">{t.loading}</p>
         ) : url ? (
           <div className="grid gap-4 text-sm">
             <div className="flex gap-2">
               <Input
                 readOnly
                 value={url}
-                aria-label="Dirección privada del calendario"
+                aria-label={t.address}
                 onFocus={(e) => e.target.select()}
                 className="font-mono text-xs"
               />
               <Button
                 variant="outline"
                 size="icon"
-                aria-label="Copiar la dirección"
+                aria-label={t.copy}
                 onClick={() =>
                   void navigator.clipboard
                     .writeText(url)
-                    .then(() => toast.success("Dirección copiada"))
-                    .catch(() => toast.error("No se ha podido copiar"))
+                    .then(() => toast.success(t.copied))
+                    .catch(() => toast.error(t.copyFailed))
                 }
               >
                 <CopyIcon aria-hidden="true" />
               </Button>
             </div>
             <p className="rounded-md bg-amber-50 p-3 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-              Quien tenga esta dirección puede ver este calendario. Si la compartes por error,
-              regénerala.
+              {t.warning}
             </p>
             <details>
-              <summary className="cursor-pointer font-medium">Cómo añadirla</summary>
+              <summary className="cursor-pointer font-medium">{t.how}</summary>
               <ul className="mt-2 grid list-disc gap-1 pl-5 text-muted-foreground">
                 <li>
-                  <strong>Google Calendar</strong> (y Android): en calendar.google.com, «Otros
-                  calendarios» → «+» → «Desde URL».
+                  <strong>Google Calendar</strong> {t.google}
                 </li>
                 <li>
-                  <strong>iPhone o iPad</strong>: Ajustes → Calendario → Cuentas → Añadir cuenta →
-                  Otra → Añadir calendario suscrito.
+                  <strong>{t.iphone}</strong>
+                  {t.iphoneSteps}
                 </li>
                 <li>
-                  <strong>Outlook</strong>: Añadir calendario → Suscribirse desde la web.
+                  <strong>Outlook</strong>
+                  {t.outlookSteps}
                 </li>
               </ul>
             </details>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" disabled={pending} onClick={() => void rotate()}>
                 <RefreshCwIcon aria-hidden="true" />
-                Regenerar
+                {t.regenerate}
               </Button>
               <Button
                 variant="ghost"
@@ -130,14 +128,14 @@ export function FeedDialog({
                   )
                 }
               >
-                Desactivar
+                {t.disable}
               </Button>
             </div>
           </div>
         ) : (
           <div>
             <Button disabled={pending} onClick={() => void rotate()}>
-              Crear dirección privada
+              {t.create}
             </Button>
           </div>
         )}

@@ -14,6 +14,7 @@ import { ForgotPasswordPage, ResetPasswordPage } from "./auth/password-pages";
 import { RegisterPage } from "./auth/register-page";
 import { TotpSetupPage } from "./auth/totp-setup-page";
 import { VerifyPage } from "./auth/verify-page";
+import { authMessages } from "./auth/messages";
 
 /** `?next=` solo se acepta como texto; `resolveNext` decide luego si es un destino seguro. */
 function nextSearch(search: Record<string, unknown>): { next?: string } {
@@ -21,10 +22,11 @@ function nextSearch(search: Record<string, unknown>): { next?: string } {
 }
 
 function NotFound() {
+  const t = authMessages().notFound;
   return (
-    <AuthLayout title="Página no encontrada" description="La dirección no existe o ha cambiado.">
+    <AuthLayout title={t.title} description={t.description}>
       <Button asChild className="w-full">
-        <Link to="/">Ir al inicio</Link>
+        <Link to="/">{t.home}</Link>
       </Button>
     </AuthLayout>
   );

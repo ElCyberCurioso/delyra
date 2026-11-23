@@ -1,19 +1,15 @@
 import { systemBackupsResponseSchema } from "@delyra/shared";
-import { apiFetch, Button, errorMessage, toast } from "@delyra/ui";
+import { apiFetch, Button, errorMessage, toast, translateServer } from "@delyra/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2Icon, Loader2Icon, TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 import { formatDateTime } from "../settings/format";
+import { settingsMessages } from "../settings/messages";
 import { Section } from "../settings/section";
 
 /** Backups del sistema (F6-06): estado del último, copias en R2 por nivel y copia manual. */
 
 const KEY = ["admin", "backups"] as const;
-const TIER_LABELS = {
-  daily: "Diarias (30 días)",
-  weekly: "Semanales (12 semanas)",
-  monthly: "Mensuales (12 meses)",
-};
 
 function formatSize(bytes: number | null): string {
   if (bytes === null) return "—";
@@ -32,12 +28,13 @@ export function SystemBackupsSection({ timeZone }: { timeZone: string }) {
   });
   const last = query.data?.runs[0];
   const objects = query.data?.objects ?? [];
+  const t = settingsMessages().system;
 
   return (
     <Section
       id="backups"
-      title="Backups del sistema"
-      description="Volcado diario de toda la base de datos a R2 (02:00 UTC). Restauración: docs/runbooks/restauracion.md."
+      title={t.title}
+      description={t.description}
       actions={
         <Button
           size="sm"
@@ -47,14 +44,14 @@ export function SystemBackupsSection({ timeZone }: { timeZone: string }) {
             setPending(true);
             apiFetch("/api/admin/backups", { method: "POST" })
               .then(async () => {
-                toast.success("Backup lanzado");
+                toast.success(t.launched);
                 await queryClient.invalidateQueries({ queryKey: KEY });
               })
               .catch((error: unknown) => toast.error(errorMessage(error)))
               .finally(() => setPending(false));
           }}
         >
-          Hacer un backup ahora
+          {t.runNow}
         </Button>
       }
     >
@@ -77,27 +74,27 @@ export function SystemBackupsSection({ timeZone }: { timeZone: string }) {
             />
           )}
           <span>
-            Último: {formatDateTime(last.startedAt, timeZone)} ·{" "}
+            {t.last(formatDateTime(last.startedAt, timeZone))} ·{" "}
             {last.status === "succeeded"
-              ? `correcto (${formatSize(last.sizeBytes)})`
+              ? t.ok(formatSize(last.sizeBytes))
               : last.status === "running"
-                ? "en marcha"
-                : `ha fallado: ${last.error ?? "sin detalle"}`}
-            {last.trigger === "manual" ? " · manual" : ""}
+                ? t.running
+                : t.failed(last.error ? translateServer(last.error) : t.noDetail)}
+            {last.trigger === "manual" ? t.manual : ""}
           </span>
         </p>
       ) : query.data ? (
-        <p className="mb-4 text-sm text-muted-foreground">Aún no hay ningún backup.</p>
+        <p className="mb-4 text-sm text-muted-foreground">{t.none}</p>
       ) : null}
       {(["daily", "weekly", "monthly"] as const).map((tier) => {
         const list = objects.filter((o) => o.tier === tier);
         return (
           <details key={tier} className="border-t py-2 text-sm" open={tier === "daily"}>
             <summary className="cursor-pointer font-medium">
-              {TIER_LABELS[tier]} · {list.length}
+              {t.tiers[tier]} · {list.length}
             </summary>
             {list.length === 0 ? (
-              <p className="mt-2 text-muted-foreground">Ninguna todavía.</p>
+              <p className="mt-2 text-muted-foreground">{t.noneYet}</p>
             ) : (
               <ul className="mt-2 grid gap-1">
                 {list.slice(0, 40).map((object) => (
