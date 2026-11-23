@@ -75,6 +75,8 @@ Si alguno tiene más permisos, edítalo o crea otro y revoca el anterior. Rotaci
 
 ## Pendiente de la auditoría manual (Burp)
 
+Guía paso a paso: `docs/runbooks/auditoria-burp.md`.
+
 La auditoría con Burp Suite la hace el propietario contra producción con una cuenta de prueba. Puntos
 mínimos: IDOR cambiando ids en todos los endpoints (eventos, tableros, tarjetas, adjuntos, copias,
 restauraciones, feeds, suscripciones, importaciones), papeles de los tableros compartidos (lector y
@@ -83,3 +85,10 @@ editor contra cada endpoint, ids de invitaciones ajenas), WebSocket `/api/boards
 copias manipuladas (ids ajenos, checksum, tamaño), URL de suscripción con otros hosts y redirecciones,
 subida de adjuntos con tipos falsos, CSRF sin `Origin` o con otro `Content-Type`, y fuerza bruta en el
 login y el 2FA. Los hallazgos altos o críticos bloquean la versión 1.0.
+
+## Conservación de datos
+
+El cron diario (`services/retention.ts`) borra las sesiones caducadas o cerradas, los intentos de
+acceso, los restablecimientos de contraseña y las invitaciones sin usar 30 días después de
+caducar, y el historial de seguridad al año. Los plazos están en la política de privacidad
+(«Cuánto tiempo»); el resultado queda en el log `retention_purge`.

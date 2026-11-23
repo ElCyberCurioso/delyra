@@ -12,6 +12,7 @@ import { syncDueSubscriptions } from "./services/subscriptions";
 import { purgeExpiredChallenges } from "./services/passkeys";
 import { googleConfig } from "./services/google";
 import { syncDueGoogleCalendars } from "./services/google-sync";
+import { purgeExpiredData } from "./services/retention";
 
 export { BoardRoom } from "./durable/board-room";
 export { BackupWorkflow } from "./jobs/backup-workflow";
@@ -43,6 +44,16 @@ export default {
         purgeStaleGoogleTokens(createDb(env.DB), Date.now()).catch((error: unknown) => {
           logger.error("google_token_purge_failed", { error });
         }),
+      );
+      // Datos técnicos que han pasado su plazo de conservación (política de privacidad).
+      ctx.waitUntil(
+        purgeExpiredData(createDb(env.DB), Date.now())
+          .then((counts) => {
+            logger.info("retention_purge", counts);
+          })
+          .catch((error: unknown) => {
+            logger.error("retention_purge_failed", { error });
+          }),
       );
       // F7-09: retos de llaves de acceso abandonados.
       ctx.waitUntil(

@@ -59,3 +59,11 @@ Un lanzamiento manual del mismo día sobrescribe el volcado de ese día.
 4. Relánzalo a mano y comprueba el objeto en R2.
 
 La restauración (Time Travel o desde un volcado) está en docs/runbooks/restauracion.md.
+
+## Datos técnicos caducados
+
+El mismo cron diario (03:00 UTC) borra lo que ha pasado su plazo de conservación
+(`services/retention.ts`): sesiones caducadas o cerradas, intentos de acceso, restablecimientos e
+invitaciones sin usar a los 30 días, e historial de seguridad al año. El log `retention_purge`
+dice cuántas filas borró de cada tabla; `retention_purge_failed`, si falló (se repite al día
+siguiente).

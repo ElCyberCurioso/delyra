@@ -10,7 +10,7 @@ import { PrivacyEn, TermsEn } from "./legal-en";
 
 const COPY = {
   es: {
-    updated: "Última actualización: 22 de noviembre de 2026",
+    updated: "Última actualización: 23 de noviembre de 2026",
     nav: "Páginas legales",
     privacy: "Privacidad",
     terms: "Condiciones",
@@ -18,7 +18,7 @@ const COPY = {
     termsTitle: "Condiciones de uso",
   },
   en: {
-    updated: "Last updated: 22 November 2026",
+    updated: "Last updated: 23 November 2026",
     nav: "Legal pages",
     privacy: "Privacy",
     terms: "Terms",
@@ -156,8 +156,25 @@ function PrivacyEs() {
       <h2>Dónde se guardan</h2>
       <p>
         En la infraestructura de Cloudflare (base de datos y almacenamiento en la Unión Europea),
-        con copias de seguridad cifradas en reposo que se conservan 30 días.
+        con copias de seguridad cifradas en reposo.
       </p>
+
+      <h2>Cuánto tiempo</h2>
+      <ul>
+        <li>
+          Tu cuenta y lo que creas (calendarios, eventos, tableros, tarjetas y adjuntos): mientras
+          tengas la cuenta o hasta que lo borres.
+        </li>
+        <li>
+          Copias de seguridad del sistema: las diarias, 30 días; las semanales, 12 semanas; las
+          mensuales, 1 año. Tus propias copias, las que elijas conservar en Ajustes.
+        </li>
+        <li>
+          Sesiones caducadas o cerradas, intentos de inicio de sesión, enlaces para restablecer la
+          contraseña e invitaciones sin usar: se borran 30 días después de caducar.
+        </li>
+        <li>Historial de seguridad de tu cuenta (accesos y cambios): 1 año.</li>
+      </ul>
 
       <h2>Tus derechos</h2>
       <p>

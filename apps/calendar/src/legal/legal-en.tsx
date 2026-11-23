@@ -80,8 +80,25 @@ export function PrivacyEn() {
       <h2>Where it&apos;s stored</h2>
       <p>
         On Cloudflare&apos;s infrastructure (database and storage in the European Union), with
-        backups encrypted at rest that are kept for 30 days.
+        backups encrypted at rest.
       </p>
+
+      <h2>How long</h2>
+      <ul>
+        <li>
+          Your account and what you create (calendars, events, boards, cards and attachments): for
+          as long as you have the account or until you delete it.
+        </li>
+        <li>
+          System backups: daily ones, 30 days; weekly ones, 12 weeks; monthly ones, 1 year. Your own
+          backups, as many as you choose to keep in Settings.
+        </li>
+        <li>
+          Expired or signed-out sessions, sign-in attempts, password reset links and unused
+          invitations: deleted 30 days after they expire.
+        </li>
+        <li>Your account&apos;s security history (sign-ins and changes): 1 year.</li>
+      </ul>
 
       <h2>Your rights</h2>
       <p>
