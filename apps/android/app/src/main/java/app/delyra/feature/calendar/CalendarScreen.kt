@@ -103,10 +103,13 @@ fun CalendarScreen(
 
     val error = vm.message
     val errorText = error?.message()
-    LaunchedEffect(error) {
-        if (errorText != null) {
-            snackbar.showSnackbar(errorText)
+    val noticeText = vm.notice?.let { stringResource(it) }
+    LaunchedEffect(error, vm.notice) {
+        val text = errorText ?: noticeText
+        if (text != null) {
+            snackbar.showSnackbar(text)
             vm.message = null
+            vm.notice = null
         }
     }
 

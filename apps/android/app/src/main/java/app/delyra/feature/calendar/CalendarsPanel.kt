@@ -1,6 +1,8 @@
 package app.delyra.feature.calendar
 
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -70,6 +72,13 @@ fun CalendarsPanel(
     var creating by rememberSaveable { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<CalendarInfo?>(null) }
     var feedFor by remember { mutableStateOf<CalendarInfo?>(null) }
+    var exporting by remember { mutableStateOf<CalendarInfo?>(null) }
+    val context = LocalContext.current
+    val exportIcs = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/calendar")) { uri ->
+        val calendar = exporting
+        exporting = null
+        if (uri != null && calendar != null) vm.exportCalendar(calendar, uri, context.contentResolver)
+    }
 
     Column(modifier.verticalScroll(rememberScrollState()).padding(16.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         MiniMonth(
@@ -93,12 +102,14 @@ fun CalendarsPanel(
                 onToggle = { vm.toggleCalendar(calendar) },
                 onEdit = { editing = calendar },
                 onFeed = { feedFor = calendar; vm.loadFeed(calendar) },
+                onExport = { exporting = calendar; exportIcs.launch(icsFileName(calendar.name)) },
                 onDelete = { deleting = calendar },
             )
         }
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
         Text(stringResource(R.string.calendar_layers), style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() })
         LayerRow(stringResource(R.string.calendar_layer_holidays), vm.showHolidays) { vm.toggleLayer(holidays = it) }
+        if (vm.showHolidays) HolidayRegionRow(vm.holidayRegion, vm::chooseHolidayRegion)
         LayerRow(stringResource(R.string.calendar_layer_tasks), vm.showTasks) { vm.toggleLayer(tasks = it) }
     }
 
@@ -122,7 +133,7 @@ fun CalendarsPanel(
 }
 
 @Composable
-private fun CalendarRow(calendar: CalendarInfo, onToggle: () -> Unit, onEdit: () -> Unit, onFeed: () -> Unit, onDelete: () -> Unit) {
+private fun CalendarRow(calendar: CalendarInfo, onToggle: () -> Unit, onEdit: () -> Unit, onFeed: () -> Unit, onExport: () -> Unit, onDelete: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     val color = parseHexColor(calendar.color)
     Row(
@@ -140,7 +151,47 @@ private fun CalendarRow(calendar: CalendarInfo, onToggle: () -> Unit, onEdit: ()
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 DropdownMenuItem(text = { Text(stringResource(R.string.action_edit)) }, onClick = { menu = false; onEdit() })
                 DropdownMenuItem(text = { Text(stringResource(R.string.calendar_feed)) }, onClick = { menu = false; onFeed() })
+                DropdownMenuItem(text = { Text(stringResource(R.string.calendar_export)) }, onClick = { menu = false; onExport() })
                 DropdownMenuItem(text = { Text(stringResource(R.string.action_delete)) }, onClick = { menu = false; onDelete() })
+            }
+        }
+    }
+}
+
+/** Nombre propuesto para el .ics, como el que da la API (sin caracteres raros). */
+private fun icsFileName(name: String): String =
+    name.replace(UNSAFE_FILE_CHARS, "").trim().ifEmpty { "calendario" } + ".ics"
+
+private val UNSAFE_FILE_CHARS = Regex("""[^\p{L}\p{N} _-]""")
+
+/** Regiones de `packages/shared/src/schemas/holidays.ts`: nacionales y, si se elige, de una comunidad. */
+private val HOLIDAY_REGIONS = listOf(
+    "off" to "", "ES" to "", "ES-AN" to "Andalucía", "ES-AR" to "Aragón", "ES-AS" to "Asturias",
+    "ES-IB" to "Baleares", "ES-CN" to "Canarias", "ES-CB" to "Cantabria", "ES-CL" to "Castilla y León",
+    "ES-CM" to "Castilla-La Mancha", "ES-CT" to "Cataluña", "ES-CE" to "Ceuta", "ES-EX" to "Extremadura",
+    "ES-GA" to "Galicia", "ES-RI" to "La Rioja", "ES-MD" to "Comunidad de Madrid", "ES-ML" to "Melilla",
+    "ES-MC" to "Región de Murcia", "ES-NC" to "Navarra", "ES-PV" to "País Vasco", "ES-VC" to "Comunidad Valenciana",
+)
+private const val DEFAULT_HOLIDAY_REGION = "ES-MD"
+
+@Composable
+private fun regionName(code: String): String = when (code) {
+    "off" -> stringResource(R.string.calendar_region_off)
+    "ES" -> stringResource(R.string.calendar_region_national)
+    else -> HOLIDAY_REGIONS.firstOrNull { it.first == code }?.second ?: code
+}
+
+@Composable
+private fun HolidayRegionRow(region: String?, onPick: (String) -> Unit) {
+    var menu by remember { mutableStateOf(false) }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(stringResource(R.string.calendar_holiday_region), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Box {
+            TextButton(onClick = { menu = true }) { Text(regionName(region ?: DEFAULT_HOLIDAY_REGION), maxLines = 1) }
+            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                HOLIDAY_REGIONS.forEach { (code, _) ->
+                    DropdownMenuItem(text = { Text(regionName(code)) }, onClick = { menu = false; onPick(code) })
+                }
             }
         }
     }

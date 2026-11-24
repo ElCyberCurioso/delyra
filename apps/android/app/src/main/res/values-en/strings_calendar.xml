@@ -106,4 +106,9 @@
 
     <string name="search_events">Search events</string>
     <string name="search_no_results">No events with that text.</string>
+    <string name="calendar_export">Export (.ics)</string>
+    <string name="calendar_exported">Calendar exported</string>
+    <string name="calendar_holiday_region">Holidays for</string>
+    <string name="calendar_region_off">No holidays</string>
+    <string name="calendar_region_national">National only</string>
 </resources>

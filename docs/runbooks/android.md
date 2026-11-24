@@ -45,6 +45,22 @@ Notas:
   enviando `Origin: http://localhost:5173`, que también está permitido. En producción hay una sola
   API y no pasa.
 
+- **Telegram en local:** sin el bot configurado, Ajustes muestra «aún no disponible»; para
+  probar la vinculación hace falta un bot de pruebas (`pnpm telegram:setup`, ver
+  `docs/runbooks/telegram.md`).
+- **Copias en local:** los Workflows de copia y restauración corren en el propio `wrangler dev`;
+  la descarga se guarda con el selector de documentos del sistema.
+
+## Mensajes de la API en inglés
+
+La API responde en español y la app traduce con `app/src/main/assets/server-messages.en.json`, que
+se genera desde `packages/ui/src/i18n/server-messages.en.ts`. Si cambia un mensaje, la prueba
+`server-messages.android.test.ts` de `@delyra/ui` falla en CI hasta regenerar el fichero:
+
+```sh
+pnpm --filter @delyra/ui exec vitest run server-messages.android -u
+```
+
 ## Antes de publicar (F8-11)
 
 1. Desplegar `delyra-calendar` con `apps/calendar/public/mobile/turnstile.html` y comprobar

@@ -314,8 +314,9 @@ fun DatePick(initial: LocalDate, onDismiss: () -> Unit, onPick: (LocalDate) -> U
     ) { DatePicker(state = state) }
 }
 
+/** Elegir una hora (minutos desde medianoche), en 12 o 24 h según el móvil. */
 @Composable
-private fun TimePick(minutes: Int, onDismiss: () -> Unit, onPick: (Int) -> Unit) {
+internal fun TimePick(minutes: Int, onDismiss: () -> Unit, onPick: (Int) -> Unit) {
     val context = LocalContext.current
     val state = rememberTimePickerState(initialHour = minutes / 60, initialMinute = minutes % 60, is24Hour = DateFormat.is24HourFormat(context))
     AlertDialog(

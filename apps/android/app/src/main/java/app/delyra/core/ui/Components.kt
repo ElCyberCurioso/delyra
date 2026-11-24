@@ -50,6 +50,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.delyra.R
+import app.delyra.core.i18n.serverText
 import app.delyra.core.network.ApiError
 import app.delyra.core.network.apiError
 
@@ -118,15 +119,16 @@ fun ColorPicker(selected: String?, onSelect: (String) -> Unit, modifier: Modifie
 
 // ── Errores ────────────────────────────────────────────────────────────────────
 
+/** El mensaje para la persona; los textos de la API se traducen si la app está en inglés. */
 @Composable
 fun ApiError.message(): String = when (this) {
     ApiError.Network -> stringResource(R.string.error_network)
-    is ApiError.Unauthorized -> detail ?: stringResource(R.string.error_unauthorized)
-    is ApiError.RateLimited -> detail
+    is ApiError.Unauthorized -> detail?.let { serverText(it) } ?: stringResource(R.string.error_unauthorized)
+    is ApiError.RateLimited -> detail?.let { serverText(it) }
         ?: retryAfterSeconds?.let { stringResource(R.string.error_rate_limited_wait, it) }
         ?: stringResource(R.string.error_rate_limited)
-    is ApiError.Validation -> detail ?: fields.values.firstOrNull() ?: stringResource(R.string.error_validation)
-    is ApiError.Http -> detail ?: when (status) {
+    is ApiError.Validation -> (detail ?: fields.values.firstOrNull())?.let { serverText(it) } ?: stringResource(R.string.error_validation)
+    is ApiError.Http -> detail?.let { serverText(it) } ?: when (status) {
         403 -> stringResource(R.string.error_forbidden)
         404 -> stringResource(R.string.error_not_found)
         413 -> stringResource(R.string.error_too_large)

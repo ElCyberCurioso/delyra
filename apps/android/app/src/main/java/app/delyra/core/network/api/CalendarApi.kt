@@ -10,6 +10,7 @@ import app.delyra.core.model.HolidayRegionRequest
 import app.delyra.core.model.HolidaysResponse
 import app.delyra.core.model.OccurrencesResponse
 import kotlinx.serialization.json.JsonObject
+import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -18,6 +19,7 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Streaming
 
 /** Calendarios, eventos, festivos y capa de tareas (F2, F4-11, F7-02, F7-03). */
 interface CalendarApi {
@@ -32,6 +34,11 @@ interface CalendarApi {
 
     @DELETE("calendars/{id}")
     suspend fun deleteCalendar(@Path("id") id: String)
+
+    /** El calendario en ICS (F6-02), para guardarlo con el selector de documentos. */
+    @Streaming
+    @GET("calendars/{id}/export")
+    suspend fun exportCalendar(@Path("id") id: String): ResponseBody
 
     @GET("calendars/{id}/feed")
     suspend fun feed(@Path("id") id: String): CalendarFeedResponse

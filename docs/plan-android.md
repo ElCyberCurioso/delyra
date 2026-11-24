@@ -1,8 +1,8 @@
 # Plan · App de Android (noviembre de 2026)
 
-> **Estado:** v2 (revisada). F8-01 a F8-05 construidas y probadas contra `pnpm dev` (registro,
-> alta TOTP, calendario, tableros, tarjetas, compartir y canal en vivo con dos personas, app y web);
-> F8-06 a F8-11, pendientes. Decisiones
+> **Estado:** v2 (revisada). F8-01 a F8-06 construidas y probadas contra `pnpm dev` (registro,
+> alta TOTP, calendario, tableros, tarjetas, compartir y canal en vivo con dos personas, app y web,
+> ajustes y copias de seguridad); F8-07 a F8-11, pendientes. Decisiones
 > en [ADR-0016](decisiones/ADR-0016-app-android.md) y uso en el
 > [runbook](runbooks/android.md).
 
@@ -168,7 +168,16 @@ accesibilidad para mover tarjetas sin arrastrar (TalkBack), modo oscuro y «redu
   abierta, a la lista y al calendario. En el teléfono, la pantalla de una tarjeta abre su propio
   canal (el tablero queda detrás, cerrado) y se cierra con aviso si la borran o te quitan el
   acceso.
-- **F8-06 · Ajustes y copias.**
+- **F8-06 · Ajustes y copias.** Hecho. Seguridad con confirmación de identidad (contraseña y
+  código de la app o de recuperación) para generar códigos nuevos y cambiar de app autenticadora;
+  lista de llaves de acceso y quitarlas (añadirlas, en F8-10); Telegram (vincular con espera al
+  bot, resumen diario, horas de silencio, prueba, reactivar y desvincular); historial de seguridad
+  con los eventos sospechosos destacados; sesiones con dispositivo y país legibles. Copias de
+  seguridad: crear, descargar al documento elegido (SAF), borrar, copias automáticas, restaurar de
+  una copia guardada o de un fichero (fusionar o reemplazar), progreso y deshacer. Exportar un
+  calendario a ICS y elegir la región de los festivos. Los mensajes de la API se traducen al inglés
+  con la misma tabla que la web (`assets/server-messages.en.json`, exportada y vigilada por una
+  prueba de `@delyra/ui`).
 - **F8-07 · Alta rápida y dictado.**
 - **F8-08 · Integraciones y administración.** Verificar antes si los _callbacks_ OAuth de Google y
   Microsoft funcionan sin la cookie del navegador (Custom Tab); si no, cambio en la API.
