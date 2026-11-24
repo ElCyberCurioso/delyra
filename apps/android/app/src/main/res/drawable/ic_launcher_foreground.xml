@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- La «D» de favicon.svg (32x32) centrada en la zona segura del icono adaptable. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="1.6"
+        android:scaleY="1.6"
+        android:translateX="28.4"
+        android:translateY="28.4">
+        <path
+            android:pathData="M10,8h6.5a8,8 0,0 1,0 16H10z"
+            android:strokeWidth="3"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="es">
+    <string name="settings_saved">Guardado</string>
+    <string name="settings_profile">Perfil</string>
+    <string name="settings_admin">Administrador</string>
+    <string name="settings_rename">Cambiar el nombre</string>
+    <string name="settings_preferences">Preferencias</string>
+    <string name="settings_time_zone">Zona horaria</string>
+    <string name="settings_use_device_zone">Usar la del móvil (%1$s)</string>
+    <string name="settings_week_start">La semana empieza el</string>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_language_hint">También el de los correos, las alertas y los nombres por defecto.</string>
+    <string name="settings_security">Seguridad</string>
+    <plurals name="settings_recovery_left">
+        <item quantity="one">Te queda %1$d código de recuperación.</item>
+        <item quantity="other">Te quedan %1$d códigos de recuperación.</item>
+    </plurals>
+    <string name="settings_password_changed_at">Contraseña cambiada el %1$s</string>
+    <string name="settings_passkeys">Llaves de acceso: %1$d</string>
+    <string name="settings_change_password">Cambiar la contraseña</string>
+    <string name="settings_password_effect">Se cerrarán tus otras sesiones.</string>
+    <string name="settings_password_changed">Contraseña cambiada. Se han cerrado tus otras sesiones.</string>
+    <string name="settings_more_on_web">Códigos de recuperación, app autenticadora, llaves de acceso, Telegram, copias e importaciones: de momento, desde delyra.app.</string>
+    <string name="settings_sessions">Sesiones abiertas</string>
+    <string name="settings_unknown_device">Dispositivo desconocido</string>
+    <string name="settings_this_device">este dispositivo</string>
+    <string name="settings_last_seen">Última actividad: %1$s</string>
+    <string name="settings_close_session">Cerrar</string>
+    <string name="settings_close_others">Cerrar las demás sesiones</string>
+    <string name="settings_close_others_body">Tendrás que volver a entrar en los demás dispositivos.</string>
+    <string name="settings_environment">Entorno (solo debug)</string>
+    <string name="settings_environment_hint">Local: arranca `pnpm dev` y ejecuta `adb reverse tcp:5173 tcp:5173`. Cambiar de entorno cierra la sesión.</string>
+    <string name="settings_logout">Cerrar sesión</string>
+    <string name="settings_logout_body">Saldrás de Delyra en este dispositivo.</string>
+</resources>

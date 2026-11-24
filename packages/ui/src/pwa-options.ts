@@ -54,7 +54,8 @@ export function pwaOptions(app: "calendar" | "work") {
     workbox: {
       globPatterns: ["**/*.{js,css,html,svg,png,ico,webmanifest}"],
       navigateFallback: "/index.html",
-      navigateFallbackDenylist: [/^\/api\//],
+      // `/mobile/*`: la página de Turnstile de la app de Android se sirve siempre tal cual.
+      navigateFallbackDenylist: [/^\/api\//, /^\/mobile\//],
       cleanupOutdatedCaches: true,
       runtimeCaching: [
         {

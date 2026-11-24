@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="es">
+    <string name="app_name" translatable="false">Delyra</string>
+
+    <!-- Acciones comunes -->
+    <string name="action_retry">Reintentar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_delete">Borrar</string>
+    <string name="action_edit">Editar</string>
+    <string name="action_close">Cerrar</string>
+    <string name="action_back">Volver</string>
+    <string name="action_continue">Continuar</string>
+    <string name="action_copy">Copiar</string>
+    <string name="action_share">Compartir</string>
+    <string name="action_add">Añadir</string>
+    <string name="action_create">Crear</string>
+    <string name="action_more">Más opciones</string>
+    <string name="action_show_password">Mostrar contraseña</string>
+    <string name="action_hide_password">Ocultar contraseña</string>
+    <string name="action_back_to_login">Volver a iniciar sesión</string>
+    <string name="action_today">Hoy</string>
+    <string name="action_search">Buscar</string>
+    <string name="action_refresh">Actualizar</string>
+    <string name="copied">Copiado</string>
+
+    <!-- Errores -->
+    <string name="error_network">Sin conexión. Revisa tu red e inténtalo de nuevo.</string>
+    <string name="error_unauthorized">Tu sesión ha caducado. Vuelve a entrar.</string>
+    <string name="error_rate_limited">Demasiados intentos. Vuelve a intentarlo más tarde.</string>
+    <string name="error_rate_limited_wait">Demasiados intentos. Vuelve a intentarlo en %1$d s.</string>
+    <string name="error_validation">Revisa los datos del formulario.</string>
+    <string name="error_forbidden">No tienes permiso para hacer esto.</string>
+    <string name="error_not_found">No existe o ya no tienes acceso.</string>
+    <string name="error_too_large">Es demasiado grande.</string>
+    <string name="error_server">Algo ha fallado en el servidor. Inténtalo más tarde.</string>
+    <string name="error_generic">Algo ha salido mal. Inténtalo de nuevo.</string>
+
+    <!-- Navegación -->
+    <string name="tab_calendar">Calendario</string>
+    <string name="tab_tasks">Tareas</string>
+    <string name="tab_settings">Ajustes</string>
+
+    <!-- Campos -->
+    <string name="field_email">Email</string>
+    <string name="field_password">Contraseña</string>
+    <string name="field_new_password">Contraseña nueva</string>
+    <string name="field_repeat_password">Repite la contraseña</string>
+    <string name="field_current_password">Contraseña actual</string>
+    <string name="field_name">Nombre</string>
+    <string name="field_totp_code">Código de 6 dígitos</string>
+    <string name="field_recovery_code">Código de recuperación</string>
+    <string name="password_min">Mínimo 12 caracteres</string>
+    <string name="password_rules">De 12 a 128 caracteres. Sin tu email y que no aparezca en filtraciones.</string>
+    <string name="password_mismatch">Las contraseñas no coinciden</string>
+
+    <!-- Acceso -->
+    <string name="auth_brand_title">Tu tiempo, en orden.</string>
+    <string name="auth_brand_calendar">Calendario personal y de trabajo, con cumpleaños y alertas.</string>
+    <string name="auth_brand_tasks">Tableros de tareas compartidos y en tiempo real.</string>
+    <string name="auth_brand_security">Segundo factor obligatorio y datos en la UE.</string>
+    <string name="turnstile_unsupported">Actualiza «Android System WebView» para poder entrar.</string>
+    <string name="turnstile_failed">No se pudo completar la verificación antibots. Revisa la conexión.</string>
+    <string name="turnstile_required">Espera a que termine la verificación antibots.</string>
+    <string name="login_title">Iniciar sesión</string>
+    <string name="login_subtitle">Calendario y tareas con la misma cuenta.</string>
+    <string name="login_expired">Tu sesión ha caducado. Vuelve a entrar.</string>
+    <string name="login_submit">Entrar</string>
+    <string name="login_forgot">¿Olvidaste tu contraseña?</string>
+    <string name="login_have_invitation">Tengo una invitación</string>
+    <string name="second_factor_title">Verificación en dos pasos</string>
+    <string name="second_factor_hint">Escribe el código de tu app autenticadora.</string>
+    <string name="second_factor_recovery_hint">Escribe uno de tus códigos de recuperación. Cada uno sirve una sola vez.</string>
+    <string name="second_factor_submit">Verificar</string>
+    <string name="second_factor_use_recovery">Usar un código de recuperación</string>
+    <string name="second_factor_use_totp">Usar el código de la app</string>
+    <plurals name="second_factor_remaining">
+        <item quantity="one">Te queda %1$d código de recuperación. Genera más en Ajustes de delyra.app.</item>
+        <item quantity="other">Te quedan %1$d códigos de recuperación. Genera más en Ajustes de delyra.app.</item>
+    </plurals>
+    <string name="totp_title">Configura la verificación en dos pasos</string>
+    <string name="totp_subtitle">Es obligatoria para proteger tu cuenta.</string>
+    <string name="totp_step_open">1. Añade la cuenta a tu app autenticadora (Google Authenticator, Aegis, 1Password…).</string>
+    <string name="totp_open_app">Abrir en la app autenticadora</string>
+    <string name="totp_no_app">No hay ninguna app autenticadora instalada. Usa la clave de abajo.</string>
+    <string name="totp_step_manual">O escribe esta clave a mano:</string>
+    <string name="totp_step_code">2. Escribe el código que te muestra la app.</string>
+    <string name="totp_confirm">Confirmar</string>
+    <string name="recovery_title">Códigos de recuperación</string>
+    <string name="recovery_subtitle">Guárdalos en un lugar seguro. Te permiten entrar si pierdes el móvil. No se volverán a mostrar.</string>
+    <string name="recovery_copy">Copiar los códigos</string>
+    <string name="recovery_saved">Los he guardado</string>
+    <string name="register_title">Crear tu cuenta</string>
+    <string name="register_subtitle">Delyra funciona solo por invitación.</string>
+    <string name="register_link">Enlace de invitación</string>
+    <string name="register_link_hint">Pega el enlace que te ha llegado por email.</string>
+    <string name="register_link_invalid">Ese enlace no es una invitación válida.</string>
+    <string name="register_for">Cuenta para %1$s</string>
+    <string name="register_submit">Crear cuenta</string>
+    <string name="forgot_title">Recuperar la contraseña</string>
+    <string name="forgot_subtitle">Te enviaremos un enlace para elegir una nueva.</string>
+    <string name="forgot_submit">Enviar enlace</string>
+    <string name="forgot_sent">Si existe una cuenta con ese email, te llegará un enlace en unos minutos.</string>
+    <string name="forgot_have_link">Ya tengo el enlace</string>
+    <string name="reset_title">Nueva contraseña</string>
+    <string name="reset_subtitle">Al cambiarla se cerrarán todas tus sesiones.</string>
+    <string name="reset_link">Enlace de recuperación</string>
+    <string name="reset_link_invalid">Ese enlace no es válido.</string>
+    <string name="reset_submit">Cambiar la contraseña</string>
+    <string name="reset_done">Contraseña cambiada. Ya puedes entrar con la nueva.</string>
+</resources>
