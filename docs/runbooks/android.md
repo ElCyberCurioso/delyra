@@ -39,6 +39,11 @@ Notas:
   (`adb reverse --list` para comprobarlo).
 - Las cookies `Secure` viajan a `http://localhost` solo en debug; en release solo hay HTTPS
   (`network_security_config`).
+- **Canal en vivo con dos personas en local:** cada servidor de Vite (calendario en 5173, tareas en 5174) arranca su propia API con su propio Durable Object, así que la presencia y los avisos no
+  pasan de uno a otro. Para probar la app frente a la web de tareas, reenvía la app al servidor de
+  tareas: `adb reverse tcp:5173 tcp:5174` (o el proxy apuntando a `[::1]:5174`). La app sigue
+  enviando `Origin: http://localhost:5173`, que también está permitido. En producción hay una sola
+  API y no pasa.
 
 ## Antes de publicar (F8-11)
 

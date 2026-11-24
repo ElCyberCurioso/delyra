@@ -3,6 +3,7 @@ package app.delyra.feature.kanban
 import android.content.ContentResolver
 import android.net.Uri
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -43,6 +44,7 @@ import kotlinx.serialization.json.buildJsonObject
 class BoardViewModel(private val graph: AppGraph, val boardId: String) : ViewModel() {
     private val api = graph.kanbanApi
     val userId: String? = graph.session.active?.user?.id
+    val zone: java.time.ZoneId = graph.session.active?.zone ?: java.time.ZoneId.systemDefault()
 
     var detail by mutableStateOf<BoardDetail?>(null)
         private set
@@ -76,19 +78,33 @@ class BoardViewModel(private val graph: AppGraph, val boardId: String) : ViewMod
 
     private val live = BoardLive(
         client = graph.network.client,
-        boardId = boardId,
+        url = liveUrl(boardId),
         scope = viewModelScope,
-        onChanged = { by -> if (by != userId) scheduleReload() },
+        // Los cambios propios ya los aplica la mutación que los hizo. Los ajenos refrescan el
+        // tablero (por `boards`), la tarjeta abierta, la lista de tableros y el calendario.
+        onChanged = { by -> if (by != userId) graph.changes.remoteBoardChanged(boardId) },
         onPresence = { people -> presence = people.filter { it.id != userId }.distinctBy { it.id } },
-        onRevoked = { revoked = true },
+        onRevoked = {
+            revoked = true
+            graph.changes.boardsChanged()
+        },
     )
+    private var liveStarts = 0
 
     init {
         load()
         viewModelScope.launch { graph.changes.boards.drop(1).collect { scheduleReload() } }
     }
 
-    fun startLive() = live.start()
+    /**
+     * El canal solo está abierto con el tablero en pantalla. Al volver (de una tarjeta, de otra app)
+     * se pide el tablero: mientras estaba cerrado pudo cambiar algo.
+     */
+    fun startLive() {
+        if (liveStarts++ > 0) scheduleReload()
+        live.start()
+    }
+
     fun stopLive() = live.stop()
 
     override fun onCleared() {
@@ -102,7 +118,11 @@ class BoardViewModel(private val graph: AppGraph, val boardId: String) : ViewMod
                 .onSuccess { if (started == mutations && pending == 0) apply(it) }
                 .onFailure {
                     if (detail == null) loadError = it.apiError
-                    if (it.apiError.let { e -> e is ApiError.Http && e.status == 404 } && detail != null) revoked = true
+                    // 404 con el tablero ya cargado: lo borraron o te quitaron el acceso. La lista se refresca.
+                    if (it.apiError.let { e -> e is ApiError.Http && e.status == 404 } && detail != null && !revoked) {
+                        revoked = true
+                        graph.changes.boardsChanged()
+                    }
                 }
         }
     }
@@ -256,41 +276,64 @@ class BoardViewModel(private val graph: AppGraph, val boardId: String) : ViewMod
 
     // ── Compartir (F7-04) ──
 
+    var membersError by mutableStateOf<ApiError?>(null)
+        private set
+    var sharing by mutableStateOf(false)
+        private set
+    /** Error del formulario de invitar (email no válido, sin cuenta, límite de personas…). */
+    var inviteError by mutableStateOf<ApiError?>(null)
+    /** Sube con cada invitación creada: el formulario se vacía y se avisa. */
+    var invitedCount by mutableIntStateOf(0)
+        private set
+
+    /** Lista de la hoja; una petición anterior a un cambio no pisa el resultado del cambio. */
+    private var membersVersion = 0
+
     fun loadMembers() {
+        val version = ++membersVersion
+        membersError = null
         viewModelScope.launch {
-            apiCall { api.members(boardId) }.onSuccess { members = it }.onFailure { message = it.apiError }
+            apiCall { api.members(boardId) }
+                .onSuccess { if (version == membersVersion) members = it }
+                .onFailure { if (version == membersVersion) membersError = it.apiError }
+        }
+    }
+
+    /** Tras cualquier cambio: la hoja, el contador del tablero y la lista de tableros. */
+    private fun share(block: suspend () -> BoardMembers?, onError: (ApiError) -> Unit = { message = it }, onDone: () -> Unit = {}) {
+        if (sharing) return
+        sharing = true
+        val version = ++membersVersion
+        viewModelScope.launch {
+            apiCall { block() }
+                .onSuccess { result ->
+                    if (result != null && version == membersVersion) members = result else loadMembers()
+                    onDone()
+                    graph.changes.boardsChanged()
+                }
+                .onFailure { onError(it.apiError) }
+            sharing = false
         }
     }
 
     fun invite(email: String, role: String) {
-        viewModelScope.launch {
-            apiCall { api.invite(boardId, InviteRequest(email.trim().lowercase(), role)) }
-                .onSuccess { members = it }.onFailure { message = it.apiError }
-        }
+        inviteError = null
+        share(
+            block = { api.invite(boardId, InviteRequest(email.trim().lowercase(), role)) },
+            onError = { inviteError = it },
+            onDone = { invitedCount++ },
+        )
     }
 
-    fun setRole(userId: String, role: String) {
-        viewModelScope.launch {
-            apiCall { api.setMemberRole(boardId, userId, RoleRequest(role)) }.onSuccess { members = it }.onFailure { message = it.apiError }
-        }
-    }
+    fun setRole(userId: String, role: String) = share({ api.setMemberRole(boardId, userId, RoleRequest(role)) })
 
-    fun removeMember(userId: String) {
-        viewModelScope.launch {
-            apiCall { api.removeMember(boardId, userId) }.onSuccess {
-                if (userId == this@BoardViewModel.userId) {
-                    deleted = true
-                    graph.changes.boardsChanged()
-                } else {
-                    loadMembers()
-                }
-            }.onFailure { message = it.apiError }
-        }
-    }
+    fun removeMember(userId: String) = share({ api.removeMember(boardId, userId); null })
 
-    fun revokeInvitation(invitationId: String) {
-        viewModelScope.launch {
-            apiCall { api.revokeInvitation(boardId, invitationId) }.onSuccess { loadMembers() }.onFailure { message = it.apiError }
-        }
+    fun revokeInvitation(invitationId: String) = share({ api.revokeInvitation(boardId, invitationId); null })
+
+    /** Salir de un tablero compartido contigo: se vuelve a la lista. */
+    fun leave() {
+        val me = userId ?: return
+        share({ api.removeMember(boardId, me); null }, onDone = { deleted = true })
     }
 }

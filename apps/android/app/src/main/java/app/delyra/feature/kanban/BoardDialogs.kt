@@ -87,7 +87,7 @@ fun BoardDialogsHost(vm: BoardViewModel, dialogs: BoardDialogs, onMessage: (Stri
     }
     if (dialogs.labels) LabelsDialog(vm, onDismiss = { dialogs.labels = false })
     if (dialogs.archived) ArchivedSheet(vm, onDismiss = { dialogs.archived = false })
-    if (dialogs.members) MembersSheet(vm, onDismiss = { dialogs.members = false })
+    if (dialogs.members) ShareSheet(vm, onDismiss = { dialogs.members = false })
     if (dialogs.settings) SettingsDialog(vm, dialogs, onDismiss = { dialogs.settings = false })
     if (dialogs.deleteBoard) {
         ConfirmDialog(
@@ -295,82 +295,6 @@ private fun ArchivedSheet(vm: BoardViewModel, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun MembersSheet(vm: BoardViewModel, onDismiss: () -> Unit) {
-    var email by rememberSaveable { mutableStateOf("") }
-    var role by rememberSaveable { mutableStateOf("editor") }
-    var leaving by remember { mutableStateOf(false) }
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(stringResource(R.string.board_share), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-            val members = vm.members
-            if (members == null) {
-                Text(stringResource(R.string.loading))
-            } else {
-                members.members.forEach { member ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(member.name + if (member.you) " · " + stringResource(R.string.members_you) else "", style = MaterialTheme.typography.bodyLarge)
-                            Text(member.email ?: roleLabel(member.role), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        if (vm.isOwner && member.role != "owner") {
-                            RoleMenu(member.role) { vm.setRole(member.userId, it) }
-                            IconButton(onClick = { vm.removeMember(member.userId) }) { Icon(Icons.Outlined.Delete, stringResource(R.string.members_remove)) }
-                        } else {
-                            Text(roleLabel(member.role), style = MaterialTheme.typography.labelMedium)
-                        }
-                    }
-                }
-                if (members.invitations.isNotEmpty()) {
-                    HorizontalDivider()
-                    Text(stringResource(R.string.members_pending), style = MaterialTheme.typography.labelLarge)
-                    members.invitations.forEach { invitation ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("${invitation.email} · ${roleLabel(invitation.role)}", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                            if (vm.isOwner) TextButton(onClick = { vm.revokeInvitation(invitation.id) }) { Text(stringResource(R.string.calendar_feed_revoke)) }
-                        }
-                    }
-                }
-                HorizontalDivider()
-                if (vm.isOwner) {
-                    Text(stringResource(R.string.members_invite), style = MaterialTheme.typography.labelLarge)
-                    EmailField(email, { email = it }, Modifier.fillMaxWidth())
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        RoleMenu(role) { role = it }
-                        Button(onClick = { vm.invite(email, role); email = "" }, enabled = email.contains('@')) { Text(stringResource(R.string.members_send)) }
-                    }
-                    Text(stringResource(R.string.members_invite_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else {
-                    OutlinedButton(onClick = { leaving = true }) { Text(stringResource(R.string.members_leave), color = MaterialTheme.colorScheme.error) }
-                }
-            }
-        }
-    }
-    if (leaving) {
-        ConfirmDialog(
-            title = stringResource(R.string.members_leave),
-            text = stringResource(R.string.members_leave_body),
-            confirmLabel = stringResource(R.string.members_leave),
-            destructive = true,
-            onConfirm = { vm.userId?.let(vm::removeMember); onDismiss() },
-            onDismiss = { leaving = false },
-        )
-    }
-}
-
-@Composable
-private fun RoleMenu(role: String, onPick: (String) -> Unit) {
-    var open by remember { mutableStateOf(false) }
-    androidx.compose.foundation.layout.Box {
-        TextButton(onClick = { open = true }) { Text(roleLabel(role)) }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            listOf("editor", "reader").forEach { option ->
-                DropdownMenuItem(text = { Text(roleLabel(option)) }, onClick = { open = false; onPick(option) })
-            }
-        }
-    }
-}
-
-@Composable
 private fun SettingsDialog(vm: BoardViewModel, dialogs: BoardDialogs, onDismiss: () -> Unit) {
     val board = vm.detail?.board ?: return
     var name by rememberSaveable { mutableStateOf(board.name) }
@@ -390,8 +314,11 @@ private fun SettingsDialog(vm: BoardViewModel, dialogs: BoardDialogs, onDismiss:
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedButton(onClick = { onDismiss(); dialogs.deleteBoard = true }) {
-                    Text(stringResource(R.string.board_delete_title), color = MaterialTheme.colorScheme.error)
+                // Borrar el tablero es solo de su dueño (la API responde 404 al resto).
+                if (vm.isOwner) {
+                    OutlinedButton(onClick = { onDismiss(); dialogs.deleteBoard = true }) {
+                        Text(stringResource(R.string.board_delete_title), color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         },

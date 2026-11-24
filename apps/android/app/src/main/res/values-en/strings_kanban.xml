@@ -91,11 +91,8 @@
     <string name="labels_edit">Edit label</string>
     <string name="archived_empty">No archived cards.</string>
 
-    <string name="members_you">you</string>
     <string name="members_remove">Remove from board</string>
     <string name="members_pending">Pending invitations</string>
-    <string name="members_invite">Invite someone</string>
-    <string name="members_invite_hint">They need a Delyra account; they\'ll see the invitation when they sign in.</string>
     <string name="members_send">Invite</string>
     <string name="members_leave">Leave the board</string>
     <string name="members_leave_body">You\'ll stop seeing this board until you\'re invited again.</string>
@@ -147,4 +144,22 @@
     <string name="activity_restored">restored it</string>
     <string name="activity_completed">completed it</string>
     <string name="activity_updated">changed it</string>
+    <string name="board_people">People</string>
+    <string name="board_owned_by">by %1$s</string>
+    <string name="share_title_owner">Share the board</string>
+    <string name="share_title_member">People on the board</string>
+    <string name="share_intro_owner">Invite by email anyone with a Delyra account. Editors can create, move and comment on cards; readers can only view them.</string>
+    <string name="share_intro_editor">This board belongs to %1$s. You can edit it.</string>
+    <string name="share_intro_reader">This board belongs to %1$s. You can only view it.</string>
+    <string name="share_with_access">With access</string>
+    <string name="share_permission">Permission:</string>
+    <string name="share_permission_of">Permission for %1$s</string>
+    <string name="share_invited">Invitation created: they\'ll see it in Tasks when signing in with that email.</string>
+    <string name="share_limits">Up to %1$d people. The invitation expires after %2$d days.</string>
+    <string name="share_you">" (you)"</string>
+    <string name="share_remove">Remove %1$s from the board</string>
+    <string name="share_confirm_remove">Remove %1$s from the board?</string>
+    <string name="share_expires">%1$s · expires on %2$s</string>
+    <string name="share_revoke">Revoke</string>
+    <string name="card_gone">The card no longer exists or you no longer have access to its board.</string>
 </resources>

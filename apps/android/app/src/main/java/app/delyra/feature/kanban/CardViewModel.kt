@@ -23,6 +23,8 @@ import app.delyra.core.network.ApiException
 import app.delyra.core.network.apiCall
 import app.delyra.core.network.apiError
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
@@ -68,23 +70,101 @@ class CardViewModel(private val graph: AppGraph, val cardId: String) : ViewModel
 
     val canWrite: Boolean get() = board?.board?.canWrite == true
 
+    /** Otra persona borró la tarjeta o te quitó el acceso al tablero mientras la mirabas. */
+    var gone by mutableStateOf(false)
+        private set
+
+    private val userId: String? = graph.session.active?.user?.id
+    private var mutations = 0
+    private var refreshJob: Job? = null
+    private var live: BoardLive? = null
+    private var liveWanted = false
+    private var liveStarts = 0
+
     init {
         load()
-    }
-
-    fun load() {
+        // Cambios de otras personas en su tablero (los avisa el canal en vivo del tablero abierto).
         viewModelScope.launch {
-            apiCall { api.card(cardId) }.onSuccess { response ->
-                card = response.card
-                loadError = null
-                if (board?.board?.id != response.card.boardId) {
-                    apiCall { api.board(response.card.boardId) }.onSuccess { board = it }
-                }
-            }.onFailure { loadError = it.apiError }
+            graph.changes.remoteBoard.collect { boardId -> if (boardId == card?.boardId) scheduleRefresh() }
         }
     }
 
+    /**
+     * Carga la tarjeta y su tablero (columnas, etiquetas y papel, que también pueden cambiar). Una
+     * lectura que empezó antes de un cambio propio se descarta: no deshace lo que se acaba de hacer.
+     */
+    fun load(refreshBoard: Boolean = false) {
+        val started = mutations
+        viewModelScope.launch {
+            apiCall { api.card(cardId) }.onSuccess { response ->
+                if (started != mutations) return@onSuccess
+                card = response.card
+                loadError = null
+                if (refreshBoard || board?.board?.id != response.card.boardId) {
+                    apiCall { api.board(response.card.boardId) }.onSuccess { board = it }
+                }
+                if (liveWanted) ensureLive()
+            }.onFailure {
+                val error = it.apiError
+                if (card != null && error is ApiError.Http && error.status == 404) {
+                    gone = true
+                    graph.changes.boardsChanged()
+                }
+                else if (card == null) loadError = error
+            }
+        }
+    }
+
+    private fun scheduleRefresh() {
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch {
+            delay(300)
+            load(refreshBoard = true)
+        }
+    }
+
+    /**
+     * Pantalla completa de la tarjeta (teléfono): el tablero queda detrás con su canal cerrado, así
+     * que la tarjeta abre el suyo. En el panel del tablero (tablet) no hace falta: ya lo tiene él.
+     */
+    fun startLive() {
+        liveWanted = true
+        if (liveStarts++ > 0) scheduleRefresh()
+        ensureLive()
+    }
+
+    fun stopLive() {
+        liveWanted = false
+        live?.stop()
+    }
+
+    private fun ensureLive() {
+        val boardId = card?.boardId ?: return
+        val channel = live ?: BoardLive(
+            client = graph.network.client,
+            url = liveUrl(boardId),
+            scope = viewModelScope,
+            onChanged = { by ->
+                if (by != userId) {
+                    scheduleRefresh()
+                    graph.changes.boardsChanged()
+                }
+            },
+            onPresence = {},
+            onRevoked = {
+                gone = true
+                graph.changes.boardsChanged()
+            },
+        ).also { live = it }
+        channel.start()
+    }
+
+    override fun onCleared() {
+        live?.stop()
+    }
+
     private fun run(block: suspend () -> CardResponse) {
+        mutations++
         busy = true
         viewModelScope.launch {
             apiCall { block() }
@@ -125,6 +205,7 @@ class CardViewModel(private val graph: AppGraph, val cardId: String) : ViewModel
 
     fun move(columnId: String, assignee: String? = null) {
         val target = board?.cards?.count { it.columnId == columnId && it.id != cardId } ?: 0
+        mutations++
         busy = true
         viewModelScope.launch {
             apiCall {
@@ -153,6 +234,7 @@ class CardViewModel(private val graph: AppGraph, val cardId: String) : ViewModel
     fun archive(archived: Boolean) = run { if (archived) api.archiveCard(cardId) else api.restoreCard(cardId) }
 
     fun delete() {
+        mutations++
         busy = true
         viewModelScope.launch {
             apiCall { api.deleteCard(cardId) }.onSuccess {
@@ -184,6 +266,7 @@ class CardViewModel(private val graph: AppGraph, val cardId: String) : ViewModel
                 resolver.openInputStream(uri)?.use { sink.writeAll(it.source()) } ?: throw java.io.IOException("Sin acceso al fichero")
             }
         }
+        mutations++
         uploading = true
         viewModelScope.launch {
             apiCall { api.uploadAttachment(cardId, Uri.encode(name ?: "fichero"), body) }

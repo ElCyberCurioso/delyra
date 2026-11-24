@@ -69,6 +69,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleStartEffect
 import app.delyra.R
 import app.delyra.core.model.CardDetail
 import app.delyra.core.model.DueInfo
@@ -97,7 +98,18 @@ import java.time.temporal.ChronoUnit
 @Composable
 fun CardScreen(cardId: String, onBack: () -> Unit) {
     val vm = appViewModel(key = "card:$cardId") { CardViewModel(it, cardId) }
-    LaunchedEffect(vm.deleted) { if (vm.deleted) onBack() }
+    val context = LocalContext.current
+    val goneText = stringResource(R.string.card_gone)
+    LaunchedEffect(vm.deleted, vm.gone) {
+        // Se cierra sola si otra persona la borró o te quitó el acceso; se avisa porque no lo hiciste tú.
+        if (vm.gone) android.widget.Toast.makeText(context, goneText, android.widget.Toast.LENGTH_LONG).show()
+        if (vm.deleted || vm.gone) onBack()
+    }
+    // Con el tablero detrás (y su canal cerrado), la tarjeta escucha los cambios de las demás personas.
+    LifecycleStartEffect(cardId) {
+        vm.startLive()
+        onStopOrDispose { vm.stopLive() }
+    }
     val snackbar = remember { SnackbarHostState() }
     CardMessages(vm, snackbar)
     Scaffold(
@@ -137,7 +149,12 @@ fun CardMessages(vm: CardViewModel, snackbar: SnackbarHostState) {
 @Composable
 fun CardPane(cardId: String, onClose: () -> Unit, modifier: Modifier = Modifier) {
     val vm = appViewModel(key = "card:$cardId") { CardViewModel(it, cardId) }
-    LaunchedEffect(vm.deleted) { if (vm.deleted) onClose() }
+    val context = LocalContext.current
+    val goneText = stringResource(R.string.card_gone)
+    LaunchedEffect(vm.deleted, vm.gone) {
+        if (vm.gone) android.widget.Toast.makeText(context, goneText, android.widget.Toast.LENGTH_LONG).show()
+        if (vm.deleted || vm.gone) onClose()
+    }
     val snackbar = remember { SnackbarHostState() }
     CardMessages(vm, snackbar)
     Box(modifier) {

@@ -1,7 +1,8 @@
 # Plan · App de Android (noviembre de 2026)
 
-> **Estado:** v2 (revisada). F8-01 a F8-04 construidas y probadas contra `pnpm dev` (registro,
-> alta TOTP, calendario, tableros, tarjetas y canal en vivo); F8-05 a F8-11, pendientes. Decisiones
+> **Estado:** v2 (revisada). F8-01 a F8-05 construidas y probadas contra `pnpm dev` (registro,
+> alta TOTP, calendario, tableros, tarjetas, compartir y canal en vivo con dos personas, app y web);
+> F8-06 a F8-11, pendientes. Decisiones
 > en [ADR-0016](decisiones/ADR-0016-app-android.md) y uso en el
 > [runbook](runbooks/android.md).
 
@@ -159,8 +160,14 @@ accesibilidad para mover tarjetas sin arrastrar (TalkBack), modo oscuro y «redu
 - **F8-04 · Planificador.** Lista de tableros y creación con plantilla, tablero adaptativo, mover
   tarjetas (arrastrar / «Mover a…» / acciones de accesibilidad), columnas delegadas con asignado,
   aviso de WIP, detalle de tarjeta completo, adjuntos (subir y abrir), archivo y restauración.
-- **F8-05 · Compartir y en vivo.** Miembros, invitaciones, aceptar o rechazar, papel de lectura,
-  WebSocket con reconexión y presencia.
+- **F8-05 · Compartir y en vivo.** Hecho. Hoja «Compartir» / «Personas» como `share-dialog.tsx`
+  (invitar con permiso, cambiar permisos, quitar, anular invitaciones, salir, límites y caducidad);
+  aceptar o rechazar invitaciones; papel de lectura sin controles de edición; ajustes del tablero
+  para quien edita (borrarlo, solo el dueño); cabecera con papel, dueño y presencia. Canal en vivo
+  con reconexión con espera creciente y azar, refresco al volver al tablero, y avisos a la tarjeta
+  abierta, a la lista y al calendario. En el teléfono, la pantalla de una tarjeta abre su propio
+  canal (el tablero queda detrás, cerrado) y se cierra con aviso si la borran o te quitan el
+  acceso.
 - **F8-06 · Ajustes y copias.**
 - **F8-07 · Alta rápida y dictado.**
 - **F8-08 · Integraciones y administración.** Verificar antes si los _callbacks_ OAuth de Google y

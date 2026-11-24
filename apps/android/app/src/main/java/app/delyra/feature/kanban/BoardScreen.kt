@@ -29,10 +29,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
@@ -200,16 +203,23 @@ private fun BoardTopBar(vm: BoardViewModel, dialogs: BoardDialogs, onBack: () ->
         title = {
             Column {
                 Text(board?.name.orEmpty(), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (vm.presence.isNotEmpty()) {
+                // Tablero compartido contigo: tu papel y de quién es; y quién más lo tiene abierto ahora.
+                val role = if (board != null && !board.isOwner) {
+                    roleLabel(board.role) + (board.ownerName?.let { " · " + stringResource(R.string.board_owned_by, it) } ?: "")
+                } else {
+                    null
+                }
+                val here = vm.presence.takeIf { it.isNotEmpty() }?.let { people ->
+                    stringResource(R.string.board_presence, people.joinToString { it.name })
+                }
+                if (role != null || here != null) {
                     Text(
-                        stringResource(R.string.board_presence, vm.presence.joinToString { it.name }),
+                        listOfNotNull(role, here).joinToString(" · "),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = if (here != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                } else if (board?.canWrite == false) {
-                    Text(stringResource(R.string.role_reader), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         },
@@ -217,7 +227,13 @@ private fun BoardTopBar(vm: BoardViewModel, dialogs: BoardDialogs, onBack: () ->
             IconButton(onClick = onSearch) {
                 Icon(if (searching) Icons.Outlined.Close else Icons.Outlined.Search, stringResource(R.string.action_search))
             }
-            IconButton(onClick = { dialogs.members = true; vm.loadMembers() }) { Icon(Icons.Outlined.PersonAdd, stringResource(R.string.board_share)) }
+            // El dueño comparte; el resto ve quién tiene acceso. Con el número de personas, si hay más.
+            val peopleLabel = stringResource(if (board?.isOwner != false) R.string.board_share else R.string.board_people)
+            IconButton(onClick = { dialogs.members = true; vm.loadMembers() }) {
+                BadgedBox(badge = { if ((board?.members ?: 0) > 0) Badge(containerColor = MaterialTheme.colorScheme.primary) { Text(((board?.members ?: 0) + 1).toString()) } }) {
+                    Icon(if (board?.isOwner != false) Icons.Outlined.PersonAdd else Icons.Outlined.Group, peopleLabel)
+                }
+            }
             Box {
                 IconButton(onClick = { menu = true }) { Icon(Icons.Outlined.MoreVert, stringResource(R.string.action_more)) }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
@@ -228,7 +244,7 @@ private fun BoardTopBar(vm: BoardViewModel, dialogs: BoardDialogs, onBack: () ->
                     DropdownMenuItem(text = { Text(stringResource(R.string.board_archived)) }, onClick = { menu = false; dialogs.archived = true; vm.loadArchived() })
                     DropdownMenuItem(text = { Text(stringResource(R.string.board_export_json)) }, onClick = { menu = false; exportJson.launch("${board?.name ?: "tablero"}.json") })
                     DropdownMenuItem(text = { Text(stringResource(R.string.board_export_csv)) }, onClick = { menu = false; exportCsv.launch("${board?.name ?: "tablero"}.csv") })
-                    if (vm.isOwner) {
+                    if (vm.canWrite) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.board_settings)) }, onClick = { menu = false; dialogs.settings = true })
                     }
                 }
