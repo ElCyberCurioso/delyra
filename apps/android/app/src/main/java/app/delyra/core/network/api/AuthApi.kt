@@ -9,6 +9,7 @@ import app.delyra.core.model.ForgotPasswordRequest
 import app.delyra.core.model.InvitationInfo
 import app.delyra.core.model.LoginRequest
 import app.delyra.core.model.MeResponse
+import app.delyra.core.model.PasskeysResponse
 import app.delyra.core.model.ProfileRequest
 import app.delyra.core.model.ProfileResponse
 import app.delyra.core.model.ReauthRequest
@@ -18,6 +19,8 @@ import app.delyra.core.model.ResetPasswordRequest
 import app.delyra.core.model.SecurityOverview
 import app.delyra.core.model.SessionsResponse
 import app.delyra.core.model.SettingsResponse
+import app.delyra.core.model.TelegramLinkResponse
+import app.delyra.core.model.TelegramStatus
 import app.delyra.core.model.TokenRequest
 import app.delyra.core.model.TotpSetupResponse
 import app.delyra.core.model.UserSettings
@@ -99,4 +102,26 @@ interface AccountApi {
 
     @GET("me/audit")
     suspend fun audit(): AuditResponse
+
+    @GET("me/passkeys")
+    suspend fun passkeys(): PasskeysResponse
+
+    @DELETE("me/passkeys/{id}")
+    suspend fun deletePasskey(@Path("id") id: String)
+
+    @GET("me/telegram")
+    suspend fun telegram(): TelegramStatus
+
+    @POST("me/telegram/link")
+    suspend fun telegramLink(): TelegramLinkResponse
+
+    /** Solo las claves que cambian; `null` desactiva (resumen u horas de silencio). */
+    @PATCH("me/telegram")
+    suspend fun updateTelegram(@Body body: JsonObject): TelegramStatus
+
+    @POST("me/telegram/test")
+    suspend fun telegramTest()
+
+    @DELETE("me/telegram")
+    suspend fun unlinkTelegram()
 }

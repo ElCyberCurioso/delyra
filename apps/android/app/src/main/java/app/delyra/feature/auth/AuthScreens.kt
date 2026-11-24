@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -48,6 +49,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -62,6 +64,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.delyra.R
+import app.delyra.core.model.TotpSetupResponse
 import app.delyra.core.network.ApiError
 import app.delyra.core.session.SessionState
 import app.delyra.core.ui.CodeField
@@ -296,10 +299,6 @@ private fun TotpSetupForm(vm: AuthViewModel) {
     }
     val enrollment = vm.totpEnrollment
     var code by rememberSaveable { mutableStateOf("") }
-    val context = LocalContext.current
-    val clipboard = LocalClipboard.current
-    val scope = rememberCoroutineScope()
-    var noApp by rememberSaveable { mutableStateOf(false) }
     BackHandler { vm.cancelPending() }
 
     Title(stringResource(R.string.totp_title), stringResource(R.string.totp_subtitle))
@@ -309,6 +308,21 @@ private fun TotpSetupForm(vm: AuthViewModel) {
         return
     }
     Text(stringResource(R.string.totp_step_open), style = MaterialTheme.typography.bodyMedium)
+    TotpSecretBlock(enrollment)
+    Text(stringResource(R.string.totp_step_code), style = MaterialTheme.typography.bodyMedium)
+    CodeField(code, { code = it }, stringResource(R.string.field_totp_code), Modifier.fillMaxWidth(), onDone = { vm.confirmTotp(code) })
+    FormError(vm.totp.error)
+    SubmitButton(stringResource(R.string.totp_confirm), vm.totp.busy, enabled = code.length == 6) { vm.confirmTotp(code) }
+    TextButton(onClick = vm::cancelPending) { Text(stringResource(R.string.action_cancel)) }
+}
+
+/** Abrir la app autenticadora con el `otpauth://` o copiar la clave a mano (alta y cambio de app). */
+@Composable
+fun TotpSecretBlock(enrollment: TotpSetupResponse) {
+    val context = LocalContext.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
+    var noApp by rememberSaveable { mutableStateOf(false) }
     Button(onClick = {
         try {
             context.startActivity(Intent(Intent.ACTION_VIEW, enrollment.otpauthUri.toUri()))
@@ -328,20 +342,20 @@ private fun TotpSetupForm(vm: AuthViewModel) {
             Text(stringResource(R.string.action_copy))
         }
     }
-    Text(stringResource(R.string.totp_step_code), style = MaterialTheme.typography.bodyMedium)
-    CodeField(code, { code = it }, stringResource(R.string.field_totp_code), Modifier.fillMaxWidth(), onDone = { vm.confirmTotp(code) })
-    FormError(vm.totp.error)
-    SubmitButton(stringResource(R.string.totp_confirm), vm.totp.busy, enabled = code.length == 6) { vm.confirmTotp(code) }
-    TextButton(onClick = vm::cancelPending) { Text(stringResource(R.string.action_cancel)) }
 }
 
 @Composable
-fun RecoveryCodesView(codes: List<String>, onDone: () -> Unit) {
+fun RecoveryCodesView(
+    codes: List<String>,
+    onDone: () -> Unit,
+    title: String = stringResource(R.string.recovery_title),
+    subtitle: String = stringResource(R.string.recovery_subtitle),
+) {
     SecureScreen()
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
     var saved by rememberSaveable { mutableStateOf(false) }
-    Title(stringResource(R.string.recovery_title), stringResource(R.string.recovery_subtitle))
+    Title(title, subtitle)
     SelectionContainer {
         Column(
             Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.shapes.medium).padding(16.dp),
@@ -359,8 +373,12 @@ fun RecoveryCodesView(codes: List<String>, onDone: () -> Unit) {
         Spacer(Modifier.size(8.dp))
         Text(stringResource(R.string.recovery_copy))
     }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(checked = saved, onCheckedChange = { saved = it })
+    // Toda la fila marca la casilla (no solo el cuadrado).
+    Row(
+        Modifier.fillMaxWidth().toggleable(saved, role = Role.Checkbox) { saved = it },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = saved, onCheckedChange = null, modifier = Modifier.padding(12.dp))
         Text(stringResource(R.string.recovery_saved))
     }
     Button(onClick = onDone, enabled = saved, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text(stringResource(R.string.action_continue)) }

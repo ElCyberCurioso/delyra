@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.delyra.R
+import app.delyra.core.i18n.serverText
 import app.delyra.core.model.BoardInvitation
 import app.delyra.core.model.BoardMember
 import app.delyra.core.network.ApiError
@@ -134,7 +135,7 @@ private fun InviteForm(vm: BoardViewModel) {
         }
     }
     val error = vm.inviteError
-    val fieldError = (error as? ApiError.Validation)?.fields?.get("email")
+    val fieldError = (error as? ApiError.Validation)?.fields?.get("email")?.let { serverText(it) }
     Surface(shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             EmailField(

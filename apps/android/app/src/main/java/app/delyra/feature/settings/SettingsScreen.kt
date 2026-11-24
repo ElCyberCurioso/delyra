@@ -16,7 +16,10 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -54,9 +57,8 @@ import app.delyra.BuildConfig
 import app.delyra.R
 import app.delyra.core.config.Environment
 import app.delyra.core.model.ActiveSession
-import app.delyra.core.model.ChangePasswordRequest
+import app.delyra.core.model.AuditEntry
 import app.delyra.core.model.ProfileRequest
-import app.delyra.core.model.SecurityOverview
 import app.delyra.core.model.UserSettings
 import app.delyra.core.network.ApiError
 import app.delyra.core.network.apiCall
@@ -64,7 +66,6 @@ import app.delyra.core.network.apiError
 import app.delyra.core.session.SessionState
 import app.delyra.core.ui.ConfirmDialog
 import app.delyra.core.ui.LocalAppGraph
-import app.delyra.core.ui.PasswordField
 import app.delyra.core.ui.TextInputDialog
 import app.delyra.core.ui.Tile
 import app.delyra.core.ui.appViewModel
@@ -76,24 +77,24 @@ import java.time.DayOfWeek
 import java.time.ZoneId
 import java.time.format.TextStyle
 
-/** Ajustes de cuenta (F8-06, primera parte): perfil, preferencias, contraseña y sesiones. */
+/**
+ * Ajustes de cuenta (F8-06): perfil, preferencias, sesiones e historial de seguridad. Seguridad,
+ * Telegram y copias tienen su propio ViewModel (SecuritySettings.kt, TelegramSettings.kt,
+ * BackupsSettings.kt).
+ */
 class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
     private val api = graph.accountApi
-    var security by mutableStateOf<SecurityOverview?>(null)
-        private set
     var sessions by mutableStateOf<List<ActiveSession>>(emptyList())
+        private set
+    var audit by mutableStateOf<List<AuditEntry>?>(null)
         private set
     var message by mutableStateOf<ApiError?>(null)
     var notice by mutableStateOf<Int?>(null)
 
-    init {
-        refresh()
-    }
-
     fun refresh() {
         viewModelScope.launch {
-            apiCall { api.security() }.onSuccess { security = it }
             apiCall { api.sessions() }.onSuccess { sessions = it.sessions }.onFailure { message = it.apiError }
+            apiCall { api.audit() }.onSuccess { audit = it.events }
         }
     }
 
@@ -113,14 +114,6 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
                     graph.changes.calendarChanged()
                     notice = R.string.settings_saved
                 }
-                .onFailure { message = it.apiError }
-        }
-    }
-
-    fun changePassword(current: String, new: String) {
-        viewModelScope.launch {
-            apiCall { api.changePassword(ChangePasswordRequest(current, new)) }
-                .onSuccess { notice = R.string.settings_password_changed; refresh() }
                 .onFailure { message = it.apiError }
         }
     }
@@ -149,14 +142,23 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
 @Composable
 fun SettingsScreen(session: SessionState.Active) {
     val vm = appViewModel { SettingsViewModel(it) }
+    val security = appViewModel { SecurityViewModel(it) }
+    val telegram = appViewModel { TelegramViewModel(it) }
+    val backups = appViewModel { BackupsViewModel(it) }
     val snackbar = remember { SnackbarHostState() }
-    val messageText = vm.message?.message()
-    val noticeText = vm.notice?.let { stringResource(it) }
-    LaunchedEffect(vm.message, vm.notice) {
-        (messageText ?: noticeText)?.let { snackbar.showSnackbar(it) }
-        vm.message = null
-        vm.notice = null
+    Feedback(snackbar, vm.message, vm.notice) { vm.message = null; vm.notice = null }
+    Feedback(snackbar, security.message, security.notice) { security.message = null; security.notice = null }
+    Feedback(snackbar, telegram.message, telegram.notice) { telegram.message = null; telegram.notice = null }
+    Feedback(snackbar, backups.message, backups.notice) { backups.message = null; backups.notice = null }
+    // Al entrar en Ajustes se vuelve a preguntar (algo pudo cambiar desde la web u otro móvil);
+    // sesiones e historial, además, tras cada cambio de seguridad o restauración.
+    LaunchedEffect(Unit) {
+        security.refresh()
+        telegram.load()
+        backups.refresh()
     }
+    LaunchedEffect(security.revision, backups.revision) { vm.refresh() }
+    val flow = security.flow
     Scaffold(
         topBar = {
             TopAppBar(
@@ -167,6 +169,11 @@ fun SettingsScreen(session: SessionState.Active) {
         snackbarHost = { SnackbarHost(snackbar) },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
+        // Lo que solo se ve una vez (códigos nuevos, semilla de la app nueva) ocupa la pantalla.
+        if (flow is SecurityFlow.NewCodes || flow is SecurityFlow.NewApp) {
+            SecurityFlowScreen(security, flow, Modifier.padding(padding))
+            return@Scaffold
+        }
         // Rejilla bento: una columna en el teléfono, dos o más en anchas.
         LazyVerticalGrid(
             columns = GridCells.Adaptive(340.dp),
@@ -177,17 +184,37 @@ fun SettingsScreen(session: SessionState.Active) {
         ) {
             item { ProfileTile(session, vm) }
             item { PreferencesTile(session, vm) }
-            item { SecurityTile(vm) }
+            item { SecurityTile(security) }
+            item { TelegramTile(telegram) }
+            item(span = { GridItemSpan(maxLineSpan) }) { BackupsTile(backups) }
             item(span = { GridItemSpan(maxLineSpan) }) { SessionsTile(vm) }
+            item(span = { GridItemSpan(maxLineSpan) }) { ActivityTile(vm) }
             if (BuildConfig.ALLOW_LOCAL) item { EnvironmentTile(vm) }
             item { AboutTile(vm) }
         }
     }
 }
 
+/** Lleva al snackbar el error o el aviso de un bloque de Ajustes y lo borra al cerrarse. */
 @Composable
-private fun TileTitle(text: String) {
+private fun Feedback(snackbar: SnackbarHostState, error: ApiError?, notice: Int?, clear: () -> Unit) {
+    val text = error?.message() ?: notice?.let { stringResource(it) }
+    LaunchedEffect(error, notice) {
+        if (text != null) {
+            snackbar.showSnackbar(text)
+            clear()
+        }
+    }
+}
+
+@Composable
+internal fun TileTitle(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+}
+
+@Composable
+internal fun Hint(text: String) {
+    Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable
@@ -300,57 +327,6 @@ private fun ZoneDialog(current: String, onDismiss: () -> Unit, onPick: (String) 
 }
 
 @Composable
-private fun SecurityTile(vm: SettingsViewModel) {
-    val locale = appLocale()
-    val zone = LocalAppGraph.current.session.active?.zone ?: ZoneId.systemDefault()
-    var changing by rememberSaveable { mutableStateOf(false) }
-    val security = vm.security
-    Tile(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TileTitle(stringResource(R.string.settings_security))
-            if (security != null) {
-                Text(androidx.compose.ui.res.pluralStringResource(R.plurals.settings_recovery_left, security.remainingRecoveryCodes, security.remainingRecoveryCodes), style = MaterialTheme.typography.bodyMedium)
-                security.passwordChangedAt?.let {
-                    Text(stringResource(R.string.settings_password_changed_at, shortDateTime(it, zone, locale)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Text(stringResource(R.string.settings_passkeys, security.passkeys), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            OutlinedButton(onClick = { changing = true }) { Text(stringResource(R.string.settings_change_password)) }
-            Text(stringResource(R.string.settings_more_on_web), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-    if (changing) PasswordDialog(onDismiss = { changing = false }, onSave = vm::changePassword)
-}
-
-@Composable
-private fun PasswordDialog(onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
-    var current by rememberSaveable { mutableStateOf("") }
-    var new by rememberSaveable { mutableStateOf("") }
-    var repeat by rememberSaveable { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_change_password)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                PasswordField(current, { current = it }, stringResource(R.string.field_current_password), Modifier.fillMaxWidth())
-                PasswordField(new, { new = it }, stringResource(R.string.field_new_password), Modifier.fillMaxWidth(), newPassword = true, supporting = stringResource(R.string.password_rules))
-                PasswordField(
-                    repeat, { repeat = it }, stringResource(R.string.field_repeat_password), Modifier.fillMaxWidth(), newPassword = true,
-                    error = if (repeat.isNotEmpty() && repeat != new) stringResource(R.string.password_mismatch) else null,
-                )
-                Text(stringResource(R.string.settings_password_effect), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onSave(current, new); onDismiss() }, enabled = current.isNotEmpty() && new.length >= 12 && new == repeat) {
-                Text(stringResource(R.string.action_save))
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-    )
-}
-
-@Composable
 private fun SessionsTile(vm: SettingsViewModel) {
     val locale = appLocale()
     val zone = LocalAppGraph.current.session.active?.zone ?: ZoneId.systemDefault()
@@ -363,12 +339,12 @@ private fun SessionsTile(vm: SettingsViewModel) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(
-                            (s.userAgent ?: stringResource(R.string.settings_unknown_device)) + if (s.current) " · " + stringResource(R.string.settings_this_device) else "",
+                            describeDevice(s.userAgent) + if (s.current) " · " + stringResource(R.string.settings_this_device) else "",
                             style = MaterialTheme.typography.bodyMedium,
                             maxLines = 2,
                         )
                         Text(
-                            listOfNotNull(s.country, stringResource(R.string.settings_last_seen, shortDateTime(s.lastSeenAt, zone, locale))).joinToString(" · "),
+                            listOfNotNull(countryName(s.country, locale), stringResource(R.string.settings_last_seen, shortDateTime(s.lastSeenAt, zone, locale))).joinToString(" · "),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -389,6 +365,48 @@ private fun SessionsTile(vm: SettingsViewModel) {
             onConfirm = vm::revokeOthers,
             onDismiss = { confirmOthers = false },
         )
+    }
+}
+
+/** Historial de seguridad propio (los últimos 50 eventos): se enseñan 8 y el resto a petición. */
+@Composable
+private fun ActivityTile(vm: SettingsViewModel) {
+    val locale = appLocale()
+    var all by rememberSaveable { mutableStateOf(false) }
+    val events = vm.audit
+    Tile(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            TileTitle(stringResource(R.string.settings_activity))
+            Hint(stringResource(R.string.settings_activity_intro))
+            if (events == null) return@Column
+            val shown = if (all) events else events.take(8)
+            shown.forEachIndexed { index, entry ->
+                if (index > 0) HorizontalDivider()
+                val suspicious = entry.event in SUSPICIOUS_EVENTS
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (suspicious) Icon(Icons.Outlined.WarningAmber, stringResource(R.string.settings_activity_suspicious), tint = MaterialTheme.colorScheme.error)
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            auditLabel(entry.event),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (suspicious) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                        )
+                        Hint(
+                            listOfNotNull(
+                                accountDateTime(entry.createdAt),
+                                countryName(entry.country, locale),
+                                entry.userAgent?.let { describeDevice(it) },
+                            ).joinToString(" · "),
+                        )
+                    }
+                }
+            }
+            if (events.size > 8) {
+                TextButton(onClick = { all = !all }) {
+                    Text(stringResource(if (all) R.string.settings_activity_fewer else R.string.settings_activity_all))
+                }
+            }
+        }
     }
 }
 

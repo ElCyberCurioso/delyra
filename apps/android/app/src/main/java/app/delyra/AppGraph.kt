@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Base64
 import app.delyra.core.config.AppPreferences
 import app.delyra.core.config.Environment
+import app.delyra.core.i18n.ServerMessages
 import app.delyra.core.network.CookieCipher
 import app.delyra.core.network.CookieStorage
 import app.delyra.core.network.Network
@@ -11,6 +12,7 @@ import app.delyra.core.network.SessionCookieJar
 import app.delyra.core.network.api.AccountApi
 import app.delyra.core.network.api.AuthApi
 import app.delyra.core.network.api.CalendarApi
+import app.delyra.core.network.api.BackupsApi
 import app.delyra.core.network.api.KanbanApi
 import app.delyra.core.security.KeystoreCipher
 import app.delyra.core.session.DataChanges
@@ -58,9 +60,15 @@ class AppGraph(private val context: Context) {
     val accountApi: AccountApi = network.create()
     val calendarApi: CalendarApi = network.create()
     val kanbanApi: KanbanApi = network.create()
+    val backupsApi: BackupsApi = network.create()
 
     val session = SessionRepository(authApi, cookies, scope, onSignedOut = ::clearLocalData)
     val changes = DataChanges()
+
+    /** Traducción de los mensajes de la API al inglés; se lee la primera vez que hace falta. */
+    val serverMessages by lazy {
+        ServerMessages(context.assets.open("server-messages.en.json").bufferedReader().use { it.readText() })
+    }
 
     init {
         scope.launch { network.sessionExpired.collect { session.expired() } }

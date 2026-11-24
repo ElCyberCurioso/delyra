@@ -1,5 +1,7 @@
 package app.delyra.feature.calendar
 
+import android.content.ContentResolver
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -8,20 +10,25 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.delyra.AppGraph
+import app.delyra.R
 import app.delyra.core.model.CalendarFeed
 import app.delyra.core.model.CalendarInfo
 import app.delyra.core.model.CreateCalendarRequest
 import app.delyra.core.model.DueCard
 import app.delyra.core.model.Holiday
+import app.delyra.core.model.HolidayRegionRequest
 import app.delyra.core.model.Occurrence
 import app.delyra.core.network.ApiError
 import app.delyra.core.network.apiCall
 import app.delyra.core.network.apiError
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import java.io.IOException
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -68,6 +75,11 @@ class CalendarViewModel(private val graph: AppGraph) : ViewModel() {
         private set
     var selected by mutableStateOf<CalendarItem?>(null)
     var message by mutableStateOf<ApiError?>(null)
+    /** Aviso breve (texto de recursos), p. ej. tras exportar. */
+    var notice by mutableStateOf<Int?>(null)
+    /** Región de los festivos (`off`, `ES`, `ES-MD`…), la que devuelve la API con los festivos. */
+    var holidayRegion by mutableStateOf<String?>(null)
+        private set
 
     /** Sube con cada cambio: las páginas vuelven a pedir su rango. */
     var dataVersion by mutableIntStateOf(0)
@@ -144,6 +156,7 @@ class CalendarViewModel(private val graph: AppGraph) : ViewModel() {
             val tasksResult = tasks.await()
             // Llegó tarde (hubo un cambio mientras tanto): ya hay otra petición con la versión nueva.
             if (raw[range]?.requested != version) return@launch
+            holidaysResult.getOrNull()?.region?.let { holidayRegion = it }
             raw[range] = RawRange(
                 occurrences = eventsResult.getOrNull()?.events ?: entry?.occurrences.orEmpty(),
                 holidays = holidaysResult.getOrNull()?.holidays.orEmpty(),
@@ -219,6 +232,33 @@ class CalendarViewModel(private val graph: AppGraph) : ViewModel() {
             apiCall { api.deleteCalendar(calendar.id) }
                 .onSuccess { loadCalendars(); invalidate() }
                 .onFailure { message = it.apiError }
+        }
+    }
+
+    // ── Festivos y exportación (F7-03, F6-02) ──
+
+    fun chooseHolidayRegion(region: String) {
+        val previous = holidayRegion
+        if (region == previous) return
+        holidayRegion = region
+        viewModelScope.launch {
+            apiCall { api.setHolidayRegion(HolidayRegionRequest(region)) }
+                .onSuccess { invalidate() }
+                .onFailure { holidayRegion = previous; message = it.apiError }
+        }
+    }
+
+    /** El calendario en ICS en el documento que elija la persona (Storage Access Framework). */
+    fun exportCalendar(calendar: CalendarInfo, target: Uri, resolver: ContentResolver) {
+        viewModelScope.launch {
+            apiCall {
+                val body = api.exportCalendar(calendar.id)
+                withContext(Dispatchers.IO) {
+                    body.use { input ->
+                        resolver.openOutputStream(target)?.use { out -> input.byteStream().copyTo(out) } ?: throw IOException("Sin acceso al documento")
+                    }
+                }
+            }.onSuccess { notice = R.string.calendar_exported }.onFailure { message = it.apiError }
         }
     }
 

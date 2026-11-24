@@ -10,3 +10,4 @@ test-results/
 apps/android/**/build/
 apps/android/.gradle/
 apps/android/.kotlin/
+apps/android/app/src/main/assets/server-messages.en.json
