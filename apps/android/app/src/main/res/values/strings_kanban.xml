@@ -91,11 +91,8 @@
     <string name="labels_edit">Editar etiqueta</string>
     <string name="archived_empty">No hay tarjetas archivadas.</string>
 
-    <string name="members_you">tú</string>
     <string name="members_remove">Quitar del tablero</string>
     <string name="members_pending">Invitaciones pendientes</string>
-    <string name="members_invite">Invitar a alguien</string>
-    <string name="members_invite_hint">Debe tener cuenta en Delyra; verá la invitación al entrar.</string>
     <string name="members_send">Invitar</string>
     <string name="members_leave">Salir del tablero</string>
     <string name="members_leave_body">Dejarás de ver este tablero hasta que te vuelvan a invitar.</string>
@@ -147,4 +144,22 @@
     <string name="activity_restored">la restauró</string>
     <string name="activity_completed">la terminó</string>
     <string name="activity_updated">la cambió</string>
+    <string name="board_people">Personas</string>
+    <string name="board_owned_by">de %1$s</string>
+    <string name="share_title_owner">Compartir el tablero</string>
+    <string name="share_title_member">Personas en el tablero</string>
+    <string name="share_intro_owner">Invita por email a quien tenga cuenta en Delyra. Quien edita puede crear, mover y comentar tarjetas; quien solo lee, mirarlas.</string>
+    <string name="share_intro_editor">Este tablero es de %1$s. Tú puedes editarlo.</string>
+    <string name="share_intro_reader">Este tablero es de %1$s. Tú solo puedes verlo.</string>
+    <string name="share_with_access">Con acceso</string>
+    <string name="share_permission">Permiso:</string>
+    <string name="share_permission_of">Permiso de %1$s</string>
+    <string name="share_invited">Invitación creada: la verá en Tareas al entrar con ese email.</string>
+    <string name="share_limits">Hasta %1$d personas. La invitación caduca a los %2$d días.</string>
+    <string name="share_you">" (tú)"</string>
+    <string name="share_remove">Quitar a %1$s del tablero</string>
+    <string name="share_confirm_remove">¿Quitar a %1$s del tablero?</string>
+    <string name="share_expires">%1$s · caduca el %2$s</string>
+    <string name="share_revoke">Anular</string>
+    <string name="card_gone">La tarjeta ya no existe o ya no tienes acceso a su tablero.</string>
 </resources>

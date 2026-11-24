@@ -66,7 +66,13 @@ cookie común, CSRF por `Origin`, Turnstile en los formularios públicos y 2FA o
   suyo. Cada rango del calendario y cada tablero descartan las respuestas que empezaron antes del
   último cambio (el fallo que corrigió F4-08 en la web).
 - Canal en vivo del tablero por WebSocket (con `Origin` y la cookie), solo mientras el tablero está
-  en pantalla, con `ping` cada 30 s, reconexión con espera creciente y cierre 4403 = sin acceso.
+  en pantalla, con `ping` cada 30 s, reconexión con espera creciente (más hasta 0,5 s al azar, como
+  la web) y cierre 4403 o 403/404 en el saludo = sin acceso. Al volver a un tablero se pide de
+  nuevo (pudo cambiar con el canal cerrado).
+- Un cambio ajeno llega a todo lo que lo pinta por `DataChanges.remoteBoard`: el tablero, la tarjeta
+  abierta en su panel, la lista de tableros y la capa de tareas del calendario. En el teléfono la
+  tarjeta va en pantalla completa con el tablero detrás (y su canal cerrado), así que abre su propio
+  canal mientras está visible (F8-05).
 
 ## Consecuencias
 
@@ -75,7 +81,7 @@ cookie común, CSRF por `Origin`, Turnstile en los formularios públicos y 2FA o
   intercepta (`navigateFallbackDenylist`).
 - Los mensajes de error de la API llegan en español; en inglés solo se traducen los genéricos
   hasta portar `server-messages.en.ts` (F8-06).
-- Quedan pendientes (plan, tareas F8-05 a F8-11): ajustes avanzados (códigos, cambiar TOTP,
+- Quedan pendientes (plan, tareas F8-06 a F8-11): ajustes avanzados (códigos, cambiar TOTP,
   Telegram, copias, importaciones), alta rápida y dictado, integraciones con Google y Microsoft,
   administración, caché sin conexión, llaves de acceso y publicación en Google Play.
 - No hay notificaciones push: las alertas siguen por Telegram o email.
