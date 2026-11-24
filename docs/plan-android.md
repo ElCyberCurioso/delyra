@@ -1,8 +1,8 @@
 # Plan · App de Android (noviembre de 2026)
 
-> **Estado:** v2 (revisada). F8-01 a F8-06 construidas y probadas contra `pnpm dev` (registro,
+> **Estado:** v2 (revisada). F8-01 a F8-07 construidas y probadas contra `pnpm dev` (registro,
 > alta TOTP, calendario, tableros, tarjetas, compartir y canal en vivo con dos personas, app y web,
-> ajustes y copias de seguridad); F8-07 a F8-11, pendientes. Decisiones
+> ajustes y copias de seguridad, alta rápida y dictado); F8-08 a F8-11, pendientes. Decisiones
 > en [ADR-0016](decisiones/ADR-0016-app-android.md) y uso en el
 > [runbook](runbooks/android.md).
 
@@ -178,7 +178,14 @@ accesibilidad para mover tarjetas sin arrastrar (TalkBack), modo oscuro y «redu
   calendario a ICS y elegir la región de los festivos. Los mensajes de la API se traducen al inglés
   con la misma tabla que la web (`assets/server-messages.en.json`, exportada y vigilada por una
   prueba de `@delyra/ui`).
-- **F8-07 · Alta rápida y dictado.**
+- **F8-07 · Alta rápida y dictado.** Hecho. Hoja «Alta rápida» en el calendario con vista previa
+  (título, cuándo y calendario), «Añadir» y «Más opciones» (el editor con todo puesto). El
+  analizador es propio (`QuickAdd.kt`, sin chrono-node) y una prueba lo compara con la web en un
+  corpus de frases en español e inglés que genera `@delyra/shared`
+  (`src/test/resources/quick-add-cases.json`). Dictado con `SpeechRecognizer` y resultados
+  parciales; el micrófono se pide al pulsarlo. De paso, la web entiende mejor el español hablado
+  («a las 5 de la tarde», «10 y media», «17h», «mediodía», «pasado mañana», «el lunes que viene») y
+  ya no confunde «15/1 a las 9:15» con un rango.
 - **F8-08 · Integraciones y administración.** Verificar antes si los _callbacks_ OAuth de Google y
   Microsoft funcionan sin la cookie del navegador (Custom Tab); si no, cambio en la API.
 - **F8-09 · Sin conexión.**

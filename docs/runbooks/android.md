@@ -51,6 +51,20 @@ Notas:
 - **Copias en local:** los Workflows de copia y restauración corren en el propio `wrangler dev`;
   la descarga se guarda con el selector de documentos del sistema.
 
+## Alta rápida: corpus compartido con la web
+
+`QuickAddTest` comprueba que el analizador de la app da lo mismo que el de la web en
+`app/src/test/resources/quick-add-cases.json`. Si cambia `packages/shared/src/quick-add.ts`, la
+prueba `quick-add.android.test.ts` falla hasta regenerar el corpus, y después la de Android dirá
+qué frases ya no coinciden:
+
+```sh
+pnpm --filter @delyra/shared exec vitest run quick-add.android -u
+```
+
+En el emulador, el dictado arranca y pide el micrófono, pero sin audio del ordenador termina en «No
+se ha oído nada»; para probar frases, `adb shell input text` no admite la «ñ».
+
 ## Mensajes de la API en inglés
 
 La API responde en español y la app traduce con `app/src/main/assets/server-messages.en.json`, que

@@ -1,0 +1,1167 @@
+{
+  "reference": "2026-11-21T18:00",
+  "es": [
+    {
+      "text": "Dentista mañana 17:30",
+      "draft": {
+        "title": "Dentista",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "17:30",
+        "endTime": "18:30"
+      }
+    },
+    {
+      "text": "Dentista mañana a las 17:30",
+      "draft": {
+        "title": "Dentista",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "17:30",
+        "endTime": "18:30"
+      }
+    },
+    {
+      "text": "Cena el viernes a las 21:00",
+      "draft": {
+        "title": "Cena",
+        "allDay": false,
+        "date": "2026-11-27",
+        "startTime": "21:00",
+        "endTime": "22:00"
+      }
+    },
+    {
+      "text": "Reunión el 12/12 de 10:00 a 11:30",
+      "draft": {
+        "title": "Reunión",
+        "allDay": false,
+        "date": "2026-12-12",
+        "startTime": "10:00",
+        "endTime": "11:30"
+      }
+    },
+    {
+      "text": "Yoga hoy de 18 a 19",
+      "draft": {
+        "title": "Yoga",
+        "allDay": false,
+        "date": "2026-11-21",
+        "startTime": "18:00",
+        "endTime": "19:00"
+      }
+    },
+    {
+      "text": "Vuelo a Lisboa 3 de diciembre a las 7",
+      "draft": {
+        "title": "Vuelo a Lisboa",
+        "allDay": false,
+        "date": "2026-12-03",
+        "startTime": "07:00",
+        "endTime": "08:00"
+      }
+    },
+    {
+      "text": "Médico el lunes",
+      "draft": {
+        "title": "Médico",
+        "allDay": true,
+        "date": "2026-11-23",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Comprar pan",
+      "draft": null
+    },
+    {
+      "text": "Cumpleaños de Ana el 5 de enero",
+      "draft": {
+        "title": "Cumpleaños de Ana",
+        "allDay": true,
+        "date": "2027-01-05",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Partido el domingo a las 12",
+      "draft": {
+        "title": "Partido",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "12:00",
+        "endTime": "13:00"
+      }
+    },
+    {
+      "text": "Llamar a Juan pasado mañana a las 10",
+      "draft": {
+        "title": "Llamar a Juan",
+        "allDay": false,
+        "date": "2026-11-23",
+        "startTime": "10:00",
+        "endTime": "11:00"
+      }
+    },
+    {
+      "text": "Revisión el 15/1 a las 9:15",
+      "draft": {
+        "title": "Revisión",
+        "allDay": false,
+        "date": "2027-01-15",
+        "startTime": "09:15",
+        "endTime": "10:15"
+      }
+    },
+    {
+      "text": "Clase de inglés el martes de 17 a 18:30",
+      "draft": {
+        "title": "Clase de inglés",
+        "allDay": false,
+        "date": "2026-11-24",
+        "startTime": "17:00",
+        "endTime": "18:30"
+      }
+    },
+    {
+      "text": "Comida con Laura hoy a las 14:30",
+      "draft": {
+        "title": "Comida con Laura",
+        "allDay": false,
+        "date": "2026-11-21",
+        "startTime": "14:30",
+        "endTime": "15:30"
+      }
+    },
+    {
+      "text": "Entrega del proyecto el 30 de noviembre",
+      "draft": {
+        "title": "Entrega del proyecto",
+        "allDay": true,
+        "date": "2026-11-30",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Café mañana 9.30",
+      "draft": {
+        "title": "Café",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "09:30",
+        "endTime": "10:30"
+      }
+    },
+    {
+      "text": "Dentista mañana a las 5 de la tarde",
+      "draft": {
+        "title": "Dentista",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "17:00",
+        "endTime": "18:00"
+      }
+    },
+    {
+      "text": "Fisio el jueves 18:00",
+      "draft": {
+        "title": "Fisio",
+        "allDay": false,
+        "date": "2026-11-26",
+        "startTime": "18:00",
+        "endTime": "19:00"
+      }
+    },
+    {
+      "text": "Viaje el 24/12/2026",
+      "draft": {
+        "title": "Viaje",
+        "allDay": true,
+        "date": "2026-12-24",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Revisión ITV 2 de febrero de 2027",
+      "draft": {
+        "title": "Revisión ITV",
+        "allDay": true,
+        "date": "2027-02-02",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Médico el próximo lunes a las 11",
+      "draft": {
+        "title": "Médico",
+        "allDay": false,
+        "date": "2026-11-23",
+        "startTime": "11:00",
+        "endTime": "12:00"
+      }
+    },
+    {
+      "text": "Peluquería el sábado a las 10",
+      "draft": {
+        "title": "Peluquería",
+        "allDay": false,
+        "date": "2026-11-28",
+        "startTime": "10:00",
+        "endTime": "11:00"
+      }
+    },
+    {
+      "text": "Reunión 10:00-11:00 mañana",
+      "draft": {
+        "title": "Reunión",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "10:00",
+        "endTime": "11:00"
+      }
+    },
+    {
+      "text": "Gimnasio a las 20",
+      "draft": {
+        "title": "Gimnasio",
+        "allDay": false,
+        "date": "2026-11-21",
+        "startTime": "20:00",
+        "endTime": "21:00"
+      }
+    },
+    {
+      "text": "Concierto el 3 dic a las 21",
+      "draft": {
+        "title": "Concierto",
+        "allDay": false,
+        "date": "2026-12-03",
+        "startTime": "21:00",
+        "endTime": "22:00"
+      }
+    },
+    {
+      "text": "Examen el miércoles",
+      "draft": {
+        "title": "Examen",
+        "allDay": true,
+        "date": "2026-11-25",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Cena mañana a las 9 de la noche",
+      "draft": {
+        "title": "Cena",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "21:00",
+        "endTime": "22:00"
+      }
+    },
+    {
+      "text": "Desayuno mañana a las 8 de la mañana",
+      "draft": {
+        "title": "Desayuno",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "08:00",
+        "endTime": "09:00"
+      }
+    },
+    {
+      "text": "Reunión mañana al mediodía",
+      "draft": {
+        "title": "Reunión",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "12:00",
+        "endTime": "13:00"
+      }
+    },
+    {
+      "text": "Dentista el 1 de diciembre de 9 a 10",
+      "draft": {
+        "title": "Dentista",
+        "allDay": false,
+        "date": "2026-12-01",
+        "startTime": "09:00",
+        "endTime": "10:00"
+      }
+    },
+    {
+      "text": "Tutoría el viernes 13:00",
+      "draft": {
+        "title": "Tutoría",
+        "allDay": false,
+        "date": "2026-11-27",
+        "startTime": "13:00",
+        "endTime": "14:00"
+      }
+    },
+    {
+      "text": "Médico el 3 de marzo a las 8:45",
+      "draft": {
+        "title": "Médico",
+        "allDay": false,
+        "date": "2027-03-03",
+        "startTime": "08:45",
+        "endTime": "09:45"
+      }
+    },
+    {
+      "text": "mañana",
+      "draft": {
+        "title": "Nuevo evento",
+        "allDay": true,
+        "date": "2026-11-22",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Gimnasio a las 10",
+      "draft": {
+        "title": "Gimnasio",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "10:00",
+        "endTime": "11:00"
+      }
+    },
+    {
+      "text": "Peluquería el sábado",
+      "draft": {
+        "title": "Peluquería",
+        "allDay": true,
+        "date": "2026-11-28",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Algo el 15 de noviembre",
+      "draft": {
+        "title": "Algo",
+        "allDay": true,
+        "date": "2027-11-15",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Algo el 21 de noviembre",
+      "draft": {
+        "title": "Algo",
+        "allDay": true,
+        "date": "2027-11-21",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Algo este viernes",
+      "draft": {
+        "title": "Algo",
+        "allDay": true,
+        "date": "2026-11-27",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Algo el próximo viernes",
+      "draft": {
+        "title": "Algo",
+        "allDay": true,
+        "date": "2026-11-27",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Algo el 3 de diciembre de 2027 a las 10:15",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2027-12-03",
+        "startTime": "10:15",
+        "endTime": "11:15"
+      }
+    },
+    {
+      "text": "Algo a las 7:05",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "07:05",
+        "endTime": "08:05"
+      }
+    },
+    {
+      "text": "Algo el 28",
+      "draft": null
+    },
+    {
+      "text": "Algo el 1/2/27",
+      "draft": {
+        "title": "Algo",
+        "allDay": true,
+        "date": "2027-02-01",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Algo 3 dic.",
+      "draft": {
+        "title": "Algo",
+        "allDay": true,
+        "date": "2026-12-03",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Algo hoy 23:59",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-11-21",
+        "startTime": "23:59",
+        "endTime": "23:59"
+      }
+    },
+    {
+      "text": "Algo el domingo",
+      "draft": {
+        "title": "Algo",
+        "allDay": true,
+        "date": "2026-11-22",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Algo de 10 a 11 el lunes",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-11-23",
+        "startTime": "10:00",
+        "endTime": "11:00"
+      }
+    },
+    {
+      "text": "Algo el lunes 17 de mayo",
+      "draft": {
+        "title": "Algo",
+        "allDay": true,
+        "date": "2027-05-17",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Algo a las 5:30 pm",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "17:30",
+        "endTime": "18:30"
+      }
+    },
+    {
+      "text": "Algo de 9:30 a 10",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-11-21",
+        "startTime": "09:30",
+        "endTime": "10:00"
+      }
+    },
+    {
+      "text": "Algo el 31/2",
+      "draft": null
+    },
+    {
+      "text": "Algo el 3 de diciembre 18:00",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-12-03",
+        "startTime": "18:00",
+        "endTime": "19:00"
+      }
+    },
+    {
+      "text": "Algo a las 17:30 mañana",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "17:30",
+        "endTime": "18:30"
+      }
+    },
+    {
+      "text": "Algo 5 de enero 2027",
+      "draft": {
+        "title": "Algo",
+        "allDay": true,
+        "date": "2027-01-05",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Algo 17h",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "17:00",
+        "endTime": "18:00"
+      }
+    },
+    {
+      "text": "Algo a las 17h30",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "17:30",
+        "endTime": "18:30"
+      }
+    },
+    {
+      "text": "Algo mañana a las 10 y media",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "10:30",
+        "endTime": "11:30"
+      }
+    },
+    {
+      "text": "Algo a las cinco menos cuarto",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "04:45",
+        "endTime": "05:45"
+      }
+    },
+    {
+      "text": "Algo mañana a las doce y cuarto",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "12:15",
+        "endTime": "13:15"
+      }
+    },
+    {
+      "text": "Algo a la una",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "01:00",
+        "endTime": "02:00"
+      }
+    },
+    {
+      "text": "Algo de 5 a 7 de la tarde",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-11-21",
+        "startTime": "17:00",
+        "endTime": "19:00"
+      }
+    },
+    {
+      "text": "Algo a las 12 de la noche",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "00:00",
+        "endTime": "01:00"
+      }
+    },
+    {
+      "text": "Algo mañana a medianoche",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "00:00",
+        "endTime": "01:00"
+      }
+    },
+    {
+      "text": "Algo a mediodía",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "12:00",
+        "endTime": "13:00"
+      }
+    },
+    {
+      "text": "Algo el viernes que viene",
+      "draft": {
+        "title": "Algo",
+        "allDay": true,
+        "date": "2026-11-27",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Algo el lunes que viene a las 9",
+      "draft": {
+        "title": "Algo",
+        "allDay": false,
+        "date": "2026-11-23",
+        "startTime": "09:00",
+        "endTime": "10:00"
+      }
+    },
+    {
+      "text": "Algo pasado mañana",
+      "draft": {
+        "title": "Algo",
+        "allDay": true,
+        "date": "2026-11-23",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Algo el 3 de sept",
+      "draft": {
+        "title": "Algo",
+        "allDay": true,
+        "date": "2027-09-03",
+        "startTime": null,
+        "endTime": null
+      }
+    }
+  ],
+  "en": [
+    {
+      "text": "Dentist tomorrow 5:30pm",
+      "draft": {
+        "title": "Dentist",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "17:30",
+        "endTime": "18:30"
+      }
+    },
+    {
+      "text": "Dinner on Friday at 9pm",
+      "draft": {
+        "title": "Dinner",
+        "allDay": false,
+        "date": "2026-11-27",
+        "startTime": "21:00",
+        "endTime": "22:00"
+      }
+    },
+    {
+      "text": "Yoga today from 18 to 19",
+      "draft": {
+        "title": "Yoga",
+        "allDay": false,
+        "date": "2026-11-21",
+        "startTime": "18:00",
+        "endTime": "19:00"
+      }
+    },
+    {
+      "text": "Flight to Lisbon December 3 at 7am",
+      "draft": {
+        "title": "Flight to Lisbon",
+        "allDay": false,
+        "date": "2026-12-03",
+        "startTime": "07:00",
+        "endTime": "08:00"
+      }
+    },
+    {
+      "text": "Doctor on Monday",
+      "draft": {
+        "title": "Doctor",
+        "allDay": true,
+        "date": "2026-11-23",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "tomorrow",
+      "draft": {
+        "title": "New event",
+        "allDay": true,
+        "date": "2026-11-22",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Buy bread",
+      "draft": null
+    },
+    {
+      "text": "Meeting on 12/12 from 10 to 11:30",
+      "draft": {
+        "title": "Meeting",
+        "allDay": false,
+        "date": "2026-12-12",
+        "startTime": "10:00",
+        "endTime": "11:30"
+      }
+    },
+    {
+      "text": "Lunch with Laura today at 2:30pm",
+      "draft": {
+        "title": "Lunch with Laura",
+        "allDay": false,
+        "date": "2026-11-21",
+        "startTime": "14:30",
+        "endTime": "15:30"
+      }
+    },
+    {
+      "text": "Call John next Tuesday at 10am",
+      "draft": {
+        "title": "Call John",
+        "allDay": false,
+        "date": "2026-11-24",
+        "startTime": "10:00",
+        "endTime": "11:00"
+      }
+    },
+    {
+      "text": "Project due November 30",
+      "draft": {
+        "title": "Project due",
+        "allDay": true,
+        "date": "2026-11-30",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Gym at 8pm",
+      "draft": {
+        "title": "Gym",
+        "allDay": false,
+        "date": "2026-11-21",
+        "startTime": "20:00",
+        "endTime": "21:00"
+      }
+    },
+    {
+      "text": "Party on Saturday at 9pm",
+      "draft": {
+        "title": "Party",
+        "allDay": false,
+        "date": "2026-11-21",
+        "startTime": "21:00",
+        "endTime": "22:00"
+      }
+    },
+    {
+      "text": "Haircut Dec 3 at 10:30",
+      "draft": {
+        "title": "Haircut",
+        "allDay": false,
+        "date": "2026-12-03",
+        "startTime": "10:30",
+        "endTime": "11:30"
+      }
+    },
+    {
+      "text": "Exam on Wednesday",
+      "draft": {
+        "title": "Exam",
+        "allDay": true,
+        "date": "2026-11-25",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Trip on 12/24/2026",
+      "draft": {
+        "title": "Trip",
+        "allDay": true,
+        "date": "2026-12-24",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Standup tomorrow at 9",
+      "draft": {
+        "title": "Standup",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "09:00",
+        "endTime": "10:00"
+      }
+    },
+    {
+      "text": "Review January 15 at 9:15am",
+      "draft": {
+        "title": "Review",
+        "allDay": false,
+        "date": "2027-01-15",
+        "startTime": "09:15",
+        "endTime": "10:15"
+      }
+    },
+    {
+      "text": "Coffee tomorrow at noon",
+      "draft": {
+        "title": "Coffee",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "12:00",
+        "endTime": "13:00"
+      }
+    },
+    {
+      "text": "Meeting tomorrow 14:00",
+      "draft": {
+        "title": "Meeting",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "14:00",
+        "endTime": "15:00"
+      }
+    },
+    {
+      "text": "Dentist on December 1 from 9 to 10",
+      "draft": {
+        "title": "Dentist",
+        "allDay": false,
+        "date": "2026-12-01",
+        "startTime": "09:00",
+        "endTime": "10:00"
+      }
+    },
+    {
+      "text": "Call mom on Sunday at 6pm",
+      "draft": {
+        "title": "Call mom",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "18:00",
+        "endTime": "19:00"
+      }
+    },
+    {
+      "text": "Interview on March 3 at 8:45am",
+      "draft": {
+        "title": "Interview",
+        "allDay": false,
+        "date": "2027-03-03",
+        "startTime": "08:45",
+        "endTime": "09:45"
+      }
+    },
+    {
+      "text": "Gym at 10am",
+      "draft": {
+        "title": "Gym",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "10:00",
+        "endTime": "11:00"
+      }
+    },
+    {
+      "text": "Party on Saturday",
+      "draft": {
+        "title": "Party",
+        "allDay": true,
+        "date": "2026-11-28",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Dentist the day after tomorrow at 10am",
+      "draft": {
+        "title": "Dentist",
+        "allDay": false,
+        "date": "2026-11-23",
+        "startTime": "10:00",
+        "endTime": "11:00"
+      }
+    },
+    {
+      "text": "Dinner this Friday",
+      "draft": {
+        "title": "Dinner",
+        "allDay": true,
+        "date": "2026-11-27",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Trip on 3 December",
+      "draft": {
+        "title": "Trip",
+        "allDay": true,
+        "date": "2026-12-03",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Meeting at 7",
+      "draft": {
+        "title": "Meeting",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "07:00",
+        "endTime": "08:00"
+      }
+    },
+    {
+      "text": "Lunch at 12:30",
+      "draft": {
+        "title": "Lunch",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "12:30",
+        "endTime": "13:30"
+      }
+    },
+    {
+      "text": "Call at 5:30 pm",
+      "draft": {
+        "title": "Call",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "17:30",
+        "endTime": "18:30"
+      }
+    },
+    {
+      "text": "Something on Nov 15",
+      "draft": {
+        "title": "Something",
+        "allDay": true,
+        "date": "2027-11-15",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Something 3rd of December",
+      "draft": {
+        "title": "Something",
+        "allDay": true,
+        "date": "2026-12-03",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Something December 3rd, 2027",
+      "draft": {
+        "title": "Something",
+        "allDay": true,
+        "date": "2027-12-03",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Something next friday",
+      "draft": {
+        "title": "Something",
+        "allDay": true,
+        "date": "2026-11-27",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Something at midnight",
+      "draft": {
+        "title": "Something",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "00:00",
+        "endTime": "01:00"
+      }
+    },
+    {
+      "text": "Something 1/2/27",
+      "draft": {
+        "title": "Something",
+        "allDay": true,
+        "date": "2027-01-02",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Something on the 28th",
+      "draft": null
+    },
+    {
+      "text": "Something at 9 tomorrow",
+      "draft": {
+        "title": "Something",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "09:00",
+        "endTime": "10:00"
+      }
+    },
+    {
+      "text": "Something tomorrow 9am-10am",
+      "draft": {
+        "title": "Something",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "09:00",
+        "endTime": "10:00"
+      }
+    },
+    {
+      "text": "Something from 9am to 10am",
+      "draft": {
+        "title": "Something",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "09:00",
+        "endTime": "10:00"
+      }
+    },
+    {
+      "text": "Something from 2 to 3pm",
+      "draft": {
+        "title": "Something",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "14:00",
+        "endTime": "15:00"
+      }
+    },
+    {
+      "text": "Something on mon at 9",
+      "draft": {
+        "title": "Something",
+        "allDay": false,
+        "date": "2026-11-23",
+        "startTime": "09:00",
+        "endTime": "10:00"
+      }
+    },
+    {
+      "text": "Something at 10:30 on Monday",
+      "draft": {
+        "title": "Something",
+        "allDay": false,
+        "date": "2026-11-23",
+        "startTime": "10:30",
+        "endTime": "11:30"
+      }
+    },
+    {
+      "text": "Something Monday 9am",
+      "draft": {
+        "title": "Something",
+        "allDay": false,
+        "date": "2026-11-23",
+        "startTime": "09:00",
+        "endTime": "10:00"
+      }
+    },
+    {
+      "text": "Something on Dec. 3",
+      "draft": {
+        "title": "Something",
+        "allDay": true,
+        "date": "2026-12-03",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Something on 3 Dec at 5pm",
+      "draft": {
+        "title": "Something",
+        "allDay": false,
+        "date": "2026-12-03",
+        "startTime": "17:00",
+        "endTime": "18:00"
+      }
+    },
+    {
+      "text": "Something tonight",
+      "draft": {
+        "title": "Something",
+        "allDay": true,
+        "date": "2026-11-21",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Something tomorrow morning",
+      "draft": {
+        "title": "Something",
+        "allDay": true,
+        "date": "2026-11-22",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Something in 2 days",
+      "draft": {
+        "title": "Something",
+        "allDay": true,
+        "date": "2026-11-23",
+        "startTime": null,
+        "endTime": null
+      }
+    },
+    {
+      "text": "Something at 17:30 tomorrow",
+      "draft": {
+        "title": "Something",
+        "allDay": false,
+        "date": "2026-11-22",
+        "startTime": "17:30",
+        "endTime": "18:30"
+      }
+    }
+  ]
+}

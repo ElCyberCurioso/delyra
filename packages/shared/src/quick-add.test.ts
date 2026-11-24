@@ -37,6 +37,27 @@ describe("alta rápida en lenguaje natural", () => {
   });
 });
 
+describe("español hablado (F8-07)", () => {
+  it.each([
+    ["Dentista mañana a las 5 de la tarde", "Dentista", "2026-11-22", "17:00", "18:00"],
+    ["Cena mañana a las 9 de la noche", "Cena", "2026-11-22", "21:00", "22:00"],
+    ["Café mañana a las diez y media", "Café", "2026-11-22", "10:30", "11:30"],
+    ["Llamar a Juan pasado mañana a las 10", "Llamar a Juan", "2026-11-23", "10:00", "11:00"],
+    ["Reunión mañana al mediodía", "Reunión", "2026-11-22", "12:00", "13:00"],
+    ["Clase el lunes que viene a las 17h", "Clase", "2026-11-23", "17:00", "18:00"],
+    ["Revisión el 15/1 a las 9:15", "Revisión", "2027-01-15", "09:15", "10:15"],
+    ["Yoga de 5 a 7 de la tarde", "Yoga", "2026-11-21", "17:00", "19:00"],
+  ])("«%s»", (text, title, date, start, end) => {
+    expect(parseQuickAdd(text, now)).toEqual({
+      title,
+      allDay: false,
+      date,
+      startTime: start,
+      endTime: end,
+    });
+  });
+});
+
 describe("alta rápida en inglés (F7-06)", () => {
   const en = { locale: "en" as const, parse: parseEnglish };
   it.each([

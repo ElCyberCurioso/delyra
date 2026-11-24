@@ -111,4 +111,17 @@
     <string name="calendar_holiday_region">Holidays for</string>
     <string name="calendar_region_off">No holidays</string>
     <string name="calendar_region_national">National only</string>
+    <string name="quick_add">Quick add</string>
+    <string name="quick_add_placeholder">“Dentist tomorrow 5:30pm”</string>
+    <string name="quick_add_hint">Add when: “tomorrow 5:30pm”, “Friday from 10 to 11”, “December 3”…</string>
+    <string name="quick_add_add">Add</string>
+    <string name="quick_add_more">More options</string>
+    <string name="quick_added">“%1$s” added</string>
+    <string name="quick_add_dictate">Dictate a quick add</string>
+    <string name="quick_add_stop">Stop dictating</string>
+    <string name="quick_add_listening">Listening… say, for example, “dentist tomorrow at 5:30pm”</string>
+    <string name="quick_add_mic_denied">There\'s no permission to use the microphone. Allow it in the app settings.</string>
+    <string name="quick_add_no_speech">Nothing was heard. Please try again.</string>
+    <string name="quick_add_dictation_failed">Couldn\'t dictate. Type it or try again.</string>
+    <string name="quick_add_no_calendar">You don\'t have a calendar to create events in.</string>
 </resources>

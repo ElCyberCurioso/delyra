@@ -3,6 +3,15 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Dictado del alta rápida (F8-07): solo mientras se pulsa el micrófono. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Para saber si hay un servicio de reconocimiento de voz (visibilidad de paquetes). -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
 
     <!-- Sin copias de seguridad: la cookie de sesión no debe viajar a otro dispositivo. -->
     <application

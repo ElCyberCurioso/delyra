@@ -14,6 +14,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Refresh
@@ -92,6 +93,7 @@ fun CalendarScreen(
         pagerKey += 1
     }
     var showCalendars by rememberSaveable { mutableStateOf(false) }
+    var showQuickAdd by rememberSaveable { mutableStateOf(false) }
     var viewMenu by remember { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     val now by produceState(ZonedDateTime.now(zone), zone) {
@@ -103,13 +105,14 @@ fun CalendarScreen(
 
     val error = vm.message
     val errorText = error?.message()
-    val noticeText = vm.notice?.let { stringResource(it) }
-    LaunchedEffect(error, vm.notice) {
+    val noticeText = vm.notice?.let { stringResource(it) } ?: vm.quickAdded?.let { stringResource(R.string.quick_added, it) }
+    LaunchedEffect(error, vm.notice, vm.quickAdded) {
         val text = errorText ?: noticeText
         if (text != null) {
             snackbar.showSnackbar(text)
             vm.message = null
             vm.notice = null
+            vm.quickAdded = null
         }
     }
 
@@ -141,6 +144,7 @@ fun CalendarScreen(
                             }
                         }
                     }
+                    IconButton(onClick = { showQuickAdd = true }) { Icon(Icons.Outlined.AutoAwesome, stringResource(R.string.quick_add)) }
                     IconButton(onClick = onSearch) { Icon(Icons.Outlined.Search, stringResource(R.string.action_search)) }
                     if (!layout.isExpanded) {
                         IconButton(onClick = { showCalendars = true }) { Icon(Icons.Outlined.Layers, stringResource(R.string.calendar_calendars)) }
@@ -239,6 +243,7 @@ fun CalendarScreen(
             )
         }
     }
+    if (showQuickAdd) QuickAddSheet(vm, onMoreOptions = onCreateEvent, onDismiss = { showQuickAdd = false })
     if (showCalendars && !layout.isExpanded) {
         ModalBottomSheet(onDismissRequest = { showCalendars = false }) {
             CalendarsPanel(vm = vm, selectedDate = vm.anchor, onPickDate = { jumpTo(it); showCalendars = false })

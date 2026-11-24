@@ -30,6 +30,10 @@ data class EventEditorRoute(
     val minutes: Int? = null,
     val allDay: Boolean = false,
     val birthday: Boolean = false,
+    /** Desde el alta rápida («Más opciones»): título, hora de fin y calendario ya elegidos. */
+    val title: String? = null,
+    val endMinutes: Int? = null,
+    val calendarId: String? = null,
 )
 
 @Serializable
