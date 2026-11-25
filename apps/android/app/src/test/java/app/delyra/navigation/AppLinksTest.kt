@@ -7,7 +7,8 @@ import org.junit.Test
 
 /** Enlaces de los correos que abre la app (F8-10). */
 class AppLinksTest {
-    private val token = "a1B2c3D4e5F6g7H8i9J0k1L2m3N4"
+    // Repetido a propósito: un token aleatorio de ejemplo lo marca gitleaks como secreto.
+    private val token = "t0k-".repeat(8)
 
     @Test
     fun `invitación y recuperación de delyra punto app`() {

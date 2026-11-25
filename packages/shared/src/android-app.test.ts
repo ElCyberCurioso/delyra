@@ -6,11 +6,14 @@ const ASSET_LINKS_FILE = "../../../apps/calendar/public/.well-known/assetlinks.j
 
 describe("app de Android (F8-10)", () => {
   it("el origen WebAuthn es el base64url del SHA-256 del certificado", () => {
-    expect(
-      androidWebAuthnOrigins([
-        "0D:6A:02:D1:3E:47:70:BD:21:DE:F7:2A:DF:91:C5:43:AB:5D:17:59:CC:90:08:B7:77:9B:84:57:5D:26:F2:DF",
-      ]),
-    ).toEqual(["android:apk-key-hash:DWoC0T5HcL0h3vcq35HFQ6tdF1nMkAi3d5uEV10m8t8"]);
+    // Huellas de bytes repetidos (sin pinta de secreto para gitleaks): FF da «/» en base64 y
+    // FB EF BE da «+», que en base64url pasan a «_» y «-»; el «=» final desaparece.
+    const slashes = Array<string>(32).fill("FF").join(":");
+    const pluses = [..."FB:EF:BE:".repeat(10).split(":").slice(0, 30), "FB", "EF"].join(":");
+    expect(androidWebAuthnOrigins([slashes, pluses])).toEqual([
+      `android:apk-key-hash:${"_".repeat(42)}8`,
+      `android:apk-key-hash:${"-".repeat(42)}8`,
+    ]);
   });
 
   it("rechaza una huella mal escrita", () => {
