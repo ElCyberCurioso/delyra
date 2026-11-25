@@ -109,4 +109,6 @@
     <string name="reset_submit">Cambiar la contraseña</string>
     <string name="reset_done">Contraseña cambiada. Ya puedes entrar con la nueva.</string>
     <string name="offline_banner">Sin conexión: ves lo último guardado. Para cambiar algo hace falta conexión.</string>
+    <string name="link_signed_in_title">Enlace de Delyra</string>
+    <string name="link_signed_in_body">Este enlace sirve para crear una cuenta o cambiar la contraseña. Cierra sesión antes de usarlo.</string>
 </resources>

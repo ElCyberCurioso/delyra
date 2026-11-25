@@ -50,6 +50,20 @@ import app.delyra.feature.admin.AdminScreen
 import app.delyra.feature.imports.ImportWizardScreen
 import app.delyra.feature.imports.ImportsScreen
 
+/** Un enlace de invitación o de recuperación con la sesión abierta: hay que salir antes. */
+@Composable
+private fun SignedInLinkNotice() {
+    val graph = LocalAppGraph.current
+    val link by graph.incomingLink.collectAsStateWithLifecycle()
+    if (AppLinks.kind(link) == null) return
+    AlertDialog(
+        onDismissRequest = { graph.incomingLink.value = null },
+        title = { Text(stringResource(R.string.link_signed_in_title)) },
+        text = { Text(stringResource(R.string.link_signed_in_body)) },
+        confirmButton = { TextButton(onClick = { graph.incomingLink.value = null }) { Text(stringResource(R.string.action_close)) } },
+    )
+}
+
 /** Raíz: el estado de la sesión decide entre acceso y la app. */
 @Composable
 fun DelyraRoot() {
@@ -59,7 +73,10 @@ fun DelyraRoot() {
         when (val current = state) {
             SessionState.Loading -> LoadingBox()
             SessionState.Unreachable -> ErrorState(ApiError.Network, onRetry = graph.session::restore)
-            is SessionState.Active -> MainNavigation(current)
+            is SessionState.Active -> {
+                MainNavigation(current)
+                SignedInLinkNotice()
+            }
             else -> AuthFlow(current)
         }
     }

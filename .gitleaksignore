@@ -1,0 +1,7 @@
+# Falsos positivos ya subidos al historial (gitleaks escanea todos los commits).
+# Formato: commit:fichero:regla:línea. Solo se añaden tras comprobar que no son secretos.
+
+# F8-10: token de ejemplo de un test (AppLinksTest) y origen WebAuthn del certificado debug,
+# público por diseño (está también en assetlinks.json). Los tests ya no usan esos literales.
+f57a04802f6c1c47e365c5eb15b339524b5850df:apps/android/app/src/test/java/app/delyra/navigation/AppLinksTest.kt:generic-api-key:10
+f57a04802f6c1c47e365c5eb15b339524b5850df:packages/shared/src/android-app.test.ts:generic-api-key:13

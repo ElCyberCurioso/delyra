@@ -44,9 +44,14 @@ cookie común, CSRF por `Origin`, Turnstile en los formularios públicos y 2FA o
   `hostname` de `siteverify`), así que la app carga en un WebView la página estática
   `apps/calendar/public/mobile/turnstile.html`, que entrega el token por un `WebMessageListener`
   limitado al origen exacto de Delyra. Se descartó cargar el login web entero en un WebView.
-- TOTP y códigos de recuperación. Llaves de acceso nativas y App Links quedan para F8-10: exigen
-  publicar `/.well-known/assetlinks.json` y que la API acepte el origen
-  `android:apk-key-hash:<hash>` en WebAuthn.
+- TOTP, códigos de recuperación y llaves de acceso nativas (F8-10, Credential Manager). La API
+  acepta el origen `android:apk-key-hash:<hash>` en WebAuthn y delyra.app publica
+  `/.well-known/assetlinks.json`; ambos salen de `packages/shared/src/android-app.ts`.
+- Certificados de confianza (F8-10, decisión del usuario del 2026-11-25): de momento solo el
+  certificado debug del ordenador de desarrollo, para probar llaves de acceso y App Links en
+  producción con la build debug. Riesgo acotado: solo quien tenga ese `debug.keystore` podría
+  firmar una app en la que confíe delyra.app. En F8-11 se añade la huella de publicación (Play App
+  Signing) y se valora quitar la de debug.
 - `FLAG_SECURE` en las pantallas con la semilla TOTP o los códigos de recuperación.
 - Conectar Google o Microsoft 365 (F8-08) se hace en la web, en una Custom Tab: el _callback_
   OAuth comprueba la cookie de sesión web y la cookie cifrada con el `state`, que el navegador no
@@ -88,6 +93,8 @@ cookie común, CSRF por `Origin`, Turnstile en los formularios públicos y 2FA o
 - Para conectar Google o Microsoft 365 hay que iniciar sesión también en la web la primera vez.
 - Sin conexión (F8-09) se ven las últimas lecturas de agenda y tableros, como en la PWA, desde la
   caché HTTP de OkHttp en `noBackupFilesDir`; no hay escrituras sin conexión (ni cola de cambios).
-- Quedan pendientes (plan, tareas F8-10 y F8-11): llaves de acceso y App Links, y publicación en
-  Google Play.
+- Las llaves de acceso nativas no se pueden probar con `pnpm dev`: Android exige que el `rpId` sea
+  un dominio con `assetlinks.json` en HTTPS. Se prueban en producción (tras desplegar web y API)
+  con un móvil con bloqueo de pantalla y gestor de contraseñas.
+- Queda pendiente (plan, tarea F8-11) la publicación en Google Play.
 - No hay notificaciones push: las alertas siguen por Telegram o email.

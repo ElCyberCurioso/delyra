@@ -1,3 +1,4 @@
+import { androidWebAuthnOrigins } from "@delyra/shared";
 import { env } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { createDb } from "../src/db/client";
@@ -262,5 +263,39 @@ describe("gestión de llaves", () => {
     expect(await countPasskeys(db, me.user.id)).toBe(1);
     await resetSecondFactor(db, me.user.id);
     expect(await countPasskeys(db, me.user.id)).toBe(0);
+  });
+});
+
+describe("app de Android (F8-10)", () => {
+  /** El certificado de `@delyra/shared` (el mismo de assetlinks.json). */
+  const android = androidWebAuthnOrigins()[0] ?? "";
+
+  it("acepta el origen de la app al añadir la llave y al entrar con ella", async () => {
+    const account = await registerUser();
+    const authenticator = await SoftAuthenticator.create();
+    const options = await creationOptions(account.client, await nextTotp(account.secret));
+    const added = await account.client.post("/api/me/passkeys", {
+      name: "Móvil",
+      response: await authenticator.register(options, { origin: android }),
+    });
+    expect(added.status).toBe(201);
+
+    const client = await passwordStep(account.email);
+    const done = await client.post("/api/auth/login/passkey", {
+      response: await authenticator.sign(await loginOptions(client), { origin: android }),
+    });
+    expect(done.status).toBe(200);
+  });
+
+  it("rechaza una app firmada con otro certificado", async () => {
+    const { client, secret } = await registerUser();
+    const options = await creationOptions(client, await nextTotp(secret));
+    const res = await client.post("/api/me/passkeys", {
+      name: "Otra app",
+      response: await (
+        await SoftAuthenticator.create()
+      ).register(options, { origin: `android:apk-key-hash:${"A".repeat(43)}` }),
+    });
+    expect(res.status).toBe(400);
   });
 });

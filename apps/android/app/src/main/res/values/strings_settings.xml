@@ -47,7 +47,6 @@
     <string name="settings_current_code_hint">El de tu app autenticadora o un código de recuperación.</string>
     <string name="settings_passkeys_title">Llaves de acceso</string>
     <string name="settings_passkeys_none">Todavía no tienes ninguna.</string>
-    <string name="settings_passkeys_add_on_web">Por ahora las llaves nuevas se añaden desde delyra.app.</string>
     <string name="settings_passkey_created">Creada el %1$s</string>
     <string name="settings_passkey_last_used">último uso el %1$s</string>
     <string name="settings_passkey_never_used">sin usar todavía</string>
@@ -185,4 +184,14 @@
         <item quantity="one">%d adjunto</item>
         <item quantity="other">%d adjuntos</item>
     </plurals>
+    <string name="passkey_use">Usar una llave de acceso</string>
+    <string name="passkey_none_here">Este móvil no tiene ninguna llave de acceso de tu cuenta. Usa el código.</string>
+    <string name="passkey_unsupported">Este móvil no puede usar llaves de acceso: hace falta un bloqueo de pantalla y un gestor de contraseñas (por ejemplo, el de Google).</string>
+    <string name="passkey_failed">No se ha podido usar la llave de acceso. Vuelve a intentarlo o usa el código.</string>
+    <string name="passkey_create_failed">No se ha creado la llave de acceso. Vuelve a intentarlo.</string>
+    <string name="settings_passkeys_intro">Entra con la huella, la cara o el PIN del móvil en lugar de escribir el código. La app autenticadora sigue haciendo falta para los cambios de seguridad.</string>
+    <string name="settings_passkey_add">Añadir llave de acceso</string>
+    <string name="settings_passkey_add_body">Confirma que eres tú con tu contraseña y el código actual. Después, el móvil te pedirá la huella, la cara o el PIN.</string>
+    <string name="settings_passkey_name">Nombre de la llave</string>
+    <string name="settings_passkey_added">Llave de acceso añadida</string>
 </resources>

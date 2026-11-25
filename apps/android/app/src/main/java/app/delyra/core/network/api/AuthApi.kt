@@ -1,6 +1,7 @@
 package app.delyra.core.network.api
 
 import app.delyra.core.model.AuditResponse
+import app.delyra.core.model.AddPasskeyRequest
 import app.delyra.core.model.AuthConfigResponse
 import app.delyra.core.model.AuthStepResponse
 import app.delyra.core.model.ChangePasswordRequest
@@ -9,6 +10,7 @@ import app.delyra.core.model.ForgotPasswordRequest
 import app.delyra.core.model.InvitationInfo
 import app.delyra.core.model.LoginRequest
 import app.delyra.core.model.MeResponse
+import app.delyra.core.model.PasskeyLoginRequest
 import app.delyra.core.model.PasskeysResponse
 import app.delyra.core.model.ProfileRequest
 import app.delyra.core.model.ProfileResponse
@@ -24,6 +26,7 @@ import app.delyra.core.model.TelegramStatus
 import app.delyra.core.model.TokenRequest
 import app.delyra.core.model.TotpSetupResponse
 import app.delyra.core.model.UserSettings
+import app.delyra.core.model.WebAuthnOptions
 import kotlinx.serialization.json.JsonObject
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -45,6 +48,13 @@ interface AuthApi {
 
     @POST("auth/login/second-factor")
     suspend fun secondFactor(@Body body: CodeRequest): AuthStepResponse
+
+    /** Segundo paso con una llave de acceso (F7-09 en la web, F8-10 aquí). */
+    @POST("auth/login/passkey/options")
+    suspend fun passkeyLoginOptions(): WebAuthnOptions
+
+    @POST("auth/login/passkey")
+    suspend fun passkeyLogin(@Body body: PasskeyLoginRequest): AuthStepResponse
 
     @POST("auth/totp/setup")
     suspend fun totpSetup(): TotpSetupResponse
@@ -108,6 +118,13 @@ interface AccountApi {
 
     @DELETE("me/passkeys/{id}")
     suspend fun deletePasskey(@Path("id") id: String)
+
+    /** Opciones para crear una llave: piden la contraseña y un código. */
+    @POST("me/passkeys/options")
+    suspend fun passkeyOptions(@Body body: ReauthRequest): WebAuthnOptions
+
+    @POST("me/passkeys")
+    suspend fun addPasskey(@Body body: AddPasskeyRequest): JsonObject
 
     @GET("me/telegram")
     suspend fun telegram(): TelegramStatus

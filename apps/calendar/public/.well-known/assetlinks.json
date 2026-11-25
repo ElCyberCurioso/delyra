@@ -1,0 +1,28 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.delyra",
+      "sha256_cert_fingerprints": [
+        "0D:6A:02:D1:3E:47:70:BD:21:DE:F7:2A:DF:91:C5:43:AB:5D:17:59:CC:90:08:B7:77:9B:84:57:5D:26:F2:DF"
+      ]
+    }
+  },
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.delyra.debug",
+      "sha256_cert_fingerprints": [
+        "0D:6A:02:D1:3E:47:70:BD:21:DE:F7:2A:DF:91:C5:43:AB:5D:17:59:CC:90:08:B7:77:9B:84:57:5D:26:F2:DF"
+      ]
+    }
+  }
+]
