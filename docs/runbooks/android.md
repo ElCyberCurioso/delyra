@@ -51,6 +51,14 @@ Notas:
 - **Copias en local:** los Workflows de copia y restauración corren en el propio `wrangler dev`;
   la descarga se guarda con el selector de documentos del sistema.
 
+## Importaciones e integraciones en local
+
+Sin `GOOGLE_CLIENT_ID` ni las variables de Microsoft en `apps/api/.dev.vars`, la app muestra
+«no disponible» en la conexión con Google y en las reuniones de Teams (como la web). La importación
+de un .zip o .ics sí funciona: copia el fichero al emulador con
+`MSYS_NO_PATHCONV=1 adb push prueba.ics /sdcard/Download/` (en Git Bash, sin esa variable la ruta
+se convierte en una de Windows) y elígelo en «Importar y sincronizar».
+
 ## Alta rápida: corpus compartido con la web
 
 `QuickAddTest` comprueba que el analizador de la app da lo mismo que el de la web en

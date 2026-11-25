@@ -48,6 +48,11 @@ cookie común, CSRF por `Origin`, Turnstile en los formularios públicos y 2FA o
   publicar `/.well-known/assetlinks.json` y que la API acepte el origen
   `android:apk-key-hash:<hash>` en WebAuthn.
 - `FLAG_SECURE` en las pantallas con la semilla TOTP o los códigos de recuperación.
+- Conectar Google o Microsoft 365 (F8-08) se hace en la web, en una Custom Tab: el _callback_
+  OAuth comprueba la cookie de sesión web y la cookie cifrada con el `state`, que el navegador no
+  tiene si la sesión es la de la app. Se descartó cambiar la API (un `state` sin cookie con un
+  «handoff» que la app completa con su sesión): toca la seguridad de producción y en local no hay
+  credenciales para probarlo de punta a punta. La app gestiona todo lo demás y recarga al volver.
 
 ### Interfaz adaptativa
 
@@ -79,9 +84,8 @@ cookie común, CSRF por `Origin`, Turnstile en los formularios públicos y 2FA o
 - La página `/mobile/turnstile.html` tiene que estar desplegada en producción antes de publicar la
   app (sale con el siguiente despliegue de `delyra-calendar`). El service worker de la PWA no la
   intercepta (`navigateFallbackDenylist`).
-- Los mensajes de error de la API llegan en español; en inglés solo se traducen los genéricos
-  hasta portar `server-messages.en.ts` (F8-06).
-- Quedan pendientes (plan, tareas F8-06 a F8-11): ajustes avanzados (códigos, cambiar TOTP,
-  Telegram, copias, importaciones), alta rápida y dictado, integraciones con Google y Microsoft,
-  administración, caché sin conexión, llaves de acceso y publicación en Google Play.
+- Los mensajes de la API se traducen al inglés con la tabla de la web (F8-06).
+- Para conectar Google o Microsoft 365 hay que iniciar sesión también en la web la primera vez.
+- Quedan pendientes (plan, tareas F8-09 a F8-11): caché sin conexión, llaves de acceso y App
+  Links, y publicación en Google Play.
 - No hay notificaciones push: las alertas siguen por Telegram o email.

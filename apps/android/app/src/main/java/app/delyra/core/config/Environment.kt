@@ -8,9 +8,9 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
  * Entornos de Delyra (ADR-0003: solo local y producción). La API no tiene dominio propio: se llega
  * a ella a través del origen de la SPA del calendario, que reenvía `/api/…` por Service Binding.
  */
-enum class Environment(val origin: String) {
-    PRODUCTION(BuildConfig.PRODUCTION_ORIGIN),
-    LOCAL(BuildConfig.LOCAL_ORIGIN);
+enum class Environment(val origin: String, val workOrigin: String) {
+    PRODUCTION(BuildConfig.PRODUCTION_ORIGIN, BuildConfig.PRODUCTION_WORK_ORIGIN),
+    LOCAL(BuildConfig.LOCAL_ORIGIN, BuildConfig.LOCAL_WORK_ORIGIN);
 
     val originUrl: HttpUrl get() = origin.toHttpUrl()
 

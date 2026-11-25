@@ -21,6 +21,9 @@ android {
         // Orígenes de `packages/shared/src/app-origins.json`: la API se alcanza a través de la SPA.
         buildConfigField("String", "PRODUCTION_ORIGIN", "\"https://delyra.app\"")
         buildConfigField("String", "LOCAL_ORIGIN", "\"http://localhost:5173\"")
+        // La web de tareas: para lo que solo se hace en el navegador (conectar Microsoft 365).
+        buildConfigField("String", "PRODUCTION_WORK_ORIGIN", "\"https://work.delyra.app\"")
+        buildConfigField("String", "LOCAL_WORK_ORIGIN", "\"http://localhost:5174\"")
     }
 
     buildTypes {

@@ -91,7 +91,8 @@ class CalendarViewModel(private val graph: AppGraph) : ViewModel() {
     init {
         loadCalendars()
         viewModelScope.launch { graph.preferences.layers.collect { (h, t) -> showHolidays = h; showTasks = t } }
-        viewModelScope.launch { graph.changes.calendar.drop(1).collect { invalidate() } }
+        // Un cambio de otra pantalla (eventos, importaciones, suscripciones) puede traer calendarios nuevos.
+        viewModelScope.launch { graph.changes.calendar.drop(1).collect { refresh() } }
         viewModelScope.launch { graph.preferences.calendarView.collect { savedView = it } }
     }
 

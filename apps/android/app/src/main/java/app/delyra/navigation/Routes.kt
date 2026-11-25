@@ -39,5 +39,16 @@ data class EventEditorRoute(
 @Serializable
 data object EventSearchRoute
 
+/** Importar y sincronizar (F8-08). */
+@Serializable
+data object ImportsRoute
+
+@Serializable
+data class ImportRoute(val importId: String)
+
+/** Panel de administración (solo rol `admin`). */
+@Serializable
+data object AdminRoute
+
 /** Pestañas de la navegación principal. */
 enum class HomeTab { Calendar, Tasks, Settings }

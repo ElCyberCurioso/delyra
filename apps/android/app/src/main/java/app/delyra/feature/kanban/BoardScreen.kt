@@ -104,6 +104,7 @@ class BoardDialogs {
     var archived by mutableStateOf(false)
     var members by mutableStateOf(false)
     var settings by mutableStateOf(false)
+    var teams by mutableStateOf(false)
     var deleteBoard by mutableStateOf(false)
 }
 
@@ -245,6 +246,7 @@ private fun BoardTopBar(vm: BoardViewModel, dialogs: BoardDialogs, onBack: () ->
                     DropdownMenuItem(text = { Text(stringResource(R.string.board_export_json)) }, onClick = { menu = false; exportJson.launch("${board?.name ?: "tablero"}.json") })
                     DropdownMenuItem(text = { Text(stringResource(R.string.board_export_csv)) }, onClick = { menu = false; exportCsv.launch("${board?.name ?: "tablero"}.csv") })
                     if (vm.canWrite) {
+                        DropdownMenuItem(text = { Text(stringResource(R.string.teams_title)) }, onClick = { menu = false; dialogs.teams = true })
                         DropdownMenuItem(text = { Text(stringResource(R.string.board_settings)) }, onClick = { menu = false; dialogs.settings = true })
                     }
                 }
