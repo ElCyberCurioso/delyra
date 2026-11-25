@@ -194,4 +194,6 @@
     <string name="settings_passkey_add_body">Confirm it\'s you with your password and the current code. Then your phone will ask for your fingerprint, face or PIN.</string>
     <string name="settings_passkey_name">Passkey name</string>
     <string name="settings_passkey_added">Passkey added</string>
+    <string name="settings_privacy_policy">Privacy policy</string>
+    <string name="settings_terms">Terms of use</string>
 </resources>

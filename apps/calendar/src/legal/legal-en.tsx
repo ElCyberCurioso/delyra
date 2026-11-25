@@ -72,9 +72,19 @@ export function PrivacyEn() {
       <h2>Voice dictation</h2>
       <p>
         If you use the microphone for quick add, your browser&apos;s dictation service turns your
-        voice into text (in Chrome, Google&apos;s; in Safari, Apple&apos;s). Delyra doesn&apos;t
+        voice into text (in Chrome, Google&apos;s; in Safari, Apple&apos;s) or, in the Android app,
+        your phone&apos;s speech recognition (on most phones, Google&apos;s). Delyra doesn&apos;t
         receive or store the audio: only the text that appears in the field, and only if you choose
         to add the event.
+      </p>
+
+      <h2>Android app</h2>
+      <p>
+        The app keeps your session on your phone, encrypted with the Android keystore, so you
+        don&apos;t have to sign in every time, and a copy of what you last viewed (agenda and
+        boards) so you can open it offline. Both are deleted when you sign out, and neither goes
+        into your phone&apos;s backups or moves to another device. The app has no ads, no analytics
+        and no tracking of any kind.
       </p>
 
       <h2>Where it&apos;s stored</h2>

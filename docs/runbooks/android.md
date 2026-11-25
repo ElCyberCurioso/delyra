@@ -16,8 +16,10 @@ App nativa en `apps/android` (ADR-0016, plan en `docs/plan-android.md`).
 | `./gradlew installDebug`      | Lo instala en el dispositivo o emulador conectado |
 | `./gradlew testDebugUnitTest` | Tests JVM (cookies, CSRF, fechas, RRULE…)         |
 | `./gradlew lintDebug`         | Android Lint (falla con errores)                  |
+| `./gradlew installQa`         | Release con R8 y la clave debug (`app.delyra.qa`) |
+| `./gradlew bundleRelease`     | AAB de release (sin firmar salvo en el workflow)  |
 
-CI ejecuta los tres últimos en el job «App de Android».
+CI ejecuta lint, tests, `assembleDebug` y `bundleRelease` en el job «App de Android».
 
 ## Probar contra `pnpm dev`
 
@@ -112,12 +114,47 @@ androiddebugkey -storepass android` (línea `SHA256`).
 "https://delyra.app/registro#token=…" app.delyra.debug` abre la app igualmente. En producción,
   `adb shell pm get-app-links app.delyra.debug` dice si Android verificó el dominio.
 
-## Antes de publicar (F8-11)
+## Probar R8 en local (build `qa`)
 
-1. Desplegar `delyra-calendar` con `apps/calendar/public/mobile/turnstile.html` y comprobar
-   `https://delyra.app/mobile/turnstile.html` (sin él no se puede entrar desde la app).
-2. Clave de firma de subida en un almacén seguro, nunca en el repositorio (`*.jks` y `*.keystore`
-   están en `.gitignore`); la firma se hace en CI con secretos.
-3. `./gradlew bundleRelease` (R8 activado) y prueba de la build de release contra producción.
-4. Ficha de Google Play: datos en la UE, sin anuncios ni rastreo, política de privacidad
-   (`/privacidad`).
+La build `qa` es la de release (R8 y recursos reducidos) firmada con la clave debug y con el
+selector de entorno, para usarla contra `pnpm dev` como la de debug. Se instala aparte
+(`app.delyra.qa`) y nunca se publica. Antes de cada versión: `./gradlew installQa` y repasar login
+con Turnstile y segundo factor, calendario, alta rápida, un tablero (el canal en vivo responde 101
+en el log de `pnpm dev`), una tarjeta con algún cambio, Ajustes («Añadir llave de acceso» abre la
+hoja de Credential Manager) y administración. Si algo falla solo aquí, falta una regla en
+`app/proguard-rules.pro`.
+
+## Publicación en Google Play (F8-11)
+
+Ficha, textos y respuestas de los formularios: [`docs/google-play.md`](../google-play.md).
+
+1. **Web desplegada:** `delyra-calendar` con `mobile/turnstile.html` (sin él no se puede entrar
+   desde la app), `.well-known/assetlinks.json` y la política de privacidad al día.
+2. **Clave de subida** (una vez, la crea quien publica, nunca en el repositorio; `*.jks` y
+   `*.keystore` están en `.gitignore`):
+   `keytool -genkeypair -v -keystore delyra-upload.jks -alias upload -keyalg RSA -keysize 4096 -validity 9125`.
+   El fichero y sus contraseñas, en el gestor de contraseñas. Si se pierde, Play deja cambiar la
+   clave de subida (la de la app la guarda Google).
+3. **Secretos:** GitHub → Settings → Environments → `android-release` (mejor con revisores
+   obligatorios) con `ANDROID_UPLOAD_KEYSTORE_BASE64` (en PowerShell:
+   `[Convert]::ToBase64String([IO.File]::ReadAllBytes("delyra-upload.jks"))`),
+   `ANDROID_UPLOAD_STORE_PASSWORD`, `ANDROID_UPLOAD_KEY_ALIAS` (`upload`) y
+   `ANDROID_UPLOAD_KEY_PASSWORD`.
+4. **AAB:** Actions → «Android release» → Run workflow en main con la versión (`X.Y.Z`, mayor que
+   la anterior). Comprueba CI, firma, verifica la firma e imprime la huella de la clave de subida.
+   El artefacto `delyra-android-X.Y.Z` trae `app-release.aab` y `mapping.txt`.
+5. **Play Console:** crear la app (datos de `docs/google-play.md`), dejar Play App Signing (viene
+   activado), subir el AAB a «Pruebas internas» y el `mapping.txt` en el explorador de app bundles
+   (para leer los fallos sin ofuscar).
+6. **Huella de Play:** Play Console → Integridad de la app → Firma de apps → certificado de la
+   clave de firma de apps, SHA-256. Se añade a `ANDROID_CERT_FINGERPRINTS` en
+   `packages/shared/src/android-app.ts` y se quita la de debug (decisión de F8-11); se regenera
+   `assetlinks.json` (ver arriba) y se despliegan web y API juntas. En un móvil con la app de
+   Play, `adb shell pm get-app-links app.delyra` debe dar `delyra.app` como verificado.
+7. **Probar en producción** con la app de la pista interna: login, llaves de acceso (añadir una y
+   entrar con ella) y App Links de invitación y recuperación.
+8. **Producción:** antes, F8-12 (borrado de cuenta; Play pide su URL en «Seguridad de los datos»).
+   Si la cuenta de desarrollador es personal y reciente, Google exige además una prueba cerrada con
+   un mínimo de personas y días antes de abrir producción (las cifras, en Play Console). Para un
+   servicio privado por invitación puede bastar la pista de pruebas internas (hasta 100 personas
+   por email).

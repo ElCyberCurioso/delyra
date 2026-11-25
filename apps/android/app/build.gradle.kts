@@ -6,6 +6,19 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+// Versión (F8-11): el workflow de publicación pasa `-Pdelyra.versionName=X.Y.Z`. El versionCode
+// sale de ella (X·10000 + Y·100 + Z), así que crece siempre que sube la versión.
+val appVersionName = providers.gradleProperty("delyra.versionName").orElse("0.1.0").get()
+val appVersionCode = Regex("""^(\d{1,3})\.(\d{1,2})\.(\d{1,2})$""").matchEntire(appVersionName)
+    ?.destructured?.let { (major, minor, patch) -> major.toInt() * 10_000 + minor.toInt() * 100 + patch.toInt() }
+    ?: error("delyra.versionName debe ser X.Y.Z, con Y y Z menores que 100 (es «$appVersionName»)")
+
+// Firma de publicación (F8-11): la clave de subida solo existe en los secretos del workflow de
+// publicación, nunca en el repositorio. Sin ella, `bundleRelease` genera un AAB sin firmar.
+val uploadKeystore = providers.environmentVariable("DELYRA_UPLOAD_KEYSTORE").orNull
+fun uploadSecret(name: String): String =
+    providers.environmentVariable(name).orNull ?: error("Falta la variable de entorno $name")
+
 android {
     namespace = "app.delyra"
     compileSdk = 37
@@ -14,8 +27,8 @@ android {
         applicationId = "app.delyra"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Orígenes de `packages/shared/src/app-origins.json`: la API se alcanza a través de la SPA.
@@ -24,6 +37,17 @@ android {
         // La web de tareas: para lo que solo se hace en el navegador (conectar Microsoft 365).
         buildConfigField("String", "PRODUCTION_WORK_ORIGIN", "\"https://work.delyra.app\"")
         buildConfigField("String", "LOCAL_WORK_ORIGIN", "\"http://localhost:5174\"")
+    }
+
+    signingConfigs {
+        if (uploadKeystore != null) {
+            create("upload") {
+                storeFile = file(uploadKeystore)
+                storePassword = uploadSecret("DELYRA_UPLOAD_STORE_PASSWORD")
+                keyAlias = uploadSecret("DELYRA_UPLOAD_KEY_ALIAS")
+                keyPassword = uploadSecret("DELYRA_UPLOAD_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -38,6 +62,31 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             buildConfigField("boolean", "ALLOW_LOCAL", "false")
+            signingConfig = signingConfigs.findByName("upload")
+        }
+        // Igual que release (R8 y recursos reducidos), pero firmada con la clave debug y con
+        // `pnpm dev`: para comprobar en local que R8 no rompe nada. Nunca se publica.
+        create("qa") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".qa"
+            versionNameSuffix = "-qa"
+            signingConfig = signingConfigs.getByName("debug")
+            buildConfigField("boolean", "ALLOW_LOCAL", "true")
+        }
+    }
+
+    sourceSets {
+        // qa: sin log HTTP (el código de release) y con texto plano hacia `pnpm dev` (la red de debug).
+        getByName("qa") {
+            kotlin.srcDir("src/release/java")
+            res.srcDir("src/debug/res")
+        }
+    }
+
+    bundle {
+        // El idioma se cambia dentro de la app (Ajustes): los dos van en todas las instalaciones.
+        language {
+            enableSplit = false
         }
     }
 
