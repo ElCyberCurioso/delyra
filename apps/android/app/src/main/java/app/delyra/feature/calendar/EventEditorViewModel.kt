@@ -75,8 +75,8 @@ class EventEditorViewModel(private val graph: AppGraph, private val route: Event
         private set
 
     var birthday by mutableStateOf(route.birthday)
-    var title by mutableStateOf("")
-    var calendarId by mutableStateOf<String?>(null)
+    var title by mutableStateOf(route.title.orEmpty())
+    var calendarId by mutableStateOf(route.calendarId)
     var times by mutableStateOf(defaultTimes())
     var repeat by mutableStateOf(RepeatState())
     val reminders = mutableStateListOf<Int>()
@@ -109,7 +109,7 @@ class EventEditorViewModel(private val graph: AppGraph, private val route: Event
     private fun defaultTimes(): FormTimes {
         val date = route.date?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: LocalDate.now(zone)
         val start = route.minutes ?: 9 * 60
-        val end = (start + 60).coerceAtMost(MINUTES_PER_DAY - 1)
+        val end = route.endMinutes?.takeIf { it > start } ?: (start + 60).coerceAtMost(MINUTES_PER_DAY - 1)
         return FormTimes(route.allDay || route.birthday, date, start, date, end)
     }
 

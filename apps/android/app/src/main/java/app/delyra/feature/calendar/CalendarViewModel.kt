@@ -235,6 +235,42 @@ class CalendarViewModel(private val graph: AppGraph) : ViewModel() {
         }
     }
 
+    // ── Alta rápida (F8-07) ──
+
+    /** Título del último evento creado con el alta rápida, para avisar. */
+    var quickAdded by mutableStateOf<String?>(null)
+    var quickBusy by mutableStateOf(false)
+        private set
+
+    /** Donde va el alta rápida: el calendario personal (o el primero en el que se puede escribir). */
+    val quickCalendar: CalendarInfo?
+        get() = calendars.filter { !it.readOnly }.let { writable -> writable.firstOrNull { it.kind == "personal" } ?: writable.firstOrNull() }
+
+    fun quickAdd(draft: QuickDraft, calendar: CalendarInfo, onDone: () -> Unit) {
+        if (quickBusy) return
+        quickBusy = true
+        val zone = zone
+        val times = draft.formTimes().toApi(zone)
+        viewModelScope.launch {
+            apiCall {
+                api.createEvent(buildJsonObject {
+                    put("type", JsonPrimitive("event"))
+                    put("calendarId", JsonPrimitive(calendar.id))
+                    put("title", JsonPrimitive(draft.title))
+                    put("tz", JsonPrimitive(zone.id))
+                    put("allDay", JsonPrimitive(times.allDay))
+                    put("start", JsonPrimitive(times.start))
+                    put("end", JsonPrimitive(times.end))
+                })
+            }.onSuccess {
+                quickAdded = draft.title
+                graph.changes.calendarChanged()
+                onDone()
+            }.onFailure { message = it.apiError }
+            quickBusy = false
+        }
+    }
+
     // ── Festivos y exportación (F7-03, F6-02) ──
 
     fun chooseHolidayRegion(region: String) {

@@ -111,4 +111,17 @@
     <string name="calendar_holiday_region">Festivos de</string>
     <string name="calendar_region_off">Sin festivos</string>
     <string name="calendar_region_national">Solo nacionales</string>
+    <string name="quick_add">Alta rápida</string>
+    <string name="quick_add_placeholder">«Dentista mañana 17:30»</string>
+    <string name="quick_add_hint">Añade cuándo: «mañana 17:30», «el viernes de 10 a 11», «3 de diciembre»…</string>
+    <string name="quick_add_add">Añadir</string>
+    <string name="quick_add_more">Más opciones</string>
+    <string name="quick_added">«%1$s» añadido</string>
+    <string name="quick_add_dictate">Dictar el alta rápida</string>
+    <string name="quick_add_stop">Dejar de dictar</string>
+    <string name="quick_add_listening">Escuchando… di, por ejemplo, «dentista mañana a las cinco y media de la tarde»</string>
+    <string name="quick_add_mic_denied">No hay permiso para usar el micrófono. Actívalo en los ajustes de la app.</string>
+    <string name="quick_add_no_speech">No se ha oído nada. Vuelve a intentarlo.</string>
+    <string name="quick_add_dictation_failed">No se ha podido dictar. Escríbelo o vuelve a intentarlo.</string>
+    <string name="quick_add_no_calendar">No tienes ningún calendario en el que crear eventos.</string>
 </resources>
