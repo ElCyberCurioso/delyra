@@ -76,6 +76,9 @@ class AppGraph(private val context: Context) {
     val integrationsApi: IntegrationsApi = network.create()
     val adminApi: AdminApi = network.create()
 
+    /** Enlace de invitación o de recuperación que abrió la app (App Links); se consume al usarlo. */
+    val incomingLink = MutableStateFlow<String?>(null)
+
     val session = SessionRepository(authApi, cookies, scope, onSignedOut = ::clearLocalData)
     val changes = DataChanges()
 

@@ -98,6 +98,20 @@ se genera desde `packages/ui/src/i18n/server-messages.en.ts`. Si cambia un mensa
 pnpm --filter @delyra/ui exec vitest run server-messages.android -u
 ```
 
+## Llaves de acceso y App Links (F8-10)
+
+- Las huellas de los certificados están en `packages/shared/src/android-app.ts`. Al cambiarlas, se
+  regenera `apps/calendar/public/.well-known/assetlinks.json`:
+  `pnpm --filter @delyra/shared exec vitest run android-app -u`. Las dos cosas (la API y el fichero)
+  van juntas en el mismo despliegue.
+- Huella del certificado debug: `keytool -list -v -keystore ~/.android/debug.keystore -alias
+androiddebugkey -storepass android` (línea `SHA256`).
+- En local las llaves de acceso no funcionan (el `rpId` es `localhost`): Credential Manager abre su
+  hoja, pero sin cuenta de Google solo ofrece otro dispositivo. Se prueban en producción.
+- App Links sin verificar (en local): `adb shell am start -a android.intent.action.VIEW -d
+"https://delyra.app/registro#token=…" app.delyra.debug` abre la app igualmente. En producción,
+  `adb shell pm get-app-links app.delyra.debug` dice si Android verificó el dominio.
+
 ## Antes de publicar (F8-11)
 
 1. Desplegar `delyra-calendar` con `apps/calendar/public/mobile/turnstile.html` y comprobar

@@ -1,9 +1,10 @@
 # Plan · App de Android (noviembre de 2026)
 
-> **Estado:** v2 (revisada). F8-01 a F8-09 construidas y probadas contra `pnpm dev` (registro,
+> **Estado:** v2 (revisada). F8-01 a F8-10 construidas y probadas contra `pnpm dev` (registro,
 > alta TOTP, calendario, tableros, tarjetas, compartir y canal en vivo con dos personas, app y web,
 > ajustes y copias de seguridad, alta rápida y dictado, importaciones y administración, uso sin
-> conexión); F8-10 y F8-11, pendientes. Decisiones
+> conexión, App Links); las llaves de acceso nativas se prueban en producción. F8-11, pendiente.
+> Decisiones
 > en [ADR-0016](decisiones/ADR-0016-app-android.md) y uso en el
 > [runbook](runbooks/android.md).
 
@@ -34,10 +35,9 @@ redimensionables (multiventana, escritorio) y tamaños de letra grandes.
    `/api/auth/config`, pinta el widget y entrega el token a la app con `postMessage` sobre un
    `WebMessageListener` limitado al origen de Delyra. Cumple la CSP actual (scripts de `'self'` y de
    Turnstile, sin `inline`). Se excluye del `navigateFallback` del service worker.
-2. **Más adelante (F8-10):** `/.well-known/assetlinks.json` para App Links (invitaciones y enlaces
-   de recuperación que abren la app) y llaves de acceso nativas; la API tendrá que aceptar el origen
-   `android:apk-key-hash:<hash>` en WebAuthn. Hasta entonces: TOTP o código de recuperación, y el
-   enlace de invitación se pega en la app.
+2. **F8-10:** `apps/calendar/public/.well-known/assetlinks.json` (App Links y llaves de acceso de
+   delyra.app en la app) y la API acepta el origen `android:apk-key-hash:<hash>` en WebAuthn. Los
+   dos salen de `packages/shared/src/android-app.ts` (paquetes y huellas de los certificados).
 
 ## Decisiones
 
@@ -203,7 +203,15 @@ accesibilidad para mover tarjetas sin arrastrar (TalkBack), modo oscuro y «redu
   conexión» lo dice, las escrituras fallan con aviso y al volver la red se recarga todo. Vive en
   `noBackupFilesDir` (no en la caché, que Android vacía con poco espacio). De paso, la PWA también
   guarda el detalle del tablero (`boards/:id`), que faltaba para abrir uno sin conexión.
-- **F8-10 · Llaves de acceso y App Links.**
+- **F8-10 · Llaves de acceso y App Links.** Hecho. Llaves de acceso con Credential Manager:
+  añadirlas en Ajustes → Seguridad (contraseña y código, nombre y la huella, la cara o el PIN del
+  móvil) y usarlas en el segundo paso del login; desde Android 9. La API acepta los orígenes
+  `android:apk-key-hash:` de los certificados de `@delyra/shared`, de donde también sale
+  `assetlinks.json` (con una prueba que avisa si se queda atrás). App Links: los enlaces de
+  invitación y de recuperación de los correos (`/registro`, `/restablecer`) abren la app con el
+  enlace puesto; con la sesión abierta, avisa de que hay que salir antes. Por ahora solo está la
+  huella del certificado debug del ordenador de desarrollo (decisión del usuario, ADR-0016); la de
+  publicación llega en F8-11. El OAuth de Google y Microsoft sigue en la web.
 - **F8-11 · Publicación.** Firma con secretos de CI (nunca en el repositorio), R8, Play Console.
 
 ## Pruebas

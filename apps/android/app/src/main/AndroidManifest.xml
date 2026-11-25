@@ -37,10 +37,22 @@
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|keyboard|keyboardHidden|navigation|uiMode"
             android:resizeableActivity="true"
             android:theme="@style/Theme.Delyra.Starting"
+            android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- App Links (F8-10): los enlaces de invitación y de recuperación de los correos abren la
+                 app. Se verifican con https://delyra.app/.well-known/assetlinks.json. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="delyra.app" />
+                <data android:path="/registro" />
+                <data android:path="/restablecer" />
             </intent-filter>
         </activity>
 

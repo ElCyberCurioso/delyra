@@ -1,5 +1,14 @@
 package app.delyra.feature.settings
 
+import kotlinx.serialization.json.Json
+import app.delyra.core.security.Passkeys
+import app.delyra.core.security.PasskeyResult
+import app.delyra.core.model.AddPasskeyRequest
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material.icons.outlined.Key
+import androidx.activity.compose.LocalActivity
+import android.os.Build
+import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -61,8 +70,11 @@ import app.delyra.feature.auth.RecoveryCodesView
 import app.delyra.feature.auth.TotpSecretBlock
 import kotlinx.coroutines.launch
 
+/** `PASSKEY_NAME_MAX_LENGTH` de `schemas/passkeys.ts`. */
+private const val PASSKEY_NAME_MAX = 60
+
 /** Para qué se confirma la identidad (contraseña y código) en Ajustes. */
-enum class ReauthPurpose { RecoveryCodes, AuthenticatorApp }
+enum class ReauthPurpose { RecoveryCodes, AuthenticatorApp, Passkey }
 
 /** Paso en curso de un cambio de seguridad. */
 sealed interface SecurityFlow {
@@ -118,7 +130,11 @@ class SecurityViewModel(private val graph: AppGraph) : ViewModel() {
         flow = SecurityFlow.Reauth(purpose)
     }
 
-    fun reauth(password: String, code: String) {
+    /**
+     * @param name nombre de la llave (solo para [ReauthPurpose.Passkey]).
+     * @param context actividad para Credential Manager (solo para [ReauthPurpose.Passkey]).
+     */
+    fun reauth(password: String, code: String, name: String = "", context: Context? = null) {
         val purpose = (flow as? SecurityFlow.Reauth)?.purpose ?: return
         val request = ReauthRequest(password, code.trim())
         flowBusy = true
@@ -129,11 +145,27 @@ class SecurityViewModel(private val graph: AppGraph) : ViewModel() {
                     .onSuccess { flow = SecurityFlow.NewCodes(it.recoveryCodes) }
                 ReauthPurpose.AuthenticatorApp -> apiCall { api.reconfigureTotp(request) }
                     .onSuccess { flow = SecurityFlow.NewApp(it) }
+                ReauthPurpose.Passkey -> apiCall { api.passkeyOptions(request) }
+                    .onSuccess { if (context != null) createPasskey(context, name.trim(), it.options.toString()) }
             }.onFailure { flowError = it.apiError }
             // Bien o mal (`reauth.failure`), el intento queda en el historial.
             revision++
             flowBusy = false
         }
+    }
+
+    /** Tras confirmar la identidad: Credential Manager crea la llave y la API la guarda. */
+    private suspend fun createPasskey(context: Context, name: String, optionsJson: String) {
+        when (val result = Passkeys.create(context, optionsJson)) {
+            is PasskeyResult.Ok -> apiCall { api.addPasskey(AddPasskeyRequest(name, Json.parseToJsonElement(result.json))) }
+                .onSuccess { notice = R.string.settings_passkey_added }
+                .onFailure { message = it.apiError }
+            PasskeyResult.Cancelled -> Unit
+            PasskeyResult.Unsupported -> notice = R.string.passkey_unsupported
+            PasskeyResult.NoCredential, PasskeyResult.Failed -> notice = R.string.passkey_create_failed
+        }
+        flow = null
+        refresh()
     }
 
     fun confirmNewApp(code: String) {
@@ -195,13 +227,17 @@ internal fun SecurityTile(vm: SecurityViewModel) {
             }
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
             Text(stringResource(R.string.settings_passkeys_title), style = MaterialTheme.typography.titleSmall)
+            Hint(stringResource(R.string.settings_passkeys_intro))
             val passkeys = vm.passkeys
             when {
                 passkeys == null -> Unit
                 passkeys.isEmpty() -> Hint(stringResource(R.string.settings_passkeys_none))
                 else -> passkeys.forEach { passkey -> PasskeyRow(passkey, onRemove = { removing = passkey }) }
             }
-            Hint(stringResource(R.string.settings_passkeys_add_on_web))
+            if (Passkeys.supported) OutlinedButton(onClick = { vm.startReauth(ReauthPurpose.Passkey) }) {
+                Icon(Icons.Outlined.Key, null, Modifier.padding(end = 8.dp).size(18.dp))
+                Text(stringResource(R.string.settings_passkey_add))
+            }
         }
     }
     if (changingPassword) PasswordDialog(onDismiss = { changingPassword = false }, onSave = vm::changePassword)
@@ -245,17 +281,46 @@ private fun ReauthDialog(vm: SecurityViewModel, purpose: ReauthPurpose) {
     var password by rememberSaveable { mutableStateOf("") }
     var code by rememberSaveable { mutableStateOf("") }
     var recovery by rememberSaveable { mutableStateOf(false) }
-    val valid = password.isNotEmpty() && if (recovery) code.length >= 10 else code.length == 6
-    val submit = { if (valid && !vm.flowBusy) vm.reauth(password, code) }
+    val passkey = purpose == ReauthPurpose.Passkey
+    // Nombre propuesto para la llave: el del móvil («Pixel 9»).
+    var name by rememberSaveable { mutableStateOf(Build.MODEL.take(PASSKEY_NAME_MAX)) }
+    val activity = LocalActivity.current
+    val valid = password.isNotEmpty() && (if (recovery) code.length >= 10 else code.length == 6) && (!passkey || (name.isNotBlank() && activity != null))
+    val submit = { if (valid && !vm.flowBusy) vm.reauth(password, code, name, activity) }
     AlertDialog(
         onDismissRequest = { if (!vm.flowBusy) vm.closeFlow() },
-        title = { Text(stringResource(if (purpose == ReauthPurpose.RecoveryCodes) R.string.settings_regenerate_codes else R.string.settings_change_app)) },
+        title = {
+            Text(
+                stringResource(
+                    when (purpose) {
+                        ReauthPurpose.RecoveryCodes -> R.string.settings_regenerate_codes
+                        ReauthPurpose.AuthenticatorApp -> R.string.settings_change_app
+                        ReauthPurpose.Passkey -> R.string.settings_passkey_add
+                    },
+                ),
+            )
+        },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    stringResource(if (purpose == ReauthPurpose.RecoveryCodes) R.string.settings_regenerate_body else R.string.settings_change_app_confirm),
+                    stringResource(
+                        when (purpose) {
+                            ReauthPurpose.RecoveryCodes -> R.string.settings_regenerate_body
+                            ReauthPurpose.AuthenticatorApp -> R.string.settings_change_app_confirm
+                            ReauthPurpose.Passkey -> R.string.settings_passkey_add_body
+                        },
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                 )
+                if (passkey) {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it.take(PASSKEY_NAME_MAX) },
+                        label = { Text(stringResource(R.string.settings_passkey_name)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
                 PasswordField(password, { password = it }, stringResource(R.string.field_current_password), Modifier.fillMaxWidth())
                 CodeField(
                     code,

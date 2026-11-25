@@ -91,6 +91,9 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.webkit)
     implementation(libs.androidx.browser)
+    // Llaves de acceso (F8-10): Credential Manager y su proveedor de Google Play Services.
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

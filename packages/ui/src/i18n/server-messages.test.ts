@@ -66,6 +66,8 @@ const SKIP_FILES = new Set([
   "holidays.ts",
   "board-templates.ts",
   "mailer.ts",
+  // Huellas de certificados de la app de Android y errores de configuración: nunca son mensajes.
+  "android-app.ts",
 ]);
 
 const SPANISH =

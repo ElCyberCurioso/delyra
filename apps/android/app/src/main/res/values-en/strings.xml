@@ -102,4 +102,6 @@
     <string name="reset_submit">Change password</string>
     <string name="reset_done">Password changed. You can now sign in with the new one.</string>
     <string name="offline_banner">Offline: you\'re seeing the last saved data. Changes need a connection.</string>
+    <string name="link_signed_in_title">Delyra link</string>
+    <string name="link_signed_in_body">This link is for creating an account or changing the password. Sign out before using it.</string>
 </resources>

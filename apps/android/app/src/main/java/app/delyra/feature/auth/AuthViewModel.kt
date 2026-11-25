@@ -1,15 +1,18 @@
 package app.delyra.feature.auth
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.delyra.AppGraph
+import app.delyra.R
 import app.delyra.core.model.CodeRequest
 import app.delyra.core.model.ForgotPasswordRequest
 import app.delyra.core.model.InvitationInfo
 import app.delyra.core.model.LoginRequest
+import app.delyra.core.model.PasskeyLoginRequest
 import app.delyra.core.model.RegisterRequest
 import app.delyra.core.model.ResetPasswordRequest
 import app.delyra.core.model.TokenRequest
@@ -17,6 +20,10 @@ import app.delyra.core.model.TotpSetupResponse
 import app.delyra.core.network.ApiError
 import app.delyra.core.network.apiCall
 import app.delyra.core.network.apiError
+import app.delyra.core.security.PasskeyResult
+import app.delyra.core.security.Passkeys
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.coroutines.launch
 
 /** Estado de un formulario de acceso. */
@@ -81,6 +88,41 @@ class AuthViewModel(private val graph: AppGraph) : ViewModel() {
                 if (it.apiError is ApiError.Unauthorized) graph.session.refresh()
             }
             secondFactor = FormState(error = result.exceptionOrNull()?.apiError)
+        }
+    }
+
+    /** Enlace que llegó por App Link para rellenar el formulario de registro o de recuperación. */
+    var prefilledLink by mutableStateOf<String?>(null)
+
+    /** Por qué no se pudo usar la llave de acceso (texto de recursos); `null` si no hubo problema. */
+    var passkeyProblem by mutableStateOf<Int?>(null)
+
+    /** Segundo paso con una llave de acceso del móvil (Credential Manager) en vez del código. */
+    fun signInWithPasskey(context: Context) {
+        if (secondFactor.busy) return
+        secondFactor = FormState(busy = true)
+        passkeyProblem = null
+        viewModelScope.launch {
+            val options = apiCall { api.passkeyLoginOptions() }
+            val error = options.exceptionOrNull()?.apiError
+            if (error != null) {
+                secondFactor = FormState(error = error)
+                return@launch
+            }
+            when (val result = Passkeys.get(context, options.getOrThrow().options.toString())) {
+                is PasskeyResult.Ok -> {
+                    val done = apiCall { api.passkeyLogin(PasskeyLoginRequest(Json.parseToJsonElement(result.json))) }
+                    done.onSuccess { graph.session.refresh() }
+                        .onFailure { if (it.apiError is ApiError.Unauthorized) graph.session.refresh() }
+                    secondFactor = FormState(error = done.exceptionOrNull()?.apiError)
+                    return@launch
+                }
+                PasskeyResult.Cancelled -> Unit
+                PasskeyResult.NoCredential -> passkeyProblem = R.string.passkey_none_here
+                PasskeyResult.Unsupported -> passkeyProblem = R.string.passkey_unsupported
+                PasskeyResult.Failed -> passkeyProblem = R.string.passkey_failed
+            }
+            secondFactor = FormState()
         }
     }
 

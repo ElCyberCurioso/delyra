@@ -33,6 +33,17 @@ data class AuthStepResponse(val next: String, val remainingRecoveryCodes: Int? =
 @Serializable
 data class CodeRequest(val code: String)
 
+/** Opciones de una ceremonia WebAuthn tal cual las genera la API (se pasan sin tocar a Android). */
+@Serializable
+data class WebAuthnOptions(val options: kotlinx.serialization.json.JsonObject)
+
+/** Respuesta de Credential Manager, sin tocar (la API la valida con @simplewebauthn/server). */
+@Serializable
+data class PasskeyLoginRequest(val response: kotlinx.serialization.json.JsonElement)
+
+@Serializable
+data class AddPasskeyRequest(val name: String, val response: kotlinx.serialization.json.JsonElement)
+
 @Serializable
 data class TotpSetupResponse(val secret: String, val otpauthUri: String)
 

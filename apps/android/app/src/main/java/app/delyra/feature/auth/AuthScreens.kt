@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import androidx.core.net.toUri
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.ViewKanban
 import androidx.compose.material3.Button
@@ -64,6 +66,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.delyra.R
+import app.delyra.core.security.Passkeys
+import app.delyra.navigation.AppLinks
+import app.delyra.core.ui.LocalAppGraph
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.delyra.core.model.TotpSetupResponse
 import app.delyra.core.network.ApiError
 import app.delyra.core.session.SessionState
@@ -85,9 +91,28 @@ private enum class SignedOutScreen { Login, Register, Forgot, Reset }
 fun AuthFlow(state: SessionState) {
     val vm = appViewModel { AuthViewModel(it) }
     var screen by rememberSaveable { mutableStateOf(SignedOutScreen.Login) }
+    // Un enlace de invitación o de recuperación (App Link) lleva a su formulario, ya relleno.
+    val graph = LocalAppGraph.current
+    val incoming by graph.incomingLink.collectAsStateWithLifecycle()
+    LaunchedEffect(incoming) {
+        val link = incoming ?: return@LaunchedEffect
+        graph.incomingLink.value = null
+        when (AppLinks.kind(link)) {
+            AppLinks.Kind.Invitation -> {
+                screen = SignedOutScreen.Register
+                vm.prefilledLink = link
+                vm.checkInvitation(link)
+            }
+            AppLinks.Kind.PasswordReset -> {
+                screen = SignedOutScreen.Reset
+                vm.prefilledLink = link
+            }
+            null -> Unit
+        }
+    }
     AuthLayout {
         when (state) {
-            is SessionState.PendingSecondFactor -> SecondFactorForm(vm)
+            is SessionState.PendingSecondFactor -> SecondFactorForm(vm, passkey = state.passkey)
             is SessionState.PendingTotp -> TotpSetupForm(vm)
             else -> {
                 if (screen != SignedOutScreen.Login) BackHandler { screen = SignedOutScreen.Login; vm.clearForgot() }
@@ -254,7 +279,7 @@ private fun LoginForm(vm: AuthViewModel, expired: Boolean, onRegister: () -> Uni
 // ── Segundo factor ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun SecondFactorForm(vm: AuthViewModel) {
+private fun SecondFactorForm(vm: AuthViewModel, passkey: Boolean) {
     var code by rememberSaveable { mutableStateOf("") }
     var recovery by rememberSaveable { mutableStateOf(false) }
     val state = vm.secondFactor
@@ -282,6 +307,20 @@ private fun SecondFactorForm(vm: AuthViewModel) {
     )
     TextButton(onClick = { recovery = !recovery; code = "" }) {
         Text(stringResource(if (recovery) R.string.second_factor_use_totp else R.string.second_factor_use_recovery))
+    }
+    // La cuenta tiene llaves de acceso: se puede entrar con la huella, la cara o el PIN.
+    if (passkey && Passkeys.supported) {
+        val activity = LocalActivity.current
+        OutlinedButton(
+            onClick = { activity?.let(vm::signInWithPasskey) },
+            enabled = !state.busy && activity != null,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(Icons.Outlined.Key, null)
+            Spacer(Modifier.size(8.dp))
+            Text(stringResource(R.string.passkey_use))
+        }
+        vm.passkeyProblem?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
     }
     TextButton(onClick = vm::cancelPending) { Text(stringResource(R.string.action_cancel)) }
 }
@@ -389,6 +428,7 @@ fun RecoveryCodesView(
 @Composable
 private fun RegisterForm(vm: AuthViewModel, onBack: () -> Unit) {
     var link by rememberSaveable { mutableStateOf("") }
+    LaunchedEffect(vm.prefilledLink) { vm.prefilledLink?.let { link = it; vm.prefilledLink = null } }
     var name by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var repeat by rememberSaveable { mutableStateOf("") }
@@ -469,6 +509,7 @@ private fun ForgotForm(vm: AuthViewModel, onReset: () -> Unit, onBack: () -> Uni
 @Composable
 private fun ResetForm(vm: AuthViewModel, onBack: () -> Unit) {
     var link by rememberSaveable { mutableStateOf("") }
+    LaunchedEffect(vm.prefilledLink) { vm.prefilledLink?.let { link = it; vm.prefilledLink = null } }
     var password by rememberSaveable { mutableStateOf("") }
     var repeat by rememberSaveable { mutableStateOf("") }
     val state = vm.reset

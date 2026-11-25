@@ -1,4 +1,5 @@
 import {
+  androidWebAuthnOrigins,
   APP_ORIGINS,
   appEnvironmentSchema,
   MAX_PASSKEYS,
@@ -37,12 +38,16 @@ const RP_NAME = "Delyra";
 
 export interface RelyingParty {
   id: string;
-  origin: string;
+  /**
+   * Orígenes aceptados en el `clientDataJSON`: la web y la app de Android (F8-10), que firma con
+   * `android:apk-key-hash:…` (los certificados de `@delyra/shared`, los de `assetlinks.json`).
+   */
+  origins: string[];
 }
 
 export function relyingParty(appEnv: string): RelyingParty {
   const origin = APP_ORIGINS[appEnvironmentSchema.parse(appEnv)].calendar;
-  return { id: new URL(origin).hostname, origin };
+  return { id: new URL(origin).hostname, origins: [origin, ...androidWebAuthnOrigins()] };
 }
 
 async function saveChallenge(
@@ -163,7 +168,7 @@ export async function finishPasskeyRegistration(
     verification = await verifyRegistrationResponse({
       response: input.response,
       expectedChallenge: challenge,
-      expectedOrigin: rp.origin,
+      expectedOrigin: rp.origins,
       expectedRPID: rp.id,
       requireUserVerification: false,
     });
@@ -246,7 +251,7 @@ export async function finishPasskeyLogin(
     verification = await verifyAuthenticationResponse({
       response,
       expectedChallenge: challenge,
-      expectedOrigin: rp.origin,
+      expectedOrigin: rp.origins,
       expectedRPID: rp.id,
       credential: {
         id: row.credentialId,

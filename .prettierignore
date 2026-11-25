@@ -12,3 +12,4 @@ apps/android/.gradle/
 apps/android/.kotlin/
 apps/android/app/src/main/assets/server-messages.en.json
 apps/android/app/src/test/resources/quick-add-cases.json
+apps/calendar/public/.well-known/assetlinks.json
