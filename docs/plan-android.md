@@ -1,9 +1,9 @@
 # Plan · App de Android (noviembre de 2026)
 
-> **Estado:** v2 (revisada). F8-01 a F8-08 construidas y probadas contra `pnpm dev` (registro,
+> **Estado:** v2 (revisada). F8-01 a F8-09 construidas y probadas contra `pnpm dev` (registro,
 > alta TOTP, calendario, tableros, tarjetas, compartir y canal en vivo con dos personas, app y web,
-> ajustes y copias de seguridad, alta rápida y dictado, importaciones y administración); F8-09 a
-> F8-11, pendientes. Decisiones
+> ajustes y copias de seguridad, alta rápida y dictado, importaciones y administración, uso sin
+> conexión); F8-10 y F8-11, pendientes. Decisiones
 > en [ADR-0016](decisiones/ADR-0016-app-android.md) y uso en el
 > [runbook](runbooks/android.md).
 
@@ -196,7 +196,13 @@ accesibilidad para mover tarjetas sin arrastrar (TalkBack), modo oscuro y «redu
   sincronizar, quitar, desconectar), reuniones de Teams en el tablero (columna, antelación,
   actualizar, dejar de volcar, desconectar) y panel de administración (usuarios, invitaciones con
   el enlace de un solo uso y backups del sistema).
-- **F8-09 · Sin conexión.**
+- **F8-09 · Sin conexión.** Hecho. Mismo alcance que la PWA: la caché HTTP de OkHttp guarda los GET
+  de sesión, calendarios, eventos, festivos, tareas con fecha, tableros (y su detalle) y tarjetas;
+  primero la red (4 s) y, si no hay, lo guardado (como mucho de 14 días). Se vacía al cerrar sesión
+  o si entra otra cuenta. Con la sesión guardada la app abre sin conexión; una franja «Sin
+  conexión» lo dice, las escrituras fallan con aviso y al volver la red se recarga todo. Vive en
+  `noBackupFilesDir` (no en la caché, que Android vacía con poco espacio). De paso, la PWA también
+  guarda el detalle del tablero (`boards/:id`), que faltaba para abrir uno sin conexión.
 - **F8-10 · Llaves de acceso y App Links.**
 - **F8-11 · Publicación.** Firma con secretos de CI (nunca en el repositorio), R8, Play Console.
 

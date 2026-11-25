@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Saber cuándo vuelve la red para recargar lo que se veía sin conexión (F8-09). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Dictado del alta rápida (F8-07): solo mientras se pulsa el micrófono. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 

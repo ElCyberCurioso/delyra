@@ -55,6 +55,7 @@ import androidx.lifecycle.viewModelScope
 import app.delyra.AppGraph
 import app.delyra.BuildConfig
 import app.delyra.R
+import app.delyra.core.ui.OfflineBanner
 import app.delyra.core.config.Environment
 import app.delyra.core.model.ActiveSession
 import app.delyra.core.model.AuditEntry
@@ -167,6 +168,7 @@ fun SettingsScreen(session: SessionState.Active, onAdmin: () -> Unit) {
             )
         },
         snackbarHost = { SnackbarHost(snackbar) },
+        bottomBar = { OfflineBanner() },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         // Lo que solo se ve una vez (códigos nuevos, semilla de la app nueva) ocupa la pantalla.

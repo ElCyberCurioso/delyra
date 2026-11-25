@@ -29,6 +29,8 @@ class Network(
     val cookieJar: SessionCookieJar,
     environment: () -> Environment,
     language: () -> String,
+    /** Lecturas sin conexión (F8-09); `null` en las pruebas. */
+    offlineCache: OfflineCache? = null,
 ) {
     private val _sessionExpired = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val sessionExpired: SharedFlow<Unit> = _sessionExpired
@@ -48,6 +50,13 @@ class Network(
         .cookieJar(cookieJar)
         .addInterceptor(DelyraInterceptor(environment, userAgent, language))
         .addInterceptor(expiryWatcher)
+        .apply {
+            if (offlineCache != null) {
+                cache(offlineCache.cache)
+                addInterceptor(offlineCache.interceptor)
+                addNetworkInterceptor(offlineCache.storeInterceptor)
+            }
+        }
         .addDebugInterceptors()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)

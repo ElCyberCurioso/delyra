@@ -242,6 +242,8 @@ class CalendarViewModel(private val graph: AppGraph) : ViewModel() {
     var quickAdded by mutableStateOf<String?>(null)
     var quickBusy by mutableStateOf(false)
         private set
+    /** Error al añadir desde la hoja (sin conexión, validación): se ve en la propia hoja. */
+    var quickError by mutableStateOf<ApiError?>(null)
 
     /** Donde va el alta rápida: el calendario personal (o el primero en el que se puede escribir). */
     val quickCalendar: CalendarInfo?
@@ -267,7 +269,7 @@ class CalendarViewModel(private val graph: AppGraph) : ViewModel() {
                 quickAdded = draft.title
                 graph.changes.calendarChanged()
                 onDone()
-            }.onFailure { message = it.apiError }
+            }.onFailure { quickError = it.apiError }
             quickBusy = false
         }
     }

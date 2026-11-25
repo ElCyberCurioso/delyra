@@ -71,6 +71,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import app.delyra.R
+import app.delyra.core.ui.OfflineBanner
 import app.delyra.core.model.CardDetail
 import app.delyra.core.model.DueInfo
 import app.delyra.core.ui.ColorDot
@@ -120,6 +121,7 @@ fun CardScreen(cardId: String, onBack: () -> Unit) {
             )
         },
         snackbarHost = { SnackbarHost(snackbar) },
+        bottomBar = { OfflineBanner() },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
             CardDetailBody(vm, Modifier.widthIn(max = 760.dp))

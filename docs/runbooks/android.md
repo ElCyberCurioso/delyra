@@ -59,6 +59,21 @@ de un .zip o .ics sí funciona: copia el fichero al emulador con
 `MSYS_NO_PATHCONV=1 adb push prueba.ics /sdcard/Download/` (en Git Bash, sin esa variable la ruta
 se convierte en una de Windows) y elígelo en «Importar y sincronizar».
 
+## Probar sin conexión
+
+Con `adb reverse` el tráfico a `localhost:5173` no pasa por la red del emulador: para simular que no
+hay conexión hay que quitar el reenvío además de la red, y volver a ponerlos para recuperarla:
+
+```sh
+adb reverse --remove tcp:5173
+adb shell svc wifi disable
+adb shell svc data disable
+```
+
+La caché vive en `no_backup/api-cache` (`adb shell run-as app.delyra.debug ls no_backup/api-cache`).
+Si el emulador se queda sin espacio (`INSTALL_FAILED_INSUFFICIENT_STORAGE`),
+`adb shell pm trim-caches 3G` libera la caché de las apps del sistema.
+
 ## Alta rápida: corpus compartido con la web
 
 `QuickAddTest` comprueba que el analizador de la app da lo mismo que el de la web en
