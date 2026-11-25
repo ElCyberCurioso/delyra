@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -71,6 +72,7 @@ import app.delyra.core.ui.TextInputDialog
 import app.delyra.core.ui.Tile
 import app.delyra.core.ui.appViewModel
 import app.delyra.core.ui.message
+import app.delyra.core.ui.openInBrowser
 import app.delyra.feature.calendar.appLocale
 import app.delyra.feature.kanban.shortDateTime
 import kotlinx.coroutines.launch
@@ -438,10 +440,18 @@ private fun EnvironmentTile(vm: SettingsViewModel) {
 private fun AboutTile(vm: SettingsViewModel) {
     var confirm by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val graph = LocalAppGraph.current
+    // Páginas legales de la web (Google Play exige la política de privacidad dentro de la app).
+    val openLegal = { path: String -> openInBrowser(context, graph.environment.origin + path) }
     Tile(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             TileTitle(stringResource(R.string.app_name))
             Text("${BuildConfig.VERSION_NAME} · Android ${Build.VERSION.RELEASE}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { openLegal("/privacidad") }) { Text(stringResource(R.string.settings_privacy_policy)) }
+                TextButton(onClick = { openLegal("/terminos") }) { Text(stringResource(R.string.settings_terms)) }
+            }
             Button(onClick = { confirm = true }) { Text(stringResource(R.string.settings_logout)) }
         }
     }

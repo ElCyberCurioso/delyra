@@ -10,7 +10,7 @@ import { PrivacyEn, TermsEn } from "./legal-en";
 
 const COPY = {
   es: {
-    updated: "Última actualización: 23 de noviembre de 2026",
+    updated: "Última actualización: 25 de noviembre de 2026",
     nav: "Páginas legales",
     privacy: "Privacidad",
     terms: "Condiciones",
@@ -18,7 +18,7 @@ const COPY = {
     termsTitle: "Condiciones de uso",
   },
   en: {
-    updated: "Last updated: 23 November 2026",
+    updated: "Last updated: 25 November 2026",
     nav: "Legal pages",
     privacy: "Privacy",
     terms: "Terms",
@@ -148,9 +148,19 @@ function PrivacyEs() {
       <h2>Dictado por voz</h2>
       <p>
         Si usas el micrófono para el alta rápida, la voz la convierte en texto el servicio de
-        dictado de tu navegador (en Chrome, el de Google; en Safari, el de Apple). Delyra no recibe
+        dictado de tu navegador (en Chrome, el de Google; en Safari, el de Apple) o, en la app de
+        Android, el reconocimiento de voz del móvil (en la mayoría, el de Google). Delyra no recibe
         ni guarda el audio: solo el texto que aparece en el campo, y únicamente si decides añadir el
         evento.
+      </p>
+
+      <h2>App de Android</h2>
+      <p>
+        La app guarda en el móvil tu sesión, cifrada con el almacén de claves de Android, para que
+        no tengas que entrar cada vez, y una copia de lo último que has visto (agenda y tableros)
+        para poder abrirlo sin conexión. Las dos se borran al cerrar sesión, y ninguna va en las
+        copias de seguridad del móvil ni pasa a otro dispositivo. La app no tiene anuncios, ni
+        analítica, ni rastreo de ningún tipo.
       </p>
 
       <h2>Dónde se guardan</h2>

@@ -1,9 +1,10 @@
 # Plan · App de Android (noviembre de 2026)
 
-> **Estado:** v2 (revisada). F8-01 a F8-10 construidas y probadas contra `pnpm dev` (registro,
+> **Estado:** v2 (revisada). F8-01 a F8-11 construidas y probadas contra `pnpm dev` (registro,
 > alta TOTP, calendario, tableros, tarjetas, compartir y canal en vivo con dos personas, app y web,
 > ajustes y copias de seguridad, alta rápida y dictado, importaciones y administración, uso sin
-> conexión, App Links); las llaves de acceso nativas se prueban en producción. F8-11, pendiente.
+> conexión, App Links y la build de release con R8); las llaves de acceso nativas se prueban en
+> producción. Para publicar en producción en Google Play falta F8-12 (borrado de cuenta).
 > Decisiones
 > en [ADR-0016](decisiones/ADR-0016-app-android.md) y uso en el
 > [runbook](runbooks/android.md).
@@ -212,7 +213,21 @@ accesibilidad para mover tarjetas sin arrastrar (TalkBack), modo oscuro y «redu
   enlace puesto; con la sesión abierta, avisa de que hay que salir antes. Por ahora solo está la
   huella del certificado debug del ordenador de desarrollo (decisión del usuario, ADR-0016); la de
   publicación llega en F8-11. El OAuth de Google y Microsoft sigue en la web.
-- **F8-11 · Publicación.** Firma con secretos de CI (nunca en el repositorio), R8, Play Console.
+- **F8-11 · Publicación.** Hecho. Play App Signing con una clave de subida que solo vive en los
+  secretos del Environment `android-release`: el workflow manual «Android release» firma el AAB
+  desde main (con CI en verde y sin caché de Gradle) y lo deja, con el mapping de R8, como
+  artefacto; la subida a Play Console es manual (decisión del usuario). Versión con
+  `-Pdelyra.versionName=X.Y.Z` (versionCode = X·10000 + Y·100 + Z). R8 probado con la build `qa`
+  (release firmada con la clave debug y con `pnpm dev`); CI compila el AAB de release en cada PR.
+  Los dos idiomas van en todas las instalaciones (el idioma se cambia dentro de la app). Ajustes
+  enlaza la política de privacidad y las condiciones, y la política explica qué guarda la app en el
+  móvil. Ficha y formularios de Play en [`docs/google-play.md`](google-play.md). Falta la huella de
+  Play App Signing (sale al crear la app en Play Console); al añadirla se quita la de debug
+  (decisión del usuario).
+- **F8-12 · Borrado de cuenta.** Google Play exige poder pedir el borrado de la cuenta desde la app y
+  desde una página web (la app permite crear cuentas con una invitación). «Eliminar mi cuenta» en
+  la API, la web y la app, con contraseña y código, que borre los datos, los adjuntos y las copias,
+  y una página pública que explique cómo hacerlo. Hasta tenerlo, la app no sale a producción.
 
 ## Pruebas
 
@@ -220,7 +235,7 @@ accesibilidad para mover tarjetas sin arrastrar (TalkBack), modo oscuro y «redu
   cookies, cliente con MockWebServer (cabeceras `Origin`, `Content-Type`, 401 → login).
 - Compose: pantallas clave en anchos de 360, 600, 840 y 1280 dp, letra al 200 % y modo oscuro.
 - Manual: teléfono vertical/horizontal, plegable, tablet, TalkBack, contra `pnpm dev` y producción.
-- CI: `./gradlew lintDebug testDebugUnitTest assembleDebug` en un job propio.
+- CI: `./gradlew lintDebug testDebugUnitTest assembleDebug bundleRelease` en un job propio.
 
 ## Revisión del plan (v1 → v2)
 

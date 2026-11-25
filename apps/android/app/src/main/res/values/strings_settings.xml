@@ -194,4 +194,6 @@
     <string name="settings_passkey_add_body">Confirma que eres tú con tu contraseña y el código actual. Después, el móvil te pedirá la huella, la cara o el PIN.</string>
     <string name="settings_passkey_name">Nombre de la llave</string>
     <string name="settings_passkey_added">Llave de acceso añadida</string>
+    <string name="settings_privacy_policy">Política de privacidad</string>
+    <string name="settings_terms">Condiciones de uso</string>
 </resources>

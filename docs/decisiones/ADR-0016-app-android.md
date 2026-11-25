@@ -2,7 +2,7 @@
 
 - **Estado:** aceptada
 - **Fecha:** 2026-11-23
-- **Tareas:** F8-01 a F8-04 (plan en [`docs/plan-android.md`](../plan-android.md))
+- **Tareas:** F8-01 a F8-12 (plan en [`docs/plan-android.md`](../plan-android.md))
 
 ## Contexto
 
@@ -50,8 +50,8 @@ cookie común, CSRF por `Origin`, Turnstile en los formularios públicos y 2FA o
 - Certificados de confianza (F8-10, decisión del usuario del 2026-11-25): de momento solo el
   certificado debug del ordenador de desarrollo, para probar llaves de acceso y App Links en
   producción con la build debug. Riesgo acotado: solo quien tenga ese `debug.keystore` podría
-  firmar una app en la que confíe delyra.app. En F8-11 se añade la huella de publicación (Play App
-  Signing) y se valora quitar la de debug.
+  firmar una app en la que confíe delyra.app. Al añadir la huella de Play App Signing se quita la
+  de debug (decisión del usuario en F8-11): producción solo confiará en la app de Google Play.
 - `FLAG_SECURE` en las pantallas con la semilla TOTP o los códigos de recuperación.
 - Conectar Google o Microsoft 365 (F8-08) se hace en la web, en una Custom Tab: el _callback_
   OAuth comprueba la cookie de sesión web y la cookie cifrada con el `state`, que el navegador no
@@ -84,6 +84,27 @@ cookie común, CSRF por `Origin`, Turnstile en los formularios públicos y 2FA o
   tarjeta va en pantalla completa con el tablero detrás (y su canal cerrado), así que abre su propio
   canal mientras está visible (F8-05).
 
+### Publicación (F8-11)
+
+- Play App Signing: Google firma lo que se instala con la clave de la app; nosotros solo tenemos la
+  clave de subida. Esa clave vive en los secretos del Environment `android-release` de GitHub y en
+  el gestor de contraseñas de quien publica, nunca en el repositorio.
+- El workflow manual `android-release.yml` construye y firma el AAB desde main, con CI en verde y
+  sin caché de Gradle, y lo deja como artefacto junto al mapping de R8. La subida a Play Console es
+  manual (decisión del usuario): la primera tiene que serlo de todos modos, y así no hace falta una
+  cuenta de servicio de Google Cloud con más secretos.
+- La versión entra como `-Pdelyra.versionName=X.Y.Z` y el versionCode sale de ella
+  (X·10000 + Y·100 + Z), así que crece siempre que sube la versión.
+- R8 y recursos reducidos en release. Una build `qa` (release con la clave debug, `app.delyra.qa`,
+  con `pnpm dev`) sirve para probar en local que R8 no rompe nada; CI compila el AAB de release sin
+  firmar en cada PR.
+- El AAB no se divide por idioma: el idioma se cambia dentro de la app y los dos tienen que estar
+  instalados.
+- Ajustes enlaza la política de privacidad y las condiciones (Google Play exige la política dentro
+  de la app), y la política explica qué guarda la app en el móvil.
+- Google Play exige poder pedir el borrado de la cuenta desde la app y desde una web, y Delyra no
+  lo tiene: va en una tarea propia, F8-12 (decisión del usuario), antes de salir a producción.
+
 ## Consecuencias
 
 - La página `/mobile/turnstile.html` tiene que estar desplegada en producción antes de publicar la
@@ -96,5 +117,6 @@ cookie común, CSRF por `Origin`, Turnstile en los formularios públicos y 2FA o
 - Las llaves de acceso nativas no se pueden probar con `pnpm dev`: Android exige que el `rpId` sea
   un dominio con `assetlinks.json` en HTTPS. Se prueban en producción (tras desplegar web y API)
   con un móvil con bloqueo de pantalla y gestor de contraseñas.
-- Queda pendiente (plan, tarea F8-11) la publicación en Google Play.
+- Para salir a producción en Google Play faltan F8-12 (borrado de cuenta) y la huella de Play App
+  Signing en `packages/shared/src/android-app.ts` (se conoce al crear la app en Play Console).
 - No hay notificaciones push: las alertas siguen por Telegram o email.
