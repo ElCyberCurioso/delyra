@@ -55,6 +55,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.delyra.R
+import app.delyra.core.ui.OfflineBanner
 import app.delyra.core.session.SessionState
 import app.delyra.core.ui.appViewModel
 import app.delyra.core.ui.message
@@ -170,6 +171,7 @@ fun CalendarScreen(
             }
         },
         snackbarHost = { SnackbarHost(snackbar) },
+        bottomBar = { OfflineBanner() },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         Row(Modifier.fillMaxSize().padding(padding)) {

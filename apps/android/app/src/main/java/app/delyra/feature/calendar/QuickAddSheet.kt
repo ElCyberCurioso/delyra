@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import app.delyra.R
 import app.delyra.core.ui.ColorDot
 import app.delyra.core.ui.DictationError
+import app.delyra.core.ui.ErrorText
 import app.delyra.core.ui.parseHexColor
 import app.delyra.core.ui.rememberDictation
 import app.delyra.navigation.EventEditorRoute
@@ -84,7 +85,10 @@ fun QuickAddSheet(vm: CalendarViewModel, onMoreOptions: (EventEditorRoute) -> Un
         onError = { dictationError = it },
     )
     val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focus.requestFocus() }
+    LaunchedEffect(Unit) {
+        vm.quickError = null
+        focus.requestFocus()
+    }
     val add = { if (draft != null && calendar != null) vm.quickAdd(draft, calendar, onDismiss) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
@@ -98,6 +102,7 @@ fun QuickAddSheet(vm: CalendarViewModel, onMoreOptions: (EventEditorRoute) -> Un
                 onValueChange = {
                     text = it.take(MAX_LENGTH)
                     dictationError = null
+                    vm.quickError = null
                 },
                 modifier = Modifier.fillMaxWidth().focusRequester(focus),
                 placeholder = { Text(stringResource(R.string.quick_add_placeholder), maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -162,6 +167,8 @@ fun QuickAddSheet(vm: CalendarViewModel, onMoreOptions: (EventEditorRoute) -> Un
                 }
                 text.trim().length > 3 -> Hint(stringResource(R.string.quick_add_hint), status)
             }
+            // El snackbar del calendario queda detrás de la hoja: el error se enseña aquí.
+            ErrorText(vm.quickError)
         }
     }
 }

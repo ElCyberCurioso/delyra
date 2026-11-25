@@ -2,9 +2,10 @@
  * Configuración PWA común (F7-01) para `vite-plugin-pwa` (estrategia `generateSW`):
  *
  * - Precarga la aplicación (HTML, JS, CSS, iconos) para que abra sin conexión.
- * - Lecturas de la API que hacen falta para ver la agenda o los tableros: primero la red y, si no
- *   hay (o tarda más de 4 s), la última respuesta guardada. Nada más se guarda: ni adjuntos ni
- *   copias de seguridad ni nada que no sea un GET de esas rutas.
+ * - Lecturas de la API que hacen falta para ver la agenda o los tableros (también el detalle de un
+ *   tablero, para abrirlo): primero la red y, si no hay (o tarda más de 4 s), la última respuesta
+ *   guardada. Nada más se guarda: ni adjuntos ni copias de seguridad ni nada que no sea un GET de
+ *   esas rutas. La app de Android guarda lo mismo (`OfflineCache.kt`).
  * - La caché de la API se borra al cerrar sesión o al entrar con otra cuenta
  *   (`clearOfflineData`), para que nadie vea sin conexión los datos de otra persona.
  * - Las navegaciones a `/api/*` (callback de Google, descargas) nunca las sirve el service worker.
@@ -63,7 +64,7 @@ export function pwaOptions(app: "calendar" | "work") {
           urlPattern: ({ url, request }: { url: URL; request: Request }) =>
             request.method === "GET" &&
             url.origin === self.location.origin &&
-            /^\/api\/(auth\/me|calendars|events|cards\/due|holidays|boards|cards\/[^/]+)$/.test(
+            /^\/api\/(auth\/me|calendars|events|cards\/due|holidays|boards|boards\/[^/]+|cards\/[^/]+)$/.test(
               url.pathname,
             ),
           handler: "NetworkFirst" as const,

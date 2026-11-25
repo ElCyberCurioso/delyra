@@ -86,6 +86,8 @@ cookie común, CSRF por `Origin`, Turnstile en los formularios públicos y 2FA o
   intercepta (`navigateFallbackDenylist`).
 - Los mensajes de la API se traducen al inglés con la tabla de la web (F8-06).
 - Para conectar Google o Microsoft 365 hay que iniciar sesión también en la web la primera vez.
-- Quedan pendientes (plan, tareas F8-09 a F8-11): caché sin conexión, llaves de acceso y App
-  Links, y publicación en Google Play.
+- Sin conexión (F8-09) se ven las últimas lecturas de agenda y tableros, como en la PWA, desde la
+  caché HTTP de OkHttp en `noBackupFilesDir`; no hay escrituras sin conexión (ni cola de cambios).
+- Quedan pendientes (plan, tareas F8-10 y F8-11): llaves de acceso y App Links, y publicación en
+  Google Play.
 - No hay notificaciones push: las alertas siguen por Telegram o email.

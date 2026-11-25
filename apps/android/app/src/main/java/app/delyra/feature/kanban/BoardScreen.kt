@@ -81,6 +81,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import app.delyra.R
+import app.delyra.core.ui.OfflineBanner
 import app.delyra.core.model.BoardColumn
 import app.delyra.core.model.CardSummary
 import app.delyra.core.ui.ErrorState
@@ -149,6 +150,7 @@ fun BoardScreen(boardId: String, onBack: () -> Unit, onOpenCard: (String) -> Uni
     Scaffold(
         topBar = { BoardTopBar(vm, dialogs, onBack, searching = searching, onSearch = { searching = !searching; if (!searching) vm.query = "" }) },
         snackbarHost = { SnackbarHost(snackbar) },
+        bottomBar = { OfflineBanner() },
     ) { padding ->
         val detail = vm.detail
         when {

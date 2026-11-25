@@ -51,6 +51,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.delyra.AppGraph
 import app.delyra.R
+import app.delyra.core.ui.OfflineBanner
 import app.delyra.core.model.BoardSummary
 import app.delyra.core.model.CreateBoardRequest
 import app.delyra.core.model.PendingBoardInvitation
@@ -137,6 +138,7 @@ fun BoardsScreen(onOpenBoard: (String) -> Unit) {
             ExtendedFloatingActionButton(onClick = { creating = true }, icon = { Icon(Icons.Default.Add, null) }, text = { Text(stringResource(R.string.boards_new)) })
         },
         snackbarHost = { SnackbarHost(snackbar) },
+        bottomBar = { OfflineBanner() },
         containerColor = MaterialTheme.colorScheme.background,
     ) { padding ->
         val boards = vm.boards

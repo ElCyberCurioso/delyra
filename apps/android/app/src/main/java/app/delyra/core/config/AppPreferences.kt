@@ -23,6 +23,7 @@ class AppPreferences(context: Context) {
         val calendarView = stringPreferencesKey("calendar_view")
         val showHolidays = booleanPreferencesKey("show_holidays")
         val showTasks = booleanPreferencesKey("show_tasks")
+        val lastUser = stringPreferencesKey("last_user")
     }
 
     suspend fun environment(): Environment = Environment.parse(store.data.first()[Keys.environment])
@@ -36,6 +37,13 @@ class AppPreferences(context: Context) {
 
     suspend fun setEncryptedCookies(value: String?) {
         store.edit { if (value == null) it.remove(Keys.cookies) else it[Keys.cookies] = value }
+    }
+
+    /** La última cuenta que entró: si entra otra, se vacía la caché sin conexión. */
+    suspend fun lastUser(): String? = store.data.first()[Keys.lastUser]
+
+    suspend fun setLastUser(id: String) {
+        store.edit { it[Keys.lastUser] = id }
     }
 
     val calendarView: Flow<String?> = store.data.map { it[Keys.calendarView] }

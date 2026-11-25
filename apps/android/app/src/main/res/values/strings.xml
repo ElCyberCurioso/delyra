@@ -108,4 +108,5 @@
     <string name="reset_link_invalid">Ese enlace no es válido.</string>
     <string name="reset_submit">Cambiar la contraseña</string>
     <string name="reset_done">Contraseña cambiada. Ya puedes entrar con la nueva.</string>
+    <string name="offline_banner">Sin conexión: ves lo último guardado. Para cambiar algo hace falta conexión.</string>
 </resources>
