@@ -140,7 +140,7 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
 }
 
 @Composable
-fun SettingsScreen(session: SessionState.Active) {
+fun SettingsScreen(session: SessionState.Active, onAdmin: () -> Unit) {
     val vm = appViewModel { SettingsViewModel(it) }
     val security = appViewModel { SecurityViewModel(it) }
     val telegram = appViewModel { TelegramViewModel(it) }
@@ -182,7 +182,7 @@ fun SettingsScreen(session: SessionState.Active) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item { ProfileTile(session, vm) }
+            item { ProfileTile(session, vm, onAdmin) }
             item { PreferencesTile(session, vm) }
             item { SecurityTile(security) }
             item { TelegramTile(telegram) }
@@ -218,7 +218,7 @@ internal fun Hint(text: String) {
 }
 
 @Composable
-private fun ProfileTile(session: SessionState.Active, vm: SettingsViewModel) {
+private fun ProfileTile(session: SessionState.Active, vm: SettingsViewModel, onAdmin: () -> Unit) {
     var editing by rememberSaveable { mutableStateOf(false) }
     Tile(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -227,6 +227,7 @@ private fun ProfileTile(session: SessionState.Active, vm: SettingsViewModel) {
             Text(session.user.email, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (session.user.isAdmin) Text(stringResource(R.string.settings_admin), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
             OutlinedButton(onClick = { editing = true }) { Text(stringResource(R.string.settings_rename)) }
+            if (session.user.isAdmin) Button(onClick = onAdmin) { Text(stringResource(R.string.admin_open)) }
         }
     }
     if (editing) {

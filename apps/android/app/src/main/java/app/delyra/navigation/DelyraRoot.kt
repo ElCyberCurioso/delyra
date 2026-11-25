@@ -46,6 +46,9 @@ import app.delyra.feature.kanban.BoardScreen
 import app.delyra.feature.kanban.BoardsScreen
 import app.delyra.feature.kanban.CardScreen
 import app.delyra.feature.settings.SettingsScreen
+import app.delyra.feature.admin.AdminScreen
+import app.delyra.feature.imports.ImportWizardScreen
+import app.delyra.feature.imports.ImportsScreen
 
 /** Raíz: el estado de la sesión decide entre acceso y la app. */
 @Composable
@@ -91,6 +94,17 @@ private fun MainNavigation(session: SessionState.Active) {
                 onOpen = { occurrence -> nav.navigate(occurrence.editRoute()) },
             )
         }
+        composable<ImportsRoute> {
+            ImportsScreen(onBack = { nav.popBackStack() }, onOpenImport = { nav.navigate(ImportRoute(it)) })
+        }
+        composable<ImportRoute> { entry ->
+            ImportWizardScreen(
+                importId = entry.toRoute<ImportRoute>().importId,
+                onBack = { nav.popBackStack() },
+                onViewCalendar = { nav.popBackStack(HomeRoute, inclusive = false) },
+            )
+        }
+        composable<AdminRoute> { AdminScreen(onBack = { nav.popBackStack() }) }
     }
 }
 
@@ -129,9 +143,10 @@ private fun HomeShell(session: SessionState.Active, nav: NavHostController) {
                 onOpenEvent = { nav.navigate(it) },
                 onSearch = { nav.navigate(EventSearchRoute) },
                 onOpenBoard = { nav.navigate(BoardRoute(it)) },
+                onImports = { nav.navigate(ImportsRoute) },
             )
             HomeTab.Tasks -> BoardsScreen(onOpenBoard = { nav.navigate(BoardRoute(it)) })
-            HomeTab.Settings -> SettingsScreen(session)
+            HomeTab.Settings -> SettingsScreen(session, onAdmin = { nav.navigate(AdminRoute) })
         }
     }
 }

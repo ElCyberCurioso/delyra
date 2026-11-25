@@ -89,6 +89,7 @@ fun BoardDialogsHost(vm: BoardViewModel, dialogs: BoardDialogs, onMessage: (Stri
     if (dialogs.archived) ArchivedSheet(vm, onDismiss = { dialogs.archived = false })
     if (dialogs.members) ShareSheet(vm, onDismiss = { dialogs.members = false })
     if (dialogs.settings) SettingsDialog(vm, dialogs, onDismiss = { dialogs.settings = false })
+    if (dialogs.teams) TeamsSheet(vm.boardId, vm.columns, vm.isOwner, onMessage, onDismiss = { dialogs.teams = false })
     if (dialogs.deleteBoard) {
         ConfirmDialog(
             title = stringResource(R.string.board_delete_title),

@@ -1,8 +1,9 @@
 # Plan · App de Android (noviembre de 2026)
 
-> **Estado:** v2 (revisada). F8-01 a F8-07 construidas y probadas contra `pnpm dev` (registro,
+> **Estado:** v2 (revisada). F8-01 a F8-08 construidas y probadas contra `pnpm dev` (registro,
 > alta TOTP, calendario, tableros, tarjetas, compartir y canal en vivo con dos personas, app y web,
-> ajustes y copias de seguridad, alta rápida y dictado); F8-08 a F8-11, pendientes. Decisiones
+> ajustes y copias de seguridad, alta rápida y dictado, importaciones y administración); F8-09 a
+> F8-11, pendientes. Decisiones
 > en [ADR-0016](decisiones/ADR-0016-app-android.md) y uso en el
 > [runbook](runbooks/android.md).
 
@@ -186,8 +187,15 @@ accesibilidad para mover tarjetas sin arrastrar (TalkBack), modo oscuro y «redu
   parciales; el micrófono se pide al pulsarlo. De paso, la web entiende mejor el español hablado
   («a las 5 de la tarde», «10 y media», «17h», «mediodía», «pasado mañana», «el lunes que viene») y
   ya no confunde «15/1 a las 9:15» con un rango.
-- **F8-08 · Integraciones y administración.** Verificar antes si los _callbacks_ OAuth de Google y
-  Microsoft funcionan sin la cookie del navegador (Custom Tab); si no, cambio en la API.
+- **F8-08 · Integraciones y administración.** Hecho. Los _callbacks_ OAuth de Google y Microsoft
+  no funcionan desde la app: exigen la cookie de sesión web y la del `state`, y una Custom Tab no
+  tiene ninguna. Decisión (ADR-0016): el paso de **conectar** se hace en la web (la app la abre en
+  una Custom Tab) y todo lo demás es nativo; el OAuth nativo, con App Links, se valorará en F8-10.
+  Nativo: importar un .zip/.ics (subida en streaming, vista previa con destino por calendario,
+  progreso e informe), suscripciones iCal, sincronización con Google (estado, calendarios,
+  sincronizar, quitar, desconectar), reuniones de Teams en el tablero (columna, antelación,
+  actualizar, dejar de volcar, desconectar) y panel de administración (usuarios, invitaciones con
+  el enlace de un solo uso y backups del sistema).
 - **F8-09 · Sin conexión.**
 - **F8-10 · Llaves de acceso y App Links.**
 - **F8-11 · Publicación.** Firma con secretos de CI (nunca en el repositorio), R8, Play Console.

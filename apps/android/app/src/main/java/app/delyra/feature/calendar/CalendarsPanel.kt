@@ -65,6 +65,7 @@ fun CalendarsPanel(
     vm: CalendarViewModel,
     selectedDate: LocalDate,
     onPickDate: (LocalDate) -> Unit,
+    onImports: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var month by remember(selectedDate) { mutableStateOf(YearMonth.from(selectedDate)) }
@@ -110,6 +111,8 @@ fun CalendarsPanel(
         Text(stringResource(R.string.calendar_layers), style = MaterialTheme.typography.titleSmall, modifier = Modifier.semantics { heading() })
         LayerRow(stringResource(R.string.calendar_layer_holidays), vm.showHolidays) { vm.toggleLayer(holidays = it) }
         if (vm.showHolidays) HolidayRegionRow(vm.holidayRegion, vm::chooseHolidayRegion)
+        HorizontalDivider(Modifier.padding(vertical = 8.dp))
+        OutlinedButton(onClick = onImports, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.imports_title)) }
         LayerRow(stringResource(R.string.calendar_layer_tasks), vm.showTasks) { vm.toggleLayer(tasks = it) }
     }
 

@@ -75,6 +75,7 @@ fun CalendarScreen(
     onOpenEvent: (EventEditorRoute) -> Unit,
     onSearch: () -> Unit,
     onOpenBoard: (String) -> Unit,
+    onImports: () -> Unit,
 ) {
     val vm = appViewModel { CalendarViewModel(it) }
     val layout = rememberWindowLayout()
@@ -175,6 +176,7 @@ fun CalendarScreen(
             if (layout.isExpanded) {
                 CalendarsPanel(
                     vm = vm,
+                    onImports = onImports,
                     selectedDate = vm.anchor,
                     onPickDate = jumpTo,
                     modifier = Modifier.width(300.dp).fillMaxHeight(),
@@ -246,7 +248,7 @@ fun CalendarScreen(
     if (showQuickAdd) QuickAddSheet(vm, onMoreOptions = onCreateEvent, onDismiss = { showQuickAdd = false })
     if (showCalendars && !layout.isExpanded) {
         ModalBottomSheet(onDismissRequest = { showCalendars = false }) {
-            CalendarsPanel(vm = vm, selectedDate = vm.anchor, onPickDate = { jumpTo(it); showCalendars = false })
+            CalendarsPanel(vm = vm, selectedDate = vm.anchor, onPickDate = { jumpTo(it); showCalendars = false }, onImports = { showCalendars = false; onImports() })
         }
     }
 }

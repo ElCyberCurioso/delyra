@@ -10,8 +10,10 @@ import app.delyra.core.network.CookieStorage
 import app.delyra.core.network.Network
 import app.delyra.core.network.SessionCookieJar
 import app.delyra.core.network.api.AccountApi
+import app.delyra.core.network.api.AdminApi
 import app.delyra.core.network.api.AuthApi
 import app.delyra.core.network.api.CalendarApi
+import app.delyra.core.network.api.IntegrationsApi
 import app.delyra.core.network.api.BackupsApi
 import app.delyra.core.network.api.KanbanApi
 import app.delyra.core.security.KeystoreCipher
@@ -61,6 +63,8 @@ class AppGraph(private val context: Context) {
     val calendarApi: CalendarApi = network.create()
     val kanbanApi: KanbanApi = network.create()
     val backupsApi: BackupsApi = network.create()
+    val integrationsApi: IntegrationsApi = network.create()
+    val adminApi: AdminApi = network.create()
 
     val session = SessionRepository(authApi, cookies, scope, onSignedOut = ::clearLocalData)
     val changes = DataChanges()
