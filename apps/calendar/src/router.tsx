@@ -81,6 +81,12 @@ const routeTree = rootRoute.addChildren([
     path: "/terminos",
     component: lazyRouteComponent(() => import("./legal/legal-pages"), "TermsPage"),
   }),
+  // F8-12: cómo eliminar la cuenta (la URL que pide Google Play) y adonde se vuelve al hacerlo.
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/borrar-cuenta",
+    component: lazyRouteComponent(() => import("./legal/legal-pages"), "AccountDeletionPage"),
+  }),
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/admin",

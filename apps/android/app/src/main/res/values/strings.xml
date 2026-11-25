@@ -111,4 +111,5 @@
     <string name="offline_banner">Sin conexión: ves lo último guardado. Para cambiar algo hace falta conexión.</string>
     <string name="link_signed_in_title">Enlace de Delyra</string>
     <string name="link_signed_in_body">Este enlace sirve para crear una cuenta o cambiar la contraseña. Cierra sesión antes de usarlo.</string>
+    <string name="login_account_deleted">Tu cuenta se ha eliminado. Te hemos enviado un correo para confirmarlo.</string>
 </resources>

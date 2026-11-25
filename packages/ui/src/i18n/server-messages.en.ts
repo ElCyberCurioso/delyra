@@ -96,6 +96,8 @@ const exact: Record<string, string> = {
     "This password appears in known data breaches. Choose another one.",
   "La contraseña no puede contener tu email": "The password can't contain your email",
   "La contraseña o el código no son correctos": "The password or the code is wrong",
+  "Eres la única persona administradora: invita antes a otra como administradora para poder eliminar tu cuenta":
+    "You're the only administrator: invite someone else as an administrator before deleting your account",
   "Debe ser distinta de la actual": "It must be different from the current one",
   "La cuenta no tiene TOTP activo": "The account doesn't have TOTP turned on",
   "El código no es correcto o han pasado más de 10 minutos. Vuelve a empezar.":

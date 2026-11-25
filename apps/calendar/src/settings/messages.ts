@@ -13,6 +13,7 @@ const es = {
       copias: "Copias de seguridad",
       sesiones: "Sesiones activas",
       actividad: "Actividad reciente",
+      eliminar: "Eliminar la cuenta",
     },
   },
   common: {
@@ -216,6 +217,22 @@ const es = {
     title: "Actividad reciente",
     description:
       "Inicios de sesión y cambios de seguridad de tu cuenta. Si ves algo que no reconoces, cambia la contraseña.",
+  },
+  deleteAccount: {
+    title: "Eliminar la cuenta",
+    description:
+      "Se borran al momento tu cuenta y todo lo que tienes en Delyra: calendarios, eventos, tableros, tarjetas, adjuntos y copias de seguridad. No se puede deshacer.",
+    open: "Eliminar mi cuenta…",
+    dialogTitle: "¿Eliminar tu cuenta?",
+    dialogDescription:
+      "Para confirmarlo, escribe tu contraseña y el código de tu app autenticadora (o uno de recuperación).",
+    shared: (boards: number, people: number) =>
+      `${boards === 1 ? "Tienes 1 tablero compartido" : `Tienes ${String(boards)} tableros compartidos`} con ${people === 1 ? "1 persona" : `${String(people)} personas`}: ${boards === 1 ? "se borrará" : "se borrarán"} también para ${people === 1 ? "ella" : "ellas"}.`,
+    lastAdmin:
+      "Eres la única persona administradora de Delyra. Antes de eliminar tu cuenta, invita a otra persona como administradora desde Administración.",
+    backupHint:
+      "Si quieres guardar algo, descarga antes una copia de seguridad (en esta misma página).",
+    confirm: "Eliminar mi cuenta para siempre",
   },
   audit: {
     "user.registered": "Cuenta creada",

@@ -94,3 +94,8 @@ El cron diario (`services/retention.ts`) borra las sesiones caducadas o cerradas
 acceso, los restablecimientos de contraseña y las invitaciones sin usar 30 días después de
 caducar, y el historial de seguridad al año. Los plazos están en la política de privacidad
 («Cuánto tiempo»); el resultado queda en el log `retention_purge`.
+
+Eliminar la cuenta (F8-12, `DELETE /api/me`) lo borra todo al momento: R2 por los prefijos del
+usuario y D1 en cascada desde `users`, tras revocar Google. Exige contraseña y código actual (con
+el mismo bloqueo por intentos que el resto de reautenticaciones) y la última persona
+administradora no puede. Solo quedan las copias del sistema hasta que caducan.

@@ -82,6 +82,10 @@ data class ChangePasswordRequest(val currentPassword: String, val newPassword: S
 @Serializable
 data class ReauthRequest(val password: String, val code: String)
 
+/** F8-12: antes de eliminar la cuenta. */
+@Serializable
+data class AccountDeletionSummary(val sharedBoards: Int, val sharedWith: Int, val lastAdmin: Boolean)
+
 @Serializable
 data class SecurityOverview(
     val totpConfirmedAt: String? = null,

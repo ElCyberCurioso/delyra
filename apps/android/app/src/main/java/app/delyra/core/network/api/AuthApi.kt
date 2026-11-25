@@ -1,5 +1,6 @@
 package app.delyra.core.network.api
 
+import app.delyra.core.model.AccountDeletionSummary
 import app.delyra.core.model.AuditResponse
 import app.delyra.core.model.AddPasskeyRequest
 import app.delyra.core.model.AuthConfigResponse
@@ -31,6 +32,7 @@ import kotlinx.serialization.json.JsonObject
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.HTTP
 import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -112,6 +114,14 @@ interface AccountApi {
 
     @GET("me/audit")
     suspend fun audit(): AuditResponse
+
+    /** F8-12: lo que se pierde al eliminar la cuenta (tableros compartidos) y si se puede. */
+    @GET("me/deletion")
+    suspend fun deletionSummary(): AccountDeletionSummary
+
+    /** Elimina la cuenta al momento; pide la contraseña y el código. */
+    @HTTP(method = "DELETE", path = "me", hasBody = true)
+    suspend fun deleteAccount(@Body body: ReauthRequest)
 
     @GET("me/passkeys")
     suspend fun passkeys(): PasskeysResponse

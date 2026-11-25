@@ -120,6 +120,7 @@ fun AuthFlow(state: SessionState) {
                     SignedOutScreen.Login -> LoginForm(
                         vm,
                         expired = (state as? SessionState.SignedOut)?.expired == true,
+                        deleted = (state as? SessionState.SignedOut)?.deleted == true,
                         onRegister = { screen = SignedOutScreen.Register },
                         onForgot = { screen = SignedOutScreen.Forgot },
                     )
@@ -256,7 +257,7 @@ private fun DebugEnvironmentSwitch() {
 // ── Login ──────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun LoginForm(vm: AuthViewModel, expired: Boolean, onRegister: () -> Unit, onForgot: () -> Unit) {
+private fun LoginForm(vm: AuthViewModel, expired: Boolean, deleted: Boolean, onRegister: () -> Unit, onForgot: () -> Unit) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var token by rememberSaveable { mutableStateOf<String?>(null) }
@@ -265,6 +266,7 @@ private fun LoginForm(vm: AuthViewModel, expired: Boolean, onRegister: () -> Uni
 
     Title(stringResource(R.string.login_title), stringResource(R.string.login_subtitle))
     if (expired) Text(stringResource(R.string.login_expired), color = MaterialTheme.colorScheme.tertiary)
+    if (deleted) Text(stringResource(R.string.login_account_deleted), color = MaterialTheme.colorScheme.tertiary)
     EmailField(email, { email = it }, Modifier.fillMaxWidth())
     PasswordField(password, { password = it }, stringResource(R.string.field_password), Modifier.fillMaxWidth(), onDone = submit)
     TurnstileWidget(action = "login", resetKey = state.turnstileReset, onToken = { token = it })

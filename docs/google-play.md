@@ -17,7 +17,7 @@ Si cambia lo que la app guarda o envía, se actualiza a la vez este documento, l
 | Política de privacidad  | `https://delyra.app/privacidad` (también en la app: Ajustes)          |
 | Anuncios                | No                                                                    |
 | Público objetivo        | 18 años o más; no está dirigida a menores                             |
-| Borrado de cuenta (URL) | Pendiente de F8-12; sin él no se puede publicar en producción         |
+| Borrado de cuenta (URL) | `https://delyra.app/borrar-cuenta` (F8-12)                            |
 
 ## Ficha en español (es-ES)
 
@@ -114,7 +114,9 @@ apuestas. Interacción entre usuarios: sí, pero solo con personas invitadas a u
   servicio (no cuenta como compartir). Lo que va a Google, Microsoft o Telegram lo inicia la persona
   usuaria al conectarlos (transferencia iniciada por el usuario).
 - **Cifrado en tránsito:** sí (solo HTTPS).
-- **Borrado:** la persona usuaria puede pedir el borrado de su cuenta y sus datos (F8-12).
+- **Borrado:** la persona usuaria puede eliminar su cuenta y sus datos desde Ajustes, en la app o
+  en la web (F8-12); `https://delyra.app/borrar-cuenta` explica cómo. Se borra al momento; solo
+  quedan en las copias del sistema hasta que caducan (como mucho, un año).
 
 | Tipo de dato (Play)                  | Qué es en Delyra                                           | Para qué                            | Opcional |
 | ------------------------------------ | ---------------------------------------------------------- | ----------------------------------- | -------- |

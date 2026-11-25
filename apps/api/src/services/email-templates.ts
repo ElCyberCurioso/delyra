@@ -124,3 +124,16 @@ export function backupFailedEmail(to: string, error: string) {
     "Revisa docs/runbooks/backup-sistema.md.",
   ]);
 }
+
+/** F8-12: confirmación de que la cuenta se ha eliminado (se envía justo después de borrarla). */
+export function accountDeletedEmail(to: string, locale: Locale = "es") {
+  return locale === "es"
+    ? message(to, "Tu cuenta de Delyra se ha eliminado", "Cuenta eliminada", [
+        "Tu cuenta de Delyra y todo lo que tenías en ella (calendarios, eventos, tableros, tarjetas, adjuntos y copias de seguridad) se han borrado.",
+        "Si no lo has hecho tú, avisa cuanto antes a quien te invitó a Delyra.",
+      ])
+    : message(to, "Your Delyra account has been deleted", "Account deleted", [
+        "Your Delyra account and everything in it (calendars, events, boards, cards, attachments and backups) have been deleted.",
+        "If this was not you, tell whoever invited you to Delyra as soon as possible.",
+      ]);
+}

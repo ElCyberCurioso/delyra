@@ -18,8 +18,16 @@ import { AppError } from "../lib/errors";
 import { keyringFromEnv } from "../lib/field-crypto";
 import { readBody } from "../lib/http";
 import { hashPassword, verifyPassword } from "../lib/password";
-import { currentAuth, requireActiveSession, setSessionCookie } from "../middleware/session";
+import {
+  clearSessionCookie,
+  currentAuth,
+  requireActiveSession,
+  setSessionCookie,
+} from "../middleware/session";
+import { accountDeletionSummary, deleteAccount } from "../services/account-deletion";
 import { checkLock, recordAttempt } from "../services/attempts";
+import { accountDeletedEmail } from "../services/email-templates";
+import { createMailer } from "../services/mailer";
 import { audit, listUserAudit } from "../services/audit";
 import {
   countPasskeys,
@@ -58,6 +66,8 @@ import { telegramSettingsRoutes } from "./telegram";
  */
 
 const REAUTH_FAILED = "La contraseña o el código no son correctos";
+const LAST_ADMIN =
+  "Eres la única persona administradora: invita antes a otra como administradora para poder eliminar tu cuenta";
 
 function attemptKeys(c: Context<AppEnv>) {
   return { account: `user:${currentAuth(c).user.id}`, ip: c.get("meta").ip };
@@ -316,4 +326,41 @@ export const accountRoutes = new Hono<AppEnv>()
   .get("/audit", async (c) => {
     const { user } = currentAuth(c);
     return c.json({ events: await listUserAudit(createDb(c.env.DB), user.id) });
+  })
+
+  // F8-12: eliminar la cuenta. Antes se enseña qué se pierde (tableros compartidos); el borrado
+  // pide la contraseña y el código actual, y es inmediato.
+  .get("/deletion", async (c) => {
+    const { user } = currentAuth(c);
+    return c.json(await accountDeletionSummary(createDb(c.env.DB), user));
+  })
+
+  .delete("/", async (c) => {
+    const body = await readBody(c, reauthRequestSchema);
+    const { user } = currentAuth(c);
+    const db = createDb(c.env.DB);
+    // Antes de comprobar el código: así no se gasta un código de recuperación para nada.
+    if ((await accountDeletionSummary(db, user)).lastAdmin) {
+      throw new AppError(409, { detail: LAST_ADMIN });
+    }
+    await reauthenticate(c, body);
+    const locale = (await getUserSettings(db, user.id))?.locale === "en" ? "en" : "es";
+    const result = await deleteAccount(
+      db,
+      c.env,
+      await keyringFromEnv(c.env),
+      user.id,
+      c.get("logger"),
+    );
+    clearSessionCookie(c);
+    c.get("logger").info("account_deleted", result);
+    const mailer = createMailer(c.env, c.get("logger"));
+    if (mailer.available) {
+      try {
+        await mailer.send(accountDeletedEmail(user.email, locale));
+      } catch (error) {
+        c.get("logger").warn("account_deleted_email_failed", { error });
+      }
+    }
+    return c.body(null, 204);
   });

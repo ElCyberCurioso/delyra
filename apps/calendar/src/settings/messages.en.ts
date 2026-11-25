@@ -15,6 +15,7 @@ const en: Translation<SettingsMessages> = {
       copias: "Backups",
       sesiones: "Active sessions",
       actividad: "Recent activity",
+      eliminar: "Delete account",
     },
   },
   common: {
@@ -217,6 +218,21 @@ const en: Translation<SettingsMessages> = {
     title: "Recent activity",
     description:
       "Sign-ins and security changes on your account. If you see something you don't recognise, change your password.",
+  },
+  deleteAccount: {
+    title: "Delete account",
+    description:
+      "Your account and everything you have in Delyra are deleted right away: calendars, events, boards, cards, attachments and backups. This can't be undone.",
+    open: "Delete my account…",
+    dialogTitle: "Delete your account?",
+    dialogDescription:
+      "To confirm, enter your password and the code from your authenticator app (or a recovery code).",
+    shared: (boards, people) =>
+      `You have ${plural(boards, "shared board", "shared boards")} with ${plural(people, "person", "people")}: ${boards === 1 ? "it" : "they"} will be deleted for them too.`,
+    lastAdmin:
+      "You're the only Delyra administrator. Before deleting your account, invite someone else as an administrator from Administration.",
+    backupHint: "If you want to keep anything, download a backup first (on this same page).",
+    confirm: "Delete my account forever",
   },
   audit: {
     "user.registered": "Account created",

@@ -1,10 +1,10 @@
 # Plan · App de Android (noviembre de 2026)
 
-> **Estado:** v2 (revisada). F8-01 a F8-11 construidas y probadas contra `pnpm dev` (registro,
+> **Estado:** v2 (revisada). F8-01 a F8-12 construidas y probadas contra `pnpm dev` (registro,
 > alta TOTP, calendario, tableros, tarjetas, compartir y canal en vivo con dos personas, app y web,
 > ajustes y copias de seguridad, alta rápida y dictado, importaciones y administración, uso sin
-> conexión, App Links y la build de release con R8); las llaves de acceso nativas se prueban en
-> producción. Para publicar en producción en Google Play falta F8-12 (borrado de cuenta).
+> conexión, App Links, la build de release con R8 y eliminar la cuenta); las llaves de acceso
+> nativas se prueban en producción. Para publicar falta la huella de Play App Signing.
 > Decisiones
 > en [ADR-0016](decisiones/ADR-0016-app-android.md) y uso en el
 > [runbook](runbooks/android.md).
@@ -224,10 +224,15 @@ accesibilidad para mover tarjetas sin arrastrar (TalkBack), modo oscuro y «redu
   móvil. Ficha y formularios de Play en [`docs/google-play.md`](google-play.md). Falta la huella de
   Play App Signing (sale al crear la app en Play Console); al añadirla se quita la de debug
   (decisión del usuario).
-- **F8-12 · Borrado de cuenta.** Google Play exige poder pedir el borrado de la cuenta desde la app y
-  desde una página web (la app permite crear cuentas con una invitación). «Eliminar mi cuenta» en
-  la API, la web y la app, con contraseña y código, que borre los datos, los adjuntos y las copias,
-  y una página pública que explique cómo hacerlo. Hasta tenerlo, la app no sale a producción.
+- **F8-12 · Borrado de cuenta.** Hecho. Google Play exige poder pedir el borrado de la cuenta desde
+  la app y desde una web (la app permite crear cuentas con una invitación). «Eliminar la cuenta» en
+  Ajustes de la web y de la app: contraseña y código, y se borra al momento (decisión del usuario).
+  La API (`DELETE /api/me`) revoca Google, borra en R2 adjuntos, copias, importaciones y
+  restauraciones, y en D1 la cuenta (todo lo demás cae en cascada) y la invitación con su email;
+  avisa al canal en vivo y manda un correo de confirmación. Los tableros compartidos se borran
+  también para los demás (decisión del usuario), con aviso previo de cuántos y con cuántas
+  personas (`GET /api/me/deletion`); la única persona administradora no puede. Página pública
+  `https://delyra.app/borrar-cuenta` (la URL de Play), y política y condiciones al día.
 
 ## Pruebas
 

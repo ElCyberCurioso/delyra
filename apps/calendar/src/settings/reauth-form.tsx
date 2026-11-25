@@ -7,9 +7,12 @@ import { settingsMessages } from "./messages";
 export function ReauthForm({
   submitLabel,
   onSubmit,
+  destructive = false,
 }: {
   submitLabel: string;
   onSubmit: (values: { password: string; code: string }) => Promise<void>;
+  /** Botón rojo, para acciones que no se pueden deshacer (eliminar la cuenta). */
+  destructive?: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -54,7 +57,7 @@ export function ReauthForm({
         maxLength={11}
         required
       />
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending} variant={destructive ? "destructive" : "default"}>
         {pending ? t.common.checking : submitLabel}
       </Button>
     </form>
