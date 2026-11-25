@@ -193,6 +193,7 @@ fun SettingsScreen(session: SessionState.Active, onAdmin: () -> Unit) {
             item(span = { GridItemSpan(maxLineSpan) }) { BackupsTile(backups) }
             item(span = { GridItemSpan(maxLineSpan) }) { SessionsTile(vm) }
             item(span = { GridItemSpan(maxLineSpan) }) { ActivityTile(vm) }
+            item { DeleteAccountTile() }
             if (BuildConfig.ALLOW_LOCAL) item { EnvironmentTile(vm) }
             item { AboutTile(vm) }
         }

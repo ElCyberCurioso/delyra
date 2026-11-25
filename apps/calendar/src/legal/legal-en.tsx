@@ -97,7 +97,8 @@ export function PrivacyEn() {
       <ul>
         <li>
           Your account and what you create (calendars, events, boards, cards and attachments): for
-          as long as you have the account or until you delete it.
+          as long as you have the account or until you delete it. If you delete your account,
+          everything is deleted right away; it only stays in system backups until they expire.
         </li>
         <li>
           System backups: daily ones, 30 days; weekly ones, 12 weeks; monthly ones, 1 year. Your own
@@ -140,9 +141,78 @@ export function PrivacyEn() {
           target="_blank"
         >
           your Google account
-        </a>{" "}
-        and ask whoever invited you to Delyra to export or delete your account.
+        </a>
+        , download a copy of everything from Settings → Backups and{" "}
+        <Link to="/borrar-cuenta" className="underline">
+          delete your account
+        </Link>{" "}
+        whenever you want.
       </p>
+    </>
+  );
+}
+
+export function AccountDeletionEn({ done }: { done: boolean }) {
+  return (
+    <>
+      {done ? (
+        <p role="status" className="rounded-xl border border-border bg-card p-3 font-medium">
+          Your account has been deleted. We&apos;ve sent you an email to confirm it.
+        </p>
+      ) : null}
+      <p>
+        You can delete your Delyra account yourself whenever you want, on the web or in the Android
+        app. It&apos;s deleted right away and can&apos;t be undone.
+      </p>
+
+      <h2>How</h2>
+      <ul>
+        <li>
+          On the web: sign in to delyra.app and go to{" "}
+          <Link to="/ajustes" hash="eliminar" className="underline">
+            Settings → Delete account
+          </Link>
+          .
+        </li>
+        <li>In the Android app: Settings → Delete account.</li>
+        <li>
+          You&apos;ll be asked for your password and the code from your authenticator app (or a
+          recovery code).
+        </li>
+        <li>
+          If you can&apos;t sign in, reset your password with “Forgot your password?”. If you lost
+          your second factor and your recovery codes, ask whoever invited you to reset it from
+          Delyra&apos;s administration.
+        </li>
+      </ul>
+
+      <h2>What gets deleted</h2>
+      <ul>
+        <li>
+          Your account: name, email, password, second factor, passkeys, sessions and security
+          history.
+        </li>
+        <li>
+          What you created: calendars, events, alerts, boards, cards, attachments and your backups.
+          Boards you shared are deleted for the people you shared them with too.
+        </li>
+        <li>
+          Your connections to Google (the permission is revoked), Microsoft 365 and Telegram, and
+          your iCal subscriptions.
+        </li>
+      </ul>
+
+      <h2>What stays</h2>
+      <ul>
+        <li>Comments you left on other people&apos;s boards, without your name.</li>
+        <li>
+          System backups, which expire on their own: within a year at most (see the{" "}
+          <Link to="/privacidad" className="underline">
+            privacy policy
+          </Link>
+          ).
+        </li>
+      </ul>
     </>
   );
 }
@@ -168,8 +238,8 @@ export function TermsEn() {
         </li>
         <li>Backups are made, but you should export whatever matters to you.</li>
         <li>
-          Access may be withdrawn if these terms are broken. You can stop using Delyra and ask for
-          your data to be deleted whenever you want.
+          Access may be withdrawn if these terms are broken. You can stop using Delyra and delete
+          your account whenever you want, from Settings.
         </li>
       </ul>
       <p>

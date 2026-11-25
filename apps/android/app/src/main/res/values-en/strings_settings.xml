@@ -196,4 +196,21 @@
     <string name="settings_passkey_added">Passkey added</string>
     <string name="settings_privacy_policy">Privacy policy</string>
     <string name="settings_terms">Terms of use</string>
+    <!-- F8-12: delete account -->
+    <string name="delete_account_title">Delete account</string>
+    <string name="delete_account_body">Your account and everything you have in Delyra are deleted right away: calendars, events, boards, cards, attachments and backups. This can\'t be undone.</string>
+    <string name="delete_account_open">Delete my account…</string>
+    <string name="delete_account_dialog_title">Delete your account?</string>
+    <string name="delete_account_dialog_body">To confirm, enter your password and the code from your authenticator app.</string>
+    <string name="delete_account_backup_hint">If you want to keep anything, download a backup first (in Settings).</string>
+    <string name="delete_account_last_admin">You\'re the only Delyra administrator. Before deleting your account, invite someone else as an administrator from Administration.</string>
+    <string name="delete_account_confirm">Delete forever</string>
+    <plurals name="delete_account_shared_boards">
+        <item quantity="one">You have %1$d shared board: it will be deleted for the people you share it with too</item>
+        <item quantity="other">You have %1$d shared boards: they will be deleted for the people you share them with too</item>
+    </plurals>
+    <plurals name="delete_account_shared_people">
+        <item quantity="one">(%1$d person).</item>
+        <item quantity="other">(%1$d people).</item>
+    </plurals>
 </resources>

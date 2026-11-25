@@ -20,7 +20,8 @@ sealed interface SessionState {
     data object Loading : SessionState
 
     /** Sin sesión (o caducada). */
-    data class SignedOut(val expired: Boolean = false) : SessionState
+    /** [expired]: la API dejó de aceptar la sesión. [deleted]: se acaba de eliminar la cuenta (F8-12). */
+    data class SignedOut(val expired: Boolean = false, val deleted: Boolean = false) : SessionState
 
     /** Contraseña correcta; falta el código (o la llave). */
     data class PendingSecondFactor(val passkey: Boolean) : SessionState
@@ -92,6 +93,13 @@ class SessionRepository(
 
     fun updateUser(user: User) {
         (_state.value as? SessionState.Active)?.let { _state.value = it.copy(user = user) }
+    }
+
+    /** La cuenta se ha eliminado (la API ya borró la sesión): solo queda limpiar el móvil. */
+    suspend fun accountDeleted() {
+        cookies.clear()
+        onSignedOut()
+        _state.value = SessionState.SignedOut(deleted = true)
     }
 
     suspend fun logout() {

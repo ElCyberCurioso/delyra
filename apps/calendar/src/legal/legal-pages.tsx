@@ -1,29 +1,32 @@
 import { Brand, getLocale, LanguageSwitch } from "@delyra/ui";
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { PrivacyEn, TermsEn } from "./legal-en";
+import { AccountDeletionEn, PrivacyEn, TermsEn } from "./legal-en";
 
 /**
  * Páginas públicas que exige la pantalla de consentimiento de Google (F5-04): política de
  * privacidad y condiciones de uso. No necesitan sesión. En español e inglés (F7-06).
+ * F8-12: cómo eliminar la cuenta (`/borrar-cuenta`, la URL que pide Google Play).
  */
 
 const COPY = {
   es: {
-    updated: "Última actualización: 25 de noviembre de 2026",
+    updated: "Última actualización: 26 de noviembre de 2026",
     nav: "Páginas legales",
     privacy: "Privacidad",
     terms: "Condiciones",
     privacyTitle: "Política de privacidad",
     termsTitle: "Condiciones de uso",
+    deletionTitle: "Eliminar tu cuenta de Delyra",
   },
   en: {
-    updated: "Last updated: 25 November 2026",
+    updated: "Last updated: 26 November 2026",
     nav: "Legal pages",
     privacy: "Privacy",
     terms: "Terms",
     privacyTitle: "Privacy policy",
     termsTitle: "Terms of use",
+    deletionTitle: "Delete your Delyra account",
   },
 } as const;
 
@@ -74,6 +77,81 @@ export function TermsPage() {
     <LegalLayout title={copy().termsTitle}>
       {getLocale() === "en" ? <TermsEn /> : <TermsEs />}
     </LegalLayout>
+  );
+}
+
+export function AccountDeletionPage() {
+  // `?hecho=1`: se acaba de eliminar la cuenta desde Ajustes.
+  const done = new URLSearchParams(useLocation().searchStr).has("hecho");
+  return (
+    <LegalLayout title={copy().deletionTitle}>
+      {getLocale() === "en" ? <AccountDeletionEn done={done} /> : <AccountDeletionEs done={done} />}
+    </LegalLayout>
+  );
+}
+
+function AccountDeletionEs({ done }: { done: boolean }) {
+  return (
+    <>
+      {done ? (
+        <p role="status" className="rounded-xl border border-border bg-card p-3 font-medium">
+          Tu cuenta se ha eliminado. Te hemos enviado un correo para confirmarlo.
+        </p>
+      ) : null}
+      <p>
+        Puedes eliminar tu cuenta de Delyra cuando quieras, tú mismo, desde la web o desde la app de
+        Android. Se borra al momento y no se puede deshacer.
+      </p>
+
+      <h2>Cómo hacerlo</h2>
+      <ul>
+        <li>
+          En la web: entra en delyra.app y ve a{" "}
+          <Link to="/ajustes" hash="eliminar" className="underline">
+            Ajustes → Eliminar la cuenta
+          </Link>
+          .
+        </li>
+        <li>En la app de Android: Ajustes → Eliminar la cuenta.</li>
+        <li>
+          Te pedirá tu contraseña y el código de tu app autenticadora (o uno de recuperación).
+        </li>
+        <li>
+          Si no puedes entrar, recupera la contraseña con «¿Has olvidado tu contraseña?». Si has
+          perdido el segundo factor y los códigos de recuperación, pide a quien te invitó que lo
+          restablezca desde la administración de Delyra.
+        </li>
+      </ul>
+
+      <h2>Qué se borra</h2>
+      <ul>
+        <li>
+          Tu cuenta: nombre, email, contraseña, segundo factor, llaves de acceso, sesiones e
+          historial de seguridad.
+        </li>
+        <li>
+          Lo que has creado: calendarios, eventos, alertas, tableros, tarjetas, adjuntos y tus
+          copias de seguridad. Los tableros que compartías se borran también para las personas con
+          las que los compartías.
+        </li>
+        <li>
+          Las conexiones con Google (se revoca el permiso), Microsoft 365 y Telegram, y tus
+          suscripciones iCal.
+        </li>
+      </ul>
+
+      <h2>Qué queda</h2>
+      <ul>
+        <li>Los comentarios que dejaste en tableros de otras personas, sin tu nombre.</li>
+        <li>
+          Las copias de seguridad del sistema, que caducan solas: como mucho, en un año (ver la{" "}
+          <Link to="/privacidad" className="underline">
+            política de privacidad
+          </Link>
+          ).
+        </li>
+      </ul>
+    </>
   );
 }
 
@@ -173,7 +251,8 @@ function PrivacyEs() {
       <ul>
         <li>
           Tu cuenta y lo que creas (calendarios, eventos, tableros, tarjetas y adjuntos): mientras
-          tengas la cuenta o hasta que lo borres.
+          tengas la cuenta o hasta que lo borres. Si eliminas la cuenta, se borra todo al momento;
+          solo queda en las copias del sistema hasta que caducan.
         </li>
         <li>
           Copias de seguridad del sistema: las diarias, 30 días; las semanales, 12 semanas; las
@@ -215,8 +294,12 @@ function PrivacyEs() {
           target="_blank"
         >
           tu cuenta de Google
-        </a>{" "}
-        y pedir la exportación o el borrado de tu cuenta a quien te invitó a Delyra.
+        </a>
+        , descargar una copia de todo desde Ajustes → Copias de seguridad y{" "}
+        <Link to="/borrar-cuenta" className="underline">
+          eliminar tu cuenta
+        </Link>{" "}
+        cuando quieras.
       </p>
     </>
   );
@@ -248,7 +331,7 @@ function TermsEs() {
         <li>Se hacen copias de seguridad, pero conviene que exportes lo que te importe.</li>
         <li>
           El acceso puede retirarse si se incumplen estas condiciones. Puedes dejar de usar Delyra y
-          pedir el borrado de tus datos cuando quieras.
+          eliminar tu cuenta cuando quieras, desde Ajustes.
         </li>
       </ul>
       <p>

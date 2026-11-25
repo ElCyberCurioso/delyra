@@ -153,8 +153,8 @@ Ficha, textos y respuestas de los formularios: [`docs/google-play.md`](../google
    Play, `adb shell pm get-app-links app.delyra` debe dar `delyra.app` como verificado.
 7. **Probar en producción** con la app de la pista interna: login, llaves de acceso (añadir una y
    entrar con ella) y App Links de invitación y recuperación.
-8. **Producción:** antes, F8-12 (borrado de cuenta; Play pide su URL en «Seguridad de los datos»).
-   Si la cuenta de desarrollador es personal y reciente, Google exige además una prueba cerrada con
+8. **Producción:** en «Seguridad de los datos», la URL de borrado de cuenta es
+   `https://delyra.app/borrar-cuenta` (F8-12). Si la cuenta de desarrollador es personal y reciente, Google exige además una prueba cerrada con
    un mínimo de personas y días antes de abrir producción (las cifras, en Play Console). Para un
    servicio privado por invitación puede bastar la pista de pruebas internas (hasta 100 personas
    por email).

@@ -370,6 +370,19 @@ describe("Importar desde Google (F5-03)", () => {
     ).toBeInTheDocument();
     expect(screen.getAllByText(/calendar\.readonly/).length).toBeGreaterThan(0);
   });
+
+  it("la página para eliminar la cuenta es pública y confirma el borrado (F8-12)", async () => {
+    sessionState = "anonymous";
+    renderAt("/borrar-cuenta?hecho=1");
+    expect(
+      await screen.findByRole("heading", { name: "Eliminar tu cuenta de Delyra" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Tu cuenta se ha eliminado");
+    expect(screen.getByRole("link", { name: "Ajustes → Eliminar la cuenta" })).toHaveAttribute(
+      "href",
+      "/ajustes#eliminar",
+    );
+  });
 });
 
 describe("App (calendario)", () => {

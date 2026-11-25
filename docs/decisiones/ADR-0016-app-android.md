@@ -103,7 +103,25 @@ cookie común, CSRF por `Origin`, Turnstile en los formularios públicos y 2FA o
 - Ajustes enlaza la política de privacidad y las condiciones (Google Play exige la política dentro
   de la app), y la política explica qué guarda la app en el móvil.
 - Google Play exige poder pedir el borrado de la cuenta desde la app y desde una web, y Delyra no
-  lo tiene: va en una tarea propia, F8-12 (decisión del usuario), antes de salir a producción.
+  lo tenía: va en una tarea propia, F8-12 (decisión del usuario), antes de salir a producción.
+
+### Borrado de cuenta (F8-12)
+
+- Lo hace la propia persona desde Ajustes (web o app), con la contraseña y el código actual, y es
+  inmediato (decisión del usuario; se descartó un plazo de 7 días con cancelación). Llega un correo
+  de confirmación. La página pública `/borrar-cuenta` explica cómo y qué se borra (la URL de Play).
+- Se borra todo lo suyo: en R2, los prefijos con su id (adjuntos, copias, importaciones y
+  restauraciones); en D1, la fila de `users`, y lo demás cae en cascada. Antes se revoca el permiso
+  de Google. La invitación con la que entró se borra (guarda su email). Lo que dejó en tableros
+  ajenos (comentarios, actividad) se queda sin autor.
+- Sus tableros compartidos se borran también para los demás (decisión del usuario; pasar la
+  propiedad exigiría mover las claves de R2, que llevan el id del dueño). El diálogo avisa antes de
+  cuántos tableros y con cuántas personas, y el canal en vivo les avisa al borrarse.
+- La única persona administradora activa no puede eliminar su cuenta (409): Delyra se quedaría sin
+  nadie que invite.
+- El borrado queda en el log (`account_deleted`, con el id seudonimizado), no en el historial de
+  seguridad, que se borra con la cuenta. Solo quedan los datos en las copias del sistema hasta que
+  caducan (como mucho, un año).
 
 ## Consecuencias
 
@@ -117,6 +135,6 @@ cookie común, CSRF por `Origin`, Turnstile en los formularios públicos y 2FA o
 - Las llaves de acceso nativas no se pueden probar con `pnpm dev`: Android exige que el `rpId` sea
   un dominio con `assetlinks.json` en HTTPS. Se prueban en producción (tras desplegar web y API)
   con un móvil con bloqueo de pantalla y gestor de contraseñas.
-- Para salir a producción en Google Play faltan F8-12 (borrado de cuenta) y la huella de Play App
-  Signing en `packages/shared/src/android-app.ts` (se conoce al crear la app en Play Console).
+- Para salir a producción en Google Play falta la huella de Play App Signing en
+  `packages/shared/src/android-app.ts` (se conoce al crear la app en Play Console).
 - No hay notificaciones push: las alertas siguen por Telegram o email.

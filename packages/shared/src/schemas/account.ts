@@ -22,6 +22,18 @@ export const reauthRequestSchema = z.object({
   code: z.string().trim().min(6, { error: "Escribe el código" }).max(16),
 });
 
+/**
+ * Antes de eliminar la cuenta (F8-12): cuántos tableros suyos comparte (y con cuántas personas),
+ * que se borran también para ellas, y si es la única persona administradora (entonces no puede).
+ * La petición de borrado es `reauthRequestSchema`: contraseña y código actual.
+ */
+export const accountDeletionSummarySchema = z.object({
+  sharedBoards: z.number().int().min(0),
+  sharedWith: z.number().int().min(0),
+  lastAdmin: z.boolean(),
+});
+export type AccountDeletionSummary = z.infer<typeof accountDeletionSummarySchema>;
+
 export const changePasswordRequestSchema = z.object({
   currentPassword: z
     .string()

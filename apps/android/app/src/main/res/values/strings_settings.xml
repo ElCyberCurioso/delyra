@@ -196,4 +196,21 @@
     <string name="settings_passkey_added">Llave de acceso añadida</string>
     <string name="settings_privacy_policy">Política de privacidad</string>
     <string name="settings_terms">Condiciones de uso</string>
+    <!-- F8-12: eliminar la cuenta -->
+    <string name="delete_account_title">Eliminar la cuenta</string>
+    <string name="delete_account_body">Se borran al momento tu cuenta y todo lo que tienes en Delyra: calendarios, eventos, tableros, tarjetas, adjuntos y copias de seguridad. No se puede deshacer.</string>
+    <string name="delete_account_open">Eliminar mi cuenta…</string>
+    <string name="delete_account_dialog_title">¿Eliminar tu cuenta?</string>
+    <string name="delete_account_dialog_body">Para confirmarlo, escribe tu contraseña y el código de tu app autenticadora.</string>
+    <string name="delete_account_backup_hint">Si quieres guardar algo, descarga antes una copia de seguridad (en Ajustes).</string>
+    <string name="delete_account_last_admin">Eres la única persona administradora de Delyra. Antes de eliminar tu cuenta, invita a otra persona como administradora desde Administración.</string>
+    <string name="delete_account_confirm">Eliminar para siempre</string>
+    <plurals name="delete_account_shared_boards">
+        <item quantity="one">Tienes %1$d tablero compartido: se borrará también para las personas con las que lo compartes</item>
+        <item quantity="other">Tienes %1$d tableros compartidos: se borrarán también para las personas con las que los compartes</item>
+    </plurals>
+    <plurals name="delete_account_shared_people">
+        <item quantity="one">(%1$d persona).</item>
+        <item quantity="other">(%1$d personas).</item>
+    </plurals>
 </resources>
