@@ -92,3 +92,13 @@ repositorio ni en el chat. Hasta que estén cargados, el backup diario falla y l
 - Panel → D1: la base aparece con _Jurisdiction: EU_ y la tabla `system_backup_runs`.
 - Panel → R2: los tres buckets en _EU_, con sus reglas en _Settings → Object lifecycle rules_.
 - Tras el primer despliegue: `https://delyra.app/api/health` responde `"status": "ok"`.
+
+## Límites de D1 que afectan al código
+
+- **100 parámetros por consulta.** Toda lista de ids que acabe en un `IN (…)` (o un insert de
+  varias filas) se trocea: bloques de 80 ids, o de las filas que quepan según sus columnas. Los
+  tests de Miniflare aplican el mismo límite (`apps/api/test/d1-limits.test.ts`).
+- Lo que lo hizo visible: tras importar Google Calendar, una semana con más de unas 97 series
+  dejaba la agenda en 500 (`GET /api/events`), en la web y en la app. Ahora las excepciones de las
+  series se piden por bloques, y también se trocean las alertas al borrar un tablero y el
+  autoarchivado diario.

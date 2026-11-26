@@ -404,16 +404,18 @@ export function kanbanRepository(
     },
 
     async deleteRemindersOfCards(cardIds: readonly string[]) {
-      if (cardIds.length === 0) return;
-      await db
-        .delete(reminders)
-        .where(
-          and(
-            eq(reminders.ownerId, ownerId),
-            eq(reminders.targetType, "card"),
-            inArray(reminders.targetId, [...cardIds]),
-          ),
-        );
+      // D1 admite como mucho 100 parámetros por consulta: un tablero puede tener cientos de tarjetas.
+      for (let i = 0; i < cardIds.length; i += 80) {
+        await db
+          .delete(reminders)
+          .where(
+            and(
+              eq(reminders.ownerId, ownerId),
+              eq(reminders.targetType, "card"),
+              inArray(reminders.targetId, cardIds.slice(i, i + 80)),
+            ),
+          );
+      }
     },
   };
 }

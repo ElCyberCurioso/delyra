@@ -9,11 +9,16 @@ import { boards, cardActivity, cards } from "../db/schema";
  */
 
 const DAY_MS = 86_400_000;
-const BATCH = 500;
+/**
+ * D1 admite como mucho 100 parámetros por consulta: el `IN` del UPDATE lleva uno por tarjeta y el
+ * INSERT de la actividad, 6 por fila. Con 15 tarjetas por vuelta, 90 como mucho.
+ */
+const BATCH = 15;
+const ROUNDS = 400;
 
 export async function runAutoarchive(db: Database, now: number): Promise<number> {
   let total = 0;
-  for (let round = 0; round < 20; round++) {
+  for (let round = 0; round < ROUNDS; round++) {
     const due = await db
       .select({ id: cards.id, ownerId: cards.ownerId })
       .from(cards)
