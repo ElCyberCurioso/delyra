@@ -252,27 +252,38 @@ export function eventRepository(db: Database, ownerId: string) {
         );
     },
 
-    /** Excepciones de esas series y las que se movieron a `[from, to)` desde otra fecha. */
+    /**
+     * Excepciones de esas series y las que se movieron a `[from, to)` desde otra fecha. D1 admite
+     * como mucho 100 parámetros por consulta y tras importar un calendario puede haber cientos de
+     * series en el rango: los ids van por bloques (antes, un solo `IN` daba 500 en la agenda).
+     */
     async overridesInRange(
       seriesIds: readonly string[],
       from: number,
       to: number,
       filter: RangeFilter,
     ): Promise<EventRow[]> {
-      return db
-        .select()
-        .from(events)
-        .where(
-          and(
-            live,
-            isNotNull(events.recurringEventId),
-            or(
-              seriesIds.length > 0 ? inArray(events.recurringEventId, [...seriesIds]) : undefined,
-              and(lt(events.startAt, to), gt(events.endAt, from)),
-            ),
-            ...filters(filter),
-          ),
+      const base = and(live, isNotNull(events.recurringEventId), ...filters(filter));
+      const found = new Map<string, EventRow>();
+      const keep = (rows: EventRow[]) => {
+        for (const row of rows) found.set(row.id, row);
+      };
+      keep(
+        await db
+          .select()
+          .from(events)
+          .where(and(base, lt(events.startAt, to), gt(events.endAt, from))),
+      );
+      const chunk = Math.max(10, 90 - (filter.calendarIds?.length ?? 0));
+      for (let i = 0; i < seriesIds.length; i += chunk) {
+        keep(
+          await db
+            .select()
+            .from(events)
+            .where(and(base, inArray(events.recurringEventId, seriesIds.slice(i, i + chunk)))),
         );
+      }
+      return [...found.values()];
     },
 
     async search(query: string, filter: RangeFilter, limit = 50): Promise<EventRow[]> {
