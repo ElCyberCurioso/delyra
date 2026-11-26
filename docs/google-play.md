@@ -85,14 +85,26 @@ Si cambia lo que la app guarda o envía, se actualiza a la vez este documento, l
 
 ## Recursos gráficos
 
-| Recurso                     | Tamaño           | Origen                                             |
-| --------------------------- | ---------------- | -------------------------------------------------- |
-| Icono                       | 512 × 512 PNG    | `apps/calendar/public/icon-512.png`                |
-| Gráfico de funciones        | 1024 × 500 PNG   | Pendiente                                          |
-| Capturas de teléfono        | 2 a 8            | Build `qa` contra `pnpm dev`, con datos de ejemplo |
-| Capturas de tablet 7″ y 10″ | 2 a 8 por tamaño | Emulador `Medium_Tablet`, con datos de ejemplo     |
+Todo está en [`docs/google-play/`](google-play/), listo para subir:
 
-Las capturas, siempre con cuentas y datos de ejemplo (`*@delyra.test`), nunca con datos reales.
+| Recurso                | Fichero                                          | Tamaño               |
+| ---------------------- | ------------------------------------------------ | -------------------- |
+| Icono                  | `icono-512.png` (a sangre: Play pone la máscara) | 512 × 512, 32 bits   |
+| Gráfico de funciones   | `grafico-funciones-es.png` y `-en.png`           | 1024 × 500, sin alfa |
+| Capturas de teléfono   | `movil/` (6)                                     | 1080 × 1920 (9:16)   |
+| Capturas de tablet 7″  | `tablet-7/` (3)                                  | 1440 × 2560 (9:16)   |
+| Capturas de tablet 10″ | `tablet-10/` (3)                                 | 2560 × 1440 (16:9)   |
+
+- Las capturas son de la app en español, con la cuenta de demo `demo-play@delyra.test` («Lucía
+  Romero») contra `pnpm dev` y datos de ejemplo (calendarios, eventos de la semana del 23 de
+  noviembre de 2026 y dos tableros). Nunca con datos reales.
+- Se hicieron en el emulador de teléfono cambiando la pantalla (`adb shell wm size` y
+  `wm density`: 1080×1920 a 420 ppp; 1440×2560 a 320; 2560×1440 a 320) y con la barra de estado
+  en modo demo (`com.android.systemui.demo`: 9:41, wifi y batería llenos, sin notificaciones).
+- Para la ficha en inglés valen las mismas capturas; si se quieren en inglés, se repiten con la app
+  en inglés (`adb shell cmd locale set-app-locales app.delyra.debug --locales en-US`).
+- El gráfico y el icono se regeneran con `python docs/google-play/fuentes/render.py` (Chrome sin
+  interfaz y Pillow), a partir de `feature.html` e `icon.html`.
 
 ## Acceso a la app (para la revisión de Google)
 
