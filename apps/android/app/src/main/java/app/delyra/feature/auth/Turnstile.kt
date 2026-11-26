@@ -42,6 +42,21 @@ import app.delyra.core.ui.isDark
  * otra página podría hablar con la app. Cada token sirve una vez: cambiar [resetKey] pide otro.
  */
 @SuppressLint("SetJavaScriptEnabled")
+/** La página de Turnstile, con y sin extensión. */
+private val TURNSTILE_PATHS = setOf("/mobile/turnstile.html", "/mobile/turnstile")
+
+/**
+ * En producción, Cloudflare sirve `/mobile/turnstile.html` como `/mobile/turnstile` (quita la
+ * extensión con un 307, conservando los parámetros). El WebView sigue esa redirección y ninguna
+ * otra: tiene que quedarse en el mismo origen y en la misma página.
+ */
+internal fun isTurnstileRedirect(origin: String, url: String, isRedirect: Boolean): Boolean {
+    if (!isRedirect) return false
+    val target = runCatching { java.net.URI(url) }.getOrNull() ?: return false
+    if (target.scheme == null || target.rawAuthority == null) return false
+    return "${target.scheme}://${target.rawAuthority}" == origin.trimEnd('/') && target.rawPath in TURNSTILE_PATHS
+}
+
 @Composable
 fun TurnstileWidget(
     action: String,
@@ -91,9 +106,11 @@ fun TurnstileWidget(
                     CookieManager.getInstance().setAcceptCookie(true)
                     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                     webViewClient = object : WebViewClient() {
-                        // La página no navega a ningún sitio: cualquier intento se bloquea.
+                        // La página no navega a ningún sitio: cualquier intento se bloquea, salvo la
+                        // redirección de Cloudflare a la misma página (`isTurnstileRedirect`).
                         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
-                            request.isForMainFrame
+                            request.isForMainFrame &&
+                                !isTurnstileRedirect(origin, request.url.toString(), request.isRedirect)
 
                         // Si el proceso del WebView muere, no se arrastra a la app: se pide reintentar.
                         override fun onRenderProcessGone(view: WebView, detail: android.webkit.RenderProcessGoneDetail): Boolean {
