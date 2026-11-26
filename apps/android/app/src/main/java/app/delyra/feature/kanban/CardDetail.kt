@@ -177,8 +177,10 @@ private fun CardDetailBody(vm: CardViewModel, modifier: Modifier) {
     when {
         card == null && vm.loadError != null -> ErrorState(vm.loadError!!, onRetry = vm::load)
         card == null -> LoadingBox()
+        // `imePadding` antes del desplazamiento: así la zona visible se acorta con el teclado y el
+        // campo con el foco (p. ej. «Nuevo elemento» de la checklist) sube por encima de él.
         else -> Column(
-            modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().padding(16.dp),
+            modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (vm.busy || vm.uploading) LinearProgressIndicator(Modifier.fillMaxWidth()) else Spacer(Modifier.height(4.dp))

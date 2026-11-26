@@ -215,7 +215,8 @@ fun ImportWizardScreen(importId: String, onBack: () -> Unit, onViewCalendar: () 
                 item == null && vm.loadError != null -> ErrorState(vm.loadError!!, onRetry = vm::load)
                 item == null -> LoadingBox(Modifier.fillMaxSize())
                 else -> Column(
-                    Modifier.widthIn(max = 720.dp).fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().padding(16.dp),
+                    // `imePadding` antes del desplazamiento, para que el teclado no tape el campo activo.
+                    Modifier.widthIn(max = 720.dp).fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     when (item.status) {
