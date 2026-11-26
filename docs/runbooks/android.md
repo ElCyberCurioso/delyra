@@ -124,6 +124,24 @@ en el log de `pnpm dev`), una tarjeta con algún cambio, Ajustes («Añadir llav
 hoja de Credential Manager) y administración. Si algo falla solo aquí, falta una regla en
 `app/proguard-rules.pro`.
 
+## APK de prueba contra producción (antes de Play)
+
+Mientras no hay app en Google Play, se puede probar en un móvil la build de release (`app.delyra`,
+R8, solo producción) firmada con la clave debug de este PC. Su huella está en `assetlinks.json`,
+así que App Links y llaves de acceso funcionan igual que en la de Play:
+
+```powershell
+$env:DELYRA_UPLOAD_KEYSTORE = "$env:USERPROFILE\.android\debug.keystore"; $env:DELYRA_UPLOAD_STORE_PASSWORD = "android"; $env:DELYRA_UPLOAD_KEY_ALIAS = "androiddebugkey"; $env:DELYRA_UPLOAD_KEY_PASSWORD = "android"; ./gradlew --no-configuration-cache assembleRelease "-Pdelyra.versionName=0.9.1"
+```
+
+(Son las contraseñas públicas de la clave debug de Android, no un secreto.) Sale en
+`app/build/outputs/apk/release/app-release.apk`; se instala con `adb install` o copiándola al móvil
+y permitiendo instalar apps de esa fuente. Antes de instalar la de Google Play hay que desinstalar
+esta (mismo paquete, otra firma), y deja de valer para llaves de acceso cuando se quite la huella
+debug. Tras desplegar `assetlinks.json`, Google puede tardar en leerlo: las llaves de acceso
+dependen de su caché (`digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://delyra.app&relation=delegate_permission/common.get_login_creds`);
+los App Links los verifica el móvil directamente (`adb shell pm get-app-links app.delyra`).
+
 ## Publicación en Google Play (F8-11)
 
 Ficha, textos y respuestas de los formularios: [`docs/google-play.md`](../google-play.md).
