@@ -8,7 +8,7 @@ import { generateTotpSecret, otpauthUri, verifyTotp } from "../lib/totp";
 
 /** Alta de TOTP (F1-09), verificación del segundo factor (F1-08) y códigos de recuperación. */
 
-export const RECOVERY_CODE_COUNT = 10;
+const RECOVERY_CODE_COUNT = 10;
 const RECOVERY_ALPHABET = "abcdefghijklmnopqrstuvwxyz234567";
 
 function newRecoveryCode(): string {
@@ -160,7 +160,7 @@ export async function remainingRecoveryCodes(db: Database, userId: string): Prom
 }
 
 /** Tiempo para escanear el QR nuevo y confirmarlo durante una reconfiguración. */
-export const TOTP_RECONFIGURE_TTL_MS = 10 * 60_000;
+const TOTP_RECONFIGURE_TTL_MS = 10 * 60_000;
 
 /**
  * Prepara una semilla nueva para un TOTP ya confirmado (F1-15). La actual sigue valiendo hasta

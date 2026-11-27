@@ -30,6 +30,7 @@ import {
 } from "../db/schema";
 import { buildBackupJson, countsOf } from "../lib/backup-format";
 import { sha256Hex } from "../lib/crypto";
+import { parseExdates } from "../lib/recurrence";
 import { R2StreamWriter, writeZip, type ZipEntryInput } from "../lib/zip-stream";
 
 /**
@@ -47,15 +48,6 @@ const DAY_MS = 24 * HOUR_MS;
 export const backupKey = (ownerId: string, id: string) => `users/${ownerId}/${id}.zip`;
 
 const ms = (value: Date | null) => (value === null ? null : value.getTime());
-
-function parseExdates(value: string): number[] {
-  try {
-    const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.filter((v): v is number => typeof v === "number") : [];
-  } catch {
-    return [];
-  }
-}
 
 /** En lotes: D1 admite como mucho 100 parámetros por consulta. */
 async function inChunks<T>(ids: readonly string[], query: (chunk: string[]) => Promise<T[]>) {
@@ -370,7 +362,7 @@ export function backupDto(row: UserBackupRow): UserBackupInfo {
 }
 
 /** Un registro «running» que lleva horas así se da por fallido (el Workflow se perdió). */
-export const BACKUP_STALE_MS = 2 * HOUR_MS;
+const BACKUP_STALE_MS = 2 * HOUR_MS;
 
 export async function refreshBackup(repo: BackupRepository, row: UserBackupRow, now: number) {
   if (row.status === "running" && row.createdAt.getTime() < now - BACKUP_STALE_MS) {

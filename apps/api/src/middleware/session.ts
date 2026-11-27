@@ -11,7 +11,7 @@ import type { AppEnv } from "../types";
  * Cookie de sesión común a las dos apps (F1-04, F1-13): `__Secure-sid`, HttpOnly, Secure,
  * SameSite=Lax y, en producción, `Domain=delyra.app` para que valga en `work.delyra.app`.
  */
-export const SESSION_COOKIE = "__Secure-sid";
+const SESSION_COOKIE = "__Secure-sid";
 
 function cookieDomain(c: Context<AppEnv>): string | undefined {
   return c.env.SESSION_COOKIE_DOMAIN || undefined;

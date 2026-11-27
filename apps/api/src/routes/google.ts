@@ -1,4 +1,4 @@
-import { addGoogleSyncRequestSchema, idSchema } from "@delyra/shared";
+import { addGoogleSyncRequestSchema } from "@delyra/shared";
 import { type Context, Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
@@ -6,7 +6,7 @@ import { createDb } from "../db/client";
 import { constantTimeEqual } from "../lib/crypto";
 import { AppError } from "../lib/errors";
 import { keyringFromEnv } from "../lib/field-crypto";
-import { readBody } from "../lib/http";
+import { idParam, readBody } from "../lib/http";
 import { safeErrorMessage } from "../lib/logger";
 import { currentAuth, requireActiveSession } from "../middleware/session";
 import { googleSyncRepository } from "../repositories/google-sync";
@@ -67,12 +67,6 @@ async function startAuthorization(c: Context<AppEnv>, purpose: OAuthPurpose) {
     maxAge: Math.floor(OAUTH_TTL_MS / 1000),
   });
   return c.json({ url: await authorizeUrl(config, state) });
-}
-
-function syncedId(c: Context<AppEnv>): string {
-  const id = idSchema.safeParse(c.req.param("id"));
-  if (!id.success) throw new AppError(404);
-  return id.data;
 }
 
 async function syncInfo(c: Context<AppEnv>) {
@@ -137,7 +131,7 @@ export const googleRoutes = new Hono<AppEnv>()
   .post("/sync/calendars/:id/sync", requireActiveSession(), async (c) => {
     const config = requireConfig(c);
     const db = createDb(c.env.DB);
-    const row = await googleSyncRepository(db, currentAuth(c).user.id).calendar(syncedId(c));
+    const row = await googleSyncRepository(db, currentAuth(c).user.id).calendar(idParam(c));
     if (!row) throw new AppError(404);
     const now = Date.now();
     if (row.lastSyncedAt !== null && now - row.lastSyncedAt < MANUAL_GOOGLE_SYNC_MIN_MS) {
@@ -150,7 +144,7 @@ export const googleRoutes = new Hono<AppEnv>()
 
   .delete("/sync/calendars/:id", requireActiveSession(), async (c) => {
     const db = createDb(c.env.DB);
-    if (!(await removeGoogleCalendar(db, currentAuth(c).user.id, syncedId(c)))) {
+    if (!(await removeGoogleCalendar(db, currentAuth(c).user.id, idParam(c)))) {
       throw new AppError(404);
     }
     return c.body(null, 204);

@@ -20,7 +20,7 @@ export interface Mailer {
   send(message: EmailMessage): Promise<void>;
 }
 
-export class MailerUnavailableError extends Error {
+class MailerUnavailableError extends Error {
   override name = "MailerUnavailableError";
 }
 

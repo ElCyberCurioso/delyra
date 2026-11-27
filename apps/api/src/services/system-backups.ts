@@ -77,7 +77,7 @@ export async function listBackupRuns(db: Database, limit = 30): Promise<SystemBa
 
 // ── Retención por niveles (F6-08) ────────────────────────────────────────────
 
-export const SYSTEM_TIER_PREFIXES = {
+const SYSTEM_TIER_PREFIXES = {
   daily: "system/daily/",
   weekly: "system/weekly/",
   monthly: "system/monthly/",

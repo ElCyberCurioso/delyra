@@ -51,7 +51,7 @@ import { getUserSettings } from "./users";
  * Notas, checklist, comentarios y adjuntos de la tarjeta nunca se tocan.
  */
 
-export const MICROSOFT_SYNC_INTERVAL_MS = 15 * 60_000;
+const MICROSOFT_SYNC_INTERVAL_MS = 15 * 60_000;
 export const MANUAL_MICROSOFT_SYNC_MIN_MS = 2 * 60_000;
 const DAY_MS = 86_400_000;
 const CLAIM_MS = 10 * 60_000;
@@ -65,7 +65,7 @@ const TEAMS_LABEL = { name: "Teams", color: "#5b5bd6" };
 const REVOKED_MESSAGE = "Microsoft ha retirado el permiso de Delyra. Vuelve a conectar tu cuenta.";
 const NO_ACCESS_MESSAGE = "Ya no puedes editar este tablero: se ha dejado de volcar.";
 
-export function microsoftSyncMessage(error: unknown): string {
+function microsoftSyncMessage(error: unknown): string {
   if (error instanceof MicrosoftRevokedError) return REVOKED_MESSAGE;
   if (error instanceof AppError && error.status === 409 && error.problem.detail) {
     return error.problem.detail;
@@ -407,7 +407,7 @@ const TEXTS = {
 } as const;
 
 /** Descripción de la tarjeta (Markdown; los textos de fuera van escapados). */
-export function meetingDescription(info: MeetingInfo, locale: string, timeZone: string): string {
+function meetingDescription(info: MeetingInfo, locale: string, timeZone: string): string {
   const t = locale === "en" ? TEXTS.en : TEXTS.es;
   const intl = locale === "en" ? "en-GB" : "es-ES";
   const day = new Intl.DateTimeFormat(intl, {

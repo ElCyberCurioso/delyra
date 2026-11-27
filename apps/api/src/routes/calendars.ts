@@ -1,10 +1,10 @@
-import { createCalendarRequestSchema, idSchema, updateCalendarRequestSchema } from "@delyra/shared";
+import { createCalendarRequestSchema, updateCalendarRequestSchema } from "@delyra/shared";
 import { type Context, Hono } from "hono";
 import { createDb } from "../db/client";
 import type { Calendar } from "../db/schema";
 import { AppError } from "../lib/errors";
 import { keyringFromEnv } from "../lib/field-crypto";
-import { readBody } from "../lib/http";
+import { idParam, readBody } from "../lib/http";
 import { currentAuth, requireActiveSession } from "../middleware/session";
 import { calendarRepository } from "../repositories/calendars";
 import { eventRepository } from "../repositories/events";
@@ -23,12 +23,6 @@ function repos(c: Context<AppEnv>) {
   const db = createDb(c.env.DB);
   const { user } = currentAuth(c);
   return { calendars: calendarRepository(db, user.id), events: eventRepository(db, user.id) };
-}
-
-function idParam(c: Context<AppEnv>): string {
-  const id = idSchema.safeParse(c.req.param("id"));
-  if (!id.success) throw new AppError(404);
-  return id.data;
 }
 
 const dto = (row: Calendar) => ({

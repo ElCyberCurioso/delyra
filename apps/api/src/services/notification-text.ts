@@ -57,7 +57,7 @@ export function describeWhen(
 }
 
 /** «vence hoy a las 17:00», «vence mañana». */
-export function describeDeadline(
+function describeDeadline(
   when: WhenInput,
   timeZone: string,
   now: number,
@@ -236,9 +236,6 @@ export function securityText(
     .filter((line) => line !== null)
     .join("\n");
 }
-
-/** Comandos del bot en español (los que se registran por defecto en Telegram). */
-export const BOT_COMMANDS = botText("es").commands;
 
 export function helpText(locale: Locale = "es"): string {
   const t = botText(locale);

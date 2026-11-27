@@ -29,8 +29,8 @@ import { purgeLinkTokens } from "../services/telegram-links";
  * clave de idempotencia evita que llegue dos veces.
  */
 
-export const BATCH_SIZE = 100;
-export const STALE_CLAIM_MS = 5 * 60_000;
+const BATCH_SIZE = 100;
+const STALE_CLAIM_MS = 5 * 60_000;
 
 export interface SchedulerDeps {
   db: Database;

@@ -1,7 +1,7 @@
 import { BIRTHDAY_DEFAULT_REMINDERS } from "@delyra/shared";
 import type { EventRow } from "../db/schema";
 import type { ImportedEvent } from "../lib/import-model";
-import { isOccurrenceStart, seriesEnd } from "../lib/recurrence";
+import { isOccurrenceStart, parseExdates, seriesEnd } from "../lib/recurrence";
 import type { NewEvent } from "../repositories/events";
 import { type EventContext, saveReminders, toSeries } from "./events";
 
@@ -43,15 +43,6 @@ export const emptyCounts = (): ApplyCounts => ({
   unchanged: 0,
   skipped: 0,
 });
-
-function parseExdates(value: string): number[] {
-  try {
-    const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.filter((v): v is number => typeof v === "number") : [];
-  } catch {
-    return [];
-  }
-}
 
 function seriesEndOf(fields: NewEvent): number | null {
   return seriesEnd(

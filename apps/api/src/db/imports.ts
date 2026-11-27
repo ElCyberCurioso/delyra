@@ -7,6 +7,7 @@ import {
 import { sql } from "drizzle-orm";
 import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { calendars } from "./calendar";
+import { quoted } from "./check";
 import { users } from "./identity";
 
 /**
@@ -16,8 +17,6 @@ import { users } from "./identity";
  * `delyra-imports`, que los borra a los 7 días. Aquí solo queda el estado, la vista previa y el
  * informe.
  */
-
-const quoted = (values: readonly string[]) => sql.raw(values.map((v) => `'${v}'`).join(", "));
 
 export const imports = sqliteTable(
   "imports",

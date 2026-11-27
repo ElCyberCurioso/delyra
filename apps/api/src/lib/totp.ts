@@ -5,9 +5,9 @@ import { randomBytes } from "./crypto";
  * Compatible con Google Authenticator, Aegis, 1Password, etc. (F1-03).
  */
 
-export const TOTP_PERIOD = 30;
-export const TOTP_DIGITS = 6;
-export const TOTP_WINDOW = 1;
+const TOTP_PERIOD = 30;
+const TOTP_DIGITS = 6;
+const TOTP_WINDOW = 1;
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 

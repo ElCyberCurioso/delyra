@@ -115,7 +115,7 @@ async function finishDelivery(
 
 // ── Contenido ────────────────────────────────────────────────────────────────
 
-export function openEventUrl(env: Pick<Env, "APP_ENV">, eventId: string): string | null {
+function openEventUrl(env: Pick<Env, "APP_ENV">, eventId: string): string | null {
   const environment = appEnvironmentSchema.safeParse(env.APP_ENV);
   // Telegram no acepta enlaces a localhost en los botones.
   if (!environment.success || environment.data !== "production") return null;
@@ -131,7 +131,7 @@ export type ReminderTarget =
   { kind: "event"; event: EventRow } | { kind: "card"; card: CardRow; boardName: string };
 
 /** Enlace del botón «Abrir»: el evento en el calendario o la tarjeta en su tablero. */
-export function openTargetUrl(env: Pick<Env, "APP_ENV">, target: ReminderTarget): string | null {
+function openTargetUrl(env: Pick<Env, "APP_ENV">, target: ReminderTarget): string | null {
   if (target.kind === "event") {
     return openEventUrl(env, target.event.recurringEventId ?? target.event.id);
   }

@@ -5,7 +5,6 @@ import {
   commentRequestSchema,
   createBoardRequestSchema,
   createCardRequestSchema,
-  idSchema,
   inviteToBoardRequestSchema,
   isAllowedOrigin,
   KANBAN_LIMITS,
@@ -27,7 +26,7 @@ import { createDb } from "../db/client";
 import { cardAttachments, cardComments, checklistItems, labels } from "../db/schema";
 import { AppError } from "../lib/errors";
 import { requestLocale } from "../lib/locale";
-import { invalidField, readBody, readQuery } from "../lib/http";
+import { idParam, invalidField, readBody, readQuery, readUpload } from "../lib/http";
 import { currentAuth, requireActiveSession } from "../middleware/session";
 import { type KanbanRepository, kanbanRepository } from "../repositories/kanban";
 import {
@@ -96,12 +95,6 @@ const live: MiddlewareHandler<AppEnv> = async (c, next) => {
   if (!boardId || c.res.status >= 400) return;
   c.executionCtx.waitUntil(notifyBoard(c.env, boardId, currentAuth(c).user.id, c.get("logger")));
 };
-
-function idParam(c: Context<AppEnv>): string {
-  const id = idSchema.safeParse(c.req.param("id"));
-  if (!id.success) throw new AppError(404);
-  return id.data;
-}
 
 async function detailOf(r: KanbanRepository, cardId: string) {
   return cardDetail(r, await requireCard(r, cardId));
@@ -251,36 +244,33 @@ export const boardRoutes = new Hono<AppEnv>()
 
   .delete("/:id/invitations/:invitationId", async (c) => {
     const id = idParam(c);
-    const invitationId = idSchema.safeParse(c.req.param("invitationId"));
-    if (!invitationId.success) throw new AppError(404);
+    const invitationId = idParam(c, "invitationId");
     const db = createDb(c.env.DB);
     await boardAccess(db, currentAuth(c).user.id, { board: id }, "owner");
-    if (!(await revokeInvitation(db, id, invitationId.data))) throw new AppError(404);
+    if (!(await revokeInvitation(db, id, invitationId))) throw new AppError(404);
     return c.body(null, 204);
   })
 
   .patch("/:id/members/:userId", async (c) => {
     const id = idParam(c);
-    const userId = idSchema.safeParse(c.req.param("userId"));
-    if (!userId.success) throw new AppError(404);
+    const userId = idParam(c, "userId");
     const { role } = await readBody(c, updateBoardMemberRequestSchema);
     const db = createDb(c.env.DB);
     const result = await access(c, { board: id }, "owner");
-    if (!(await setMemberRole(db, id, userId.data, role))) throw new AppError(404);
+    if (!(await setMemberRole(db, id, userId, role))) throw new AppError(404);
     return c.json(await boardMembersOf(db, { ...result.access }, currentAuth(c).user.id));
   })
 
   // El dueño quita a alguien, o un miembro se va del tablero.
   .delete("/:id/members/:userId", async (c) => {
     const id = idParam(c);
-    const userId = idSchema.safeParse(c.req.param("userId"));
-    if (!userId.success) throw new AppError(404);
+    const userId = idParam(c, "userId");
     const db = createDb(c.env.DB);
     const me = currentAuth(c).user.id;
-    await access(c, { board: id }, userId.data === me ? "read" : "owner");
+    await access(c, { board: id }, userId === me ? "read" : "owner");
     c.set("touchedBoard", id);
-    if (!(await removeMember(db, id, userId.data))) throw new AppError(404);
-    c.executionCtx.waitUntil(kickFromBoard(c.env, id, userId.data));
+    if (!(await removeMember(db, id, userId))) throw new AppError(404);
+    c.executionCtx.waitUntil(kickFromBoard(c.env, id, userId));
     return c.body(null, 204);
   })
 
@@ -509,21 +499,11 @@ export const cardRoutes = new Hono<AppEnv>()
     if ((await r.attachmentsOf(card.id)).length >= KANBAN_LIMITS.attachmentsPerCard) {
       throw new AppError(409, { detail: "Esta tarjeta ya tiene demasiados adjuntos" });
     }
-    const length = Number(c.req.header("content-length"));
-    if (!Number.isInteger(length) || length <= 0) {
-      throw new AppError(411, { detail: "Falta el tamaño del fichero" });
-    }
-    if (length > KANBAN_LIMITS.attachmentBytes) {
-      throw new AppError(413, { detail: "El fichero supera los 10 MB" });
-    }
-    let rawName: string;
-    try {
-      rawName = decodeURIComponent(c.req.header("x-filename") ?? "");
-    } catch {
-      throw invalidField("filename", "Nombre de fichero no válido");
-    }
-    const body = c.req.raw.body as ReadableStream<Uint8Array> | null;
-    if (!body) throw new AppError(400, { detail: "Falta el fichero" });
+    const { length, rawName, body } = readUpload(
+      c,
+      KANBAN_LIMITS.attachmentBytes,
+      "El fichero supera los 10 MB",
+    );
 
     const { head, stream } = await peekStream(body);
     const contentType = sniffType(head, c.req.header("content-type") ?? "");

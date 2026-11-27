@@ -10,8 +10,8 @@ import { pseudonym, type PseudonymEnv } from "../lib/pseudonym";
  * nunca el email ni la IP en claro.
  */
 
-export const ATTEMPT_WINDOW_MS = 15 * 60_000;
-export const ATTEMPT_LIMITS = { account: 5, ip: 30 } as const;
+const ATTEMPT_WINDOW_MS = 15 * 60_000;
+const ATTEMPT_LIMITS = { account: 5, ip: 30 } as const;
 
 export interface AttemptKeys {
   account?: string;

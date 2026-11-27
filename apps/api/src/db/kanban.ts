@@ -9,6 +9,7 @@ import {
   text,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
+import { quoted } from "./check";
 import { users } from "./identity";
 
 /**
@@ -16,7 +17,6 @@ import { users } from "./identity";
  * fraccionales en texto (F4-02): se ordenan comparando bytes, que es lo que hace SQLite.
  */
 
-const quoted = (values: readonly string[]) => sql.raw(values.map((v) => `'${v}'`).join(", "));
 const owner = () =>
   text("owner_id")
     .notNull()

@@ -10,7 +10,7 @@ import { createDb } from "../db/client";
 import { constantTimeEqual } from "../lib/crypto";
 import { AppError } from "../lib/errors";
 import { keyringFromEnv } from "../lib/field-crypto";
-import { readBody } from "../lib/http";
+import { idParam, readBody } from "../lib/http";
 import { safeErrorMessage } from "../lib/logger";
 import { currentAuth, requireActiveSession } from "../middleware/session";
 import { audit } from "../services/audit";
@@ -59,12 +59,6 @@ function requireConfig(c: Context<AppEnv>) {
     throw new AppError(409, { detail: "La conexión con Microsoft 365 no está configurada" });
   }
   return config;
-}
-
-function boardParam(c: Context<AppEnv>): string {
-  const id = idSchema.safeParse(c.req.param("boardId"));
-  if (!id.success) throw new AppError(404);
-  return id.data;
 }
 
 function notifier(c: Context<AppEnv>) {
@@ -154,11 +148,11 @@ export const microsoftRoutes = new Hono<AppEnv>()
   })
 
   .get("/boards/:boardId", requireActiveSession(), async (c) =>
-    c.json(await info(c, boardParam(c))),
+    c.json(await info(c, idParam(c, "boardId"))),
   )
 
   .put("/boards/:boardId", requireActiveSession(), async (c) => {
-    const boardId = boardParam(c);
+    const boardId = idParam(c, "boardId");
     const body = await readBody(c, microsoftBoardSyncRequestSchema);
     const config = requireConfig(c);
     const db = createDb(c.env.DB);
@@ -180,7 +174,7 @@ export const microsoftRoutes = new Hono<AppEnv>()
   })
 
   .post("/boards/:boardId/sync", requireActiveSession(), async (c) => {
-    const boardId = boardParam(c);
+    const boardId = idParam(c, "boardId");
     const config = requireConfig(c);
     const db = createDb(c.env.DB);
     const userId = currentAuth(c).user.id;
@@ -199,7 +193,7 @@ export const microsoftRoutes = new Hono<AppEnv>()
   })
 
   .delete("/boards/:boardId", requireActiveSession(), async (c) => {
-    const boardId = boardParam(c);
+    const boardId = idParam(c, "boardId");
     const db = createDb(c.env.DB);
     if (!(await stopBoardSync(db, currentAuth(c).user.id, boardId))) throw new AppError(404);
     return c.body(null, 204);

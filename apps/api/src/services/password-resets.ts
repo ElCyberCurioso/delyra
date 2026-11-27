@@ -6,7 +6,7 @@ import { randomToken, sha256Hex } from "../lib/crypto";
 
 /** Recuperación de contraseña (F1-11): token de un solo uso válido 30 minutos. */
 
-export const PASSWORD_RESET_TTL_MS = 30 * 60_000;
+const PASSWORD_RESET_TTL_MS = 30 * 60_000;
 
 export function passwordResetLink(environment: AppEnvironment, token: string): string {
   return `${APP_ORIGINS[environment].calendar}/restablecer#token=${token}`;

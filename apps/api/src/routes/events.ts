@@ -11,7 +11,7 @@ import { type Context, Hono } from "hono";
 import { z } from "zod";
 import { createDb } from "../db/client";
 import { AppError } from "../lib/errors";
-import { invalidField, readBody, readQuery } from "../lib/http";
+import { idParam, invalidField, readBody, readQuery } from "../lib/http";
 import { currentAuth, requireActiveSession } from "../middleware/session";
 import { calendarRepository } from "../repositories/calendars";
 import { eventRepository, type RangeFilter } from "../repositories/events";
@@ -32,12 +32,6 @@ function context(c: Context<AppEnv>): EventContext {
   const db = createDb(c.env.DB);
   const { user } = currentAuth(c);
   return { events: eventRepository(db, user.id), calendars: calendarRepository(db, user.id) };
-}
-
-function idParam(c: Context<AppEnv>): string {
-  const id = idSchema.safeParse(c.req.param("id"));
-  if (!id.success) throw new AppError(404);
-  return id.data;
 }
 
 function rangeFilter(query: { calendars?: string; type?: RangeFilter["type"] }): RangeFilter {

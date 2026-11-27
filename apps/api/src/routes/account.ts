@@ -16,7 +16,7 @@ import { users } from "../db/schema";
 import { enforcePasswordPolicy, tooManyAttempts } from "../lib/auth-guards";
 import { AppError } from "../lib/errors";
 import { keyringFromEnv } from "../lib/field-crypto";
-import { readBody } from "../lib/http";
+import { idParam, readBody } from "../lib/http";
 import { hashPassword, verifyPassword } from "../lib/password";
 import {
   clearSessionCookie,
@@ -302,13 +302,12 @@ export const accountRoutes = new Hono<AppEnv>()
 
   .delete("/sessions/:id", async (c) => {
     const { user } = currentAuth(c);
-    const id = idSchema.safeParse(c.req.param("id"));
-    if (!id.success) throw new AppError(404);
+    const id = idParam(c);
     const db = createDb(c.env.DB);
-    const owned = (await listActiveSessions(db, user.id)).some((s) => s.id === id.data);
+    const owned = (await listActiveSessions(db, user.id)).some((s) => s.id === id);
     // Una sesión de otro usuario responde igual que una inexistente (§3.5).
     if (!owned) throw new AppError(404);
-    await revokeSession(db, id.data, "revoked_by_user");
+    await revokeSession(db, id, "revoked_by_user");
     await audit(db, c.get("meta"), "session.revoked", { userId: user.id });
     notifySecurity(c, user.id, "sessions_revoked");
     return c.body(null, 204);

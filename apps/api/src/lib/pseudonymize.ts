@@ -1,10 +1,6 @@
-const encoder = new TextEncoder();
+import { toBase64Url } from "./crypto";
 
-function toBase64Url(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
-}
+const encoder = new TextEncoder();
 
 /**
  * Seudónimo estable de un identificador (HMAC-SHA256 truncado a 96 bits) para los logs:

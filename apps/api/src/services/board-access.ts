@@ -59,7 +59,7 @@ async function viaCard(db: Database, cardId: string | undefined): Promise<Locate
 }
 
 /** Tablero y dueño de un recurso, sin filtrar por usuario (la comprobación viene después). */
-export async function locate(db: Database, ref: BoardRef): Promise<Located | null> {
+async function locate(db: Database, ref: BoardRef): Promise<Located | null> {
   if ("board" in ref) {
     const [row] = await db
       .select({ boardId: boards.id, ownerId: boards.ownerId })
@@ -96,11 +96,7 @@ export async function locate(db: Database, ref: BoardRef): Promise<Located | nul
   return viaCard(db, row?.cardId);
 }
 
-export async function roleOn(
-  db: Database,
-  userId: string,
-  located: Located,
-): Promise<BoardRole | null> {
+async function roleOn(db: Database, userId: string, located: Located): Promise<BoardRole | null> {
   if (located.ownerId === userId) return "owner";
   const [row] = await db
     .select({ role: boardMembers.role })
