@@ -1,6 +1,7 @@
 # F0-10 · Despliegue a producción. No hay staging (ADR-0003).
 # - Solo se lanza a mano: Actions → Deploy → Run workflow. Despliega el commit elegido (por
-#   defecto, el último de main); comprueba antes que CI esté en verde para ese commit.
+#   defecto, el último de main); comprueba antes que CI esté en verde para ese commit y, si aún se
+#   está ejecutando, espera a que termine.
 # - El Environment `production` puede exigir además aprobación (revisores obligatorios, P-04).
 # - Empieza con scripts/check-deploy-config.mjs, que falla con un mensaje claro si falta algo.
 # - Orden: migraciones → api → SPA (las SPA enlazan el api por Service Binding). Las migraciones
@@ -36,19 +37,40 @@ jobs:
         with:
           persist-credentials: false
 
+      # Si el CI de este commit aún está en marcha (Deploy lanzado justo después de fusionar), se
+      # espera a que termine: hasta 20 min, o 2 min si todavía no ha aparecido ninguna ejecución.
       - name: Exigir CI en verde para este commit
         env:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ github.sha }}
           REPO: ${{ github.repository }}
         run: |
-          conclusion=$(gh api "repos/${REPO}/actions/workflows/ci.yml/runs?head_sha=${SHA}&event=push&per_page=1" \
-            --jq '.workflow_runs[0].conclusion // "sin ejecución"')
-          echo "CI para ${SHA}: ${conclusion}"
-          if [ "${conclusion}" != "success" ]; then
-            echo "::error title=CI no está en verde::El último CI de ${SHA} terminó en «${conclusion}». Despliega un commit con CI en verde."
-            exit 1
-          fi
+          start=$SECONDS
+          while :; do
+            status=""
+            conclusion=""
+            # Un fallo puntual de la API deja el estado vacío y se reintenta en la siguiente vuelta.
+            read -r status conclusion < <(gh api \
+              "repos/${REPO}/actions/workflows/ci.yml/runs?head_sha=${SHA}&event=push&per_page=1" \
+              --jq '(.workflow_runs[0] // {status: "ninguna"}) | "\(.status) \(.conclusion // "-")"') || true
+            waited=$((SECONDS - start))
+            if [ "${status}" = "completed" ]; then
+              echo "CI para ${SHA}: ${conclusion}"
+              if [ "${conclusion}" = "success" ]; then break; fi
+              echo "::error title=CI no está en verde::El CI de ${SHA} terminó en «${conclusion}». Despliega un commit con CI en verde."
+              exit 1
+            fi
+            if [ "${status}" = "ninguna" ] && [ "${waited}" -ge 120 ]; then
+              echo "::error title=Sin CI::No hay ninguna ejecución de CI (push) para ${SHA}. Despliega un commit de main con CI en verde."
+              exit 1
+            fi
+            if [ "${waited}" -ge 1200 ]; then
+              echo "::error title=CI sin terminar::El CI de ${SHA} sigue «${status:-desconocido}» tras 20 min. Vuelve a lanzar el despliegue cuando termine."
+              exit 1
+            fi
+            echo "CI para ${SHA}: ${status:-desconocido}; se vuelve a mirar en 30 s (${waited} s esperando)"
+            sleep 30
+          done
 
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0

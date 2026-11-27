@@ -4,13 +4,14 @@ Solo hay producción (ADR-0003). El despliegue es manual.
 
 ## Desplegar
 
-1. Comprueba que el workflow **CI** está en verde para el último commit de `main`.
-2. _Actions → Deploy → Run workflow_ (rama `main`).
-3. Si el Environment `production` tiene revisores, aprueba el despliegue.
+1. _Actions → Deploy → Run workflow_ (rama `main`). Se puede lanzar nada más fusionar: si el
+   **CI** del último commit aún se está ejecutando, el job espera a que termine.
+2. Si el Environment `production` tiene revisores, aprueba el despliegue.
 
 El job hace, en este orden:
 
-1. Comprueba que CI está en verde para ese commit.
+1. Comprueba que CI está en verde para ese commit. Si aún está en marcha, espera hasta 20 min (2 min
+   si todavía no ha aparecido ninguna ejecución); si termina en otro estado, se para sin tocar nada.
 2. `scripts/check-deploy-config.mjs`: secretos, IDs de `wrangler.jsonc` y dominios.
 3. Migraciones de D1 (`wrangler d1 migrations apply DB --env production --remote`).
 4. Despliega `delyra-api`, y después `delyra-calendar` y `delyra-work`.
