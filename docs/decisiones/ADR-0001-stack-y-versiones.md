@@ -25,7 +25,6 @@ momento de F0-01, documentándola aquí. Todas las dependencias se fijan con ver
 |                  | `@cloudflare/vitest-plugin`                | 1.8.5                   |
 |                  | `compatibility_date` de los Workers        | 2026-11-17              |
 | Backend          | Hono                                       | 4.13.19                 |
-|                  | `@hono/zod-validator`                      | 0.9.1                   |
 |                  | Zod                                        | 4.6.7                   |
 |                  | Drizzle ORM / drizzle-kit                  | 0.45.4 / 0.31.11        |
 |                  | uuidv7                                     | 1.2.1                   |
