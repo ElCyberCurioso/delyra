@@ -48,4 +48,3 @@ export const DEFAULT_WEEK_START = 1;
 
 export const ROLES = ["admin", "member"] as const;
 export type Role = (typeof ROLES)[number];
-export const roleSchema = z.enum(ROLES);

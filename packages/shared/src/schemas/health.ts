@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { appEnvironmentSchema } from "../environments";
 
-export const healthComponentSchema = z.object({
+const healthComponentSchema = z.object({
   status: z.enum(["ok", "error"]),
   latencyMs: z.number().nonnegative(),
 });

@@ -1,4 +1,4 @@
-import type { BoardDetail, CardDetail } from "@delyra/shared";
+import { type BoardDetail, type CardDetail, instantToDateOnly } from "@delyra/shared";
 import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -6,7 +6,6 @@ import { createDb } from "../src/db/client";
 import { reminders } from "../src/db/schema";
 import { runScheduler } from "../src/jobs/scheduler";
 import { createLogger } from "../src/lib/logger";
-import { localToday } from "../src/services/agenda";
 import { deliver, type NotificationMessage } from "../src/services/notifications";
 import { linkChat } from "../src/services/telegram-links";
 import { registerUser, type TestClient } from "./helpers";
@@ -161,7 +160,7 @@ describe("tareas en Telegram (F4-11)", () => {
       await user.client.post("/api/boards", { name: "Casa", template: "personal" })
     ).json<BoardDetail>();
 
-    const today = localToday(Date.now(), "Europe/Madrid");
+    const today = instantToDateOnly(Date.now(), "Europe/Madrid");
     const plus = (days: number) =>
       new Date(Date.parse(today) + days * 86_400_000).toISOString().slice(0, 10);
     await cardWithDue(user.client, board, "Pagar <luz>", { allDay: true, at: plus(-2) });

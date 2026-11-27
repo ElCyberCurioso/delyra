@@ -1,4 +1,9 @@
-import { APP_ORIGINS, appEnvironmentSchema, dateOnlyToUtc } from "@delyra/shared";
+import {
+  APP_ORIGINS,
+  appEnvironmentSchema,
+  dateOnlyToUtc,
+  instantToDateOnly,
+} from "@delyra/shared";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../db/client";
@@ -8,7 +13,7 @@ import { TelegramError, type TelegramClient } from "../lib/telegram";
 import { calendarRepository } from "../repositories/calendars";
 import { eventRepository } from "../repositories/events";
 import { kanbanRepository } from "../repositories/kanban";
-import { agendaFor, localToday, tasksUntil } from "./agenda";
+import { agendaFor, tasksUntil } from "./agenda";
 import { createMailer } from "./mailer";
 import {
   agendaText,
@@ -297,7 +302,7 @@ async function deliverDigest(
     1,
   );
   const heading =
-    message.date === localToday(deps.now, timeZone)
+    message.date === instantToDateOnly(deps.now, timeZone)
       ? t.digestToday
       : t.digestOn(
           new Intl.DateTimeFormat(t.intl, { dateStyle: "full", timeZone: "UTC" }).format(

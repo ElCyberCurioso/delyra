@@ -1,10 +1,12 @@
 import {
   addDays,
   dateOnlyToUtc,
+  draftTimes,
+  instantToDateOnly,
   instantToWall,
   type Locale,
   parseQuickAdd,
-  type QuickDraft,
+  quickAddReference,
   utcToDateOnly,
   wallToInstant,
 } from "@delyra/shared";
@@ -17,7 +19,7 @@ import type { RequestMeta } from "../lib/request-meta";
 import { escapeHtml, type TelegramClient } from "../lib/telegram";
 import { calendarRepository } from "../repositories/calendars";
 import { eventRepository } from "../repositories/events";
-import { agendaFor, localToday, tasksUntil } from "./agenda";
+import { agendaFor, tasksUntil } from "./agenda";
 import { audit } from "./audit";
 import { botText, COMMAND_ALIASES } from "./bot-text";
 import { createEvent } from "./events";
@@ -87,50 +89,12 @@ async function prefsOf(
   };
 }
 
-/** «Ahora» en la zona del usuario como fecha local (lo que espera chrono-node). */
-function reference(now: number, timeZone: string): Date {
-  const w = instantToWall(now, timeZone);
-  return new Date(w.year, w.month - 1, w.day, w.hour, w.minute);
-}
-
-function draftTimes(draft: QuickDraft, timeZone: string) {
-  if (draft.allDay) {
-    return {
-      allDay: true,
-      start: draft.date,
-      end: utcToDateOnly(addDays(dateOnlyToUtc(draft.date), 1)),
-    };
-  }
-  const at = (hhmm: string) => {
-    const [year, month, day] = draft.date.split("-").map(Number);
-    const [hour, minute] = hhmm.split(":").map(Number);
-    return new Date(
-      wallToInstant(
-        {
-          year: year ?? 1970,
-          month: month ?? 1,
-          day: day ?? 1,
-          hour: hour ?? 0,
-          minute: minute ?? 0,
-          second: 0,
-        },
-        timeZone,
-      ),
-    ).toISOString();
-  };
-  return {
-    allDay: false,
-    start: at(draft.startTime ?? "09:00"),
-    end: at(draft.endTime ?? "10:00"),
-  };
-}
-
 /** Hora local legible de un instante: «hoy a las 18:40», «mañana a las 09:00». */
 function untilLabel(ms: number, now: number, timeZone: string, locale: Locale): string {
   const t = botText(locale);
   const w = instantToWall(ms, timeZone);
   const date = `${String(w.year)}-${pad(w.month)}-${pad(w.day)}`;
-  const today = localToday(now, timeZone);
+  const today = instantToDateOnly(now, timeZone);
   const day =
     date === today
       ? t.today
@@ -167,7 +131,7 @@ async function runCommand(
 ) {
   const { timeZone, locale } = await prefsOf(deps.db, userId);
   const t = botText(locale);
-  const today = localToday(deps.now, timeZone);
+  const today = instantToDateOnly(deps.now, timeZone);
   const agenda = async (heading: string, firstDay: string, days: number) => {
     const { occurrences, calendarNames } = await agendaFor(
       deps.db,
@@ -199,7 +163,7 @@ async function runCommand(
     case "new": {
       // En inglés se usa el analizador inglés de chrono-node; el español entiende igual las horas.
       const draft = args
-        ? parseQuickAdd(args, reference(deps.now, timeZone), {
+        ? parseQuickAdd(args, quickAddReference(deps.now, timeZone), {
             locale,
             parse: locale === "en" ? parseEnglish : undefined,
           })
@@ -323,7 +287,9 @@ async function handleCallback(deps: BotDeps, query: NonNullable<TelegramUpdate["
     if (action === "s10") until = deps.now + 10 * 60_000;
     else if (action === "s60") until = deps.now + 60 * 60_000;
     else {
-      const tomorrow = utcToDateOnly(addDays(dateOnlyToUtc(localToday(deps.now, timeZone)), 1));
+      const tomorrow = utcToDateOnly(
+        addDays(dateOnlyToUtc(instantToDateOnly(deps.now, timeZone)), 1),
+      );
       const [year, month, day] = tomorrow.split("-").map(Number);
       until = wallToInstant(
         { year: year ?? 1970, month: month ?? 1, day: day ?? 1, hour: 9, minute: 0, second: 0 },

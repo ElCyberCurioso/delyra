@@ -21,9 +21,9 @@ export const PROBLEM_TYPES = {
   unavailable: "urn:delyra:problem:service-unavailable",
 } as const;
 
-export type ProblemType = (typeof PROBLEM_TYPES)[keyof typeof PROBLEM_TYPES];
+type ProblemType = (typeof PROBLEM_TYPES)[keyof typeof PROBLEM_TYPES];
 
-export const invalidParamSchema = z.object({
+const invalidParamSchema = z.object({
   path: z.string(),
   message: z.string(),
 });

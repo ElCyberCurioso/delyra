@@ -4,12 +4,14 @@ import {
   type DueCard,
   type EditScope,
   type EventType,
-  HOLIDAY_REGIONS,
   type Holiday,
+  HOLIDAY_REGIONS,
   holidayRegionSchema,
-  instantToWall,
-  type Occurrence,
   inkOnWhite,
+  instantToDateOnly,
+  instantToWall,
+  joinInstant,
+  type Occurrence,
   readableColors,
   utcToDateOnly,
 } from "@delyra/shared";
@@ -72,7 +74,6 @@ import { useScopeDialog } from "./scope-dialog";
 import {
   floatingNow,
   fromCalendarDate,
-  joinInstant,
   rangeEdge,
   shiftSeries,
   toCalendarTime,
@@ -173,13 +174,10 @@ function taskEvent(card: DueCard, timeZone: string): EventInput {
   };
 }
 
-function todayIn(timeZone: string): string {
-  const w = instantToWall(Date.now(), timeZone);
-  return `${String(w.year)}-${String(w.month).padStart(2, "0")}-${String(w.day).padStart(2, "0")}`;
-}
-
 type TypeFilter = "all" | EventType;
 type MoveArg = EventDropArg | EventResizeDoneArg;
+
+const todayIn = (timeZone: string) => instantToDateOnly(Date.now(), timeZone);
 
 function Workspace({ session }: { session: ActiveSession }) {
   const { timeZone, weekStart } = session.settings;
@@ -234,7 +232,9 @@ function Workspace({ session }: { session: ActiveSession }) {
           originalStart: null,
           age: null,
         };
-        const date = detail.allDay ? detail.start : todayFrom(detail.start, timeZone);
+        const date = detail.allDay
+          ? detail.start
+          : instantToDateOnly(Date.parse(detail.start), timeZone);
         calendarRef.current?.getApi().gotoDate(date);
         setEditor({ kind: "edit", occurrence });
       })
@@ -451,7 +451,9 @@ function Workspace({ session }: { session: ActiveSession }) {
   }
 
   function openFromSearch(occurrence: Occurrence) {
-    const date = occurrence.allDay ? occurrence.start : todayFrom(occurrence.start, timeZone);
+    const date = occurrence.allDay
+      ? occurrence.start
+      : instantToDateOnly(Date.parse(occurrence.start), timeZone);
     goToDate(date);
     setEditor({ kind: "edit", occurrence });
   }
@@ -741,11 +743,6 @@ function nextHourSlot(timeZone: string): { start: string; end: string } {
     start: joinInstant(date, `${pad(hour)}:00`, timeZone),
     end: joinInstant(date, `${pad(hour + 1)}:00`, timeZone),
   };
-}
-
-function todayFrom(iso: string, timeZone: string): string {
-  const w = instantToWall(Date.parse(iso), timeZone);
-  return `${String(w.year)}-${String(w.month).padStart(2, "0")}-${String(w.day).padStart(2, "0")}`;
 }
 
 /** Calendario (F2-08): vistas de mes, semana, día, lista y año en la zona del usuario. */

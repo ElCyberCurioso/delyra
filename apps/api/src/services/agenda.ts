@@ -1,7 +1,7 @@
 import {
   addDays,
   dateOnlyToUtc,
-  instantToWall,
+  instantToDateOnly,
   startOfDayInZone,
   utcToDateOnly,
 } from "@delyra/shared";
@@ -12,13 +12,6 @@ import { kanbanRepository } from "../repositories/kanban";
 import { listOccurrences } from "./events";
 
 /** Agenda de un usuario por días locales (comandos del bot y resumen diario, F3-08 y F3-09). */
-
-const pad = (n: number) => String(n).padStart(2, "0");
-
-export function localToday(now: number, timeZone: string): string {
-  const w = instantToWall(now, timeZone);
-  return `${String(w.year)}-${pad(w.month)}-${pad(w.day)}`;
-}
 
 export async function agendaFor(
   db: Database,
@@ -62,7 +55,7 @@ export async function tasksUntil(
   lastDay: string,
   now: number,
 ): Promise<TaskItem[]> {
-  const today = localToday(now, timeZone);
+  const today = instantToDateOnly(now, timeZone);
   const end = utcToDateOnly(addDays(dateOnlyToUtc(lastDay), 1));
   // Margen de un día: las de todo el día se guardan a medianoche UTC, no en la zona local.
   const before = Math.max(dateOnlyToUtc(end), startOfDayInZone(dateOnlyToUtc(end), timeZone));
@@ -70,7 +63,9 @@ export async function tasksUntil(
   const items: TaskItem[] = [];
   for (const { card, boardName, isDone } of rows) {
     if (isDone || card.dueAt === null) continue;
-    const date = card.dueAllDay ? utcToDateOnly(card.dueAt) : localToday(card.dueAt, timeZone);
+    const date = card.dueAllDay
+      ? utcToDateOnly(card.dueAt)
+      : instantToDateOnly(card.dueAt, timeZone);
     if (date >= end) continue;
     items.push({
       title: card.title,

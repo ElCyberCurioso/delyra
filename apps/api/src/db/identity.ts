@@ -1,4 +1,4 @@
-import { BACKUP_FREQUENCIES } from "@delyra/shared";
+import { BACKUP_FREQUENCIES, ROLES, SESSION_STATES } from "@delyra/shared";
 import { sql } from "drizzle-orm";
 import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
@@ -10,7 +10,6 @@ import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-o
  * recuperación) como SHA-256 y la semilla TOTP cifrada con AES-256-GCM.
  */
 
-export const ROLES = ["admin", "member"] as const;
 export const USER_STATUSES = ["active", "disabled"] as const;
 
 export const users = sqliteTable(
@@ -140,7 +139,6 @@ export const webauthnChallenges = sqliteTable(
   () => [check("webauthn_challenges_purpose_check", sql`"purpose" IN ('register', 'login')`)],
 );
 
-export const SESSION_STATES = ["pending_2fa", "pending_totp", "active"] as const;
 export type SessionState = (typeof SESSION_STATES)[number];
 
 export const sessions = sqliteTable(

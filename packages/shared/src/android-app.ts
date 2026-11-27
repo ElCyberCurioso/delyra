@@ -7,10 +7,10 @@
  * almacén de firma.
  */
 
-export const ANDROID_PACKAGES = ["app.delyra", "app.delyra.debug"] as const;
+const ANDROID_PACKAGES = ["app.delyra", "app.delyra.debug"] as const;
 
 /** SHA-256 de los certificados de firma, como los da `keytool -list -v`. */
-export const ANDROID_CERT_FINGERPRINTS: readonly string[] = [
+const ANDROID_CERT_FINGERPRINTS: readonly string[] = [
   // Certificado debug del ordenador de desarrollo (decisión del 2026-11-25, ADR-0016): permite
   // probar llaves de acceso y App Links en producción con la build debug. En F8-11 se añade el de
   // publicación (Play App Signing) y se valora quitar este.

@@ -1,8 +1,4 @@
-import {
-  type HealthComponentName,
-  type HealthResponse,
-  healthResponseSchema,
-} from "@delyra/shared";
+import { HEALTH_COMPONENTS, type HealthResponse, healthResponseSchema } from "@delyra/shared";
 import { useQuery } from "@tanstack/react-query";
 import { ui } from "../i18n";
 import { cn } from "../lib/utils";
@@ -28,8 +24,6 @@ export function useHealth() {
     retry: 1,
   });
 }
-
-const COMPONENTS: readonly HealthComponentName[] = ["d1", "r2", "queues"];
 
 function Dot({ ok }: { ok: boolean }) {
   return (
@@ -75,7 +69,7 @@ export function HealthStatus({ className }: { className?: string }) {
       </p>
       {data ? (
         <ul className="mt-4 space-y-2 text-sm">
-          {COMPONENTS.map((name) => {
+          {HEALTH_COMPONENTS.map((name) => {
             const check = data.checks[name];
             return (
               <li key={name} className="flex items-center justify-between gap-3">

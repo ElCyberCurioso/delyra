@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   dateOnlyToUtc,
   fromFloating,
+  instantToDateOnly,
   instantToWall,
   isValidDateOnly,
+  joinInstant,
   startOfDayInZone,
   toFloating,
   utcToDateOnly,
@@ -13,6 +15,15 @@ import {
 const MADRID = "Europe/Madrid";
 
 describe("hora local ↔ instante", () => {
+  it("fecha y hora de los campos de un formulario ↔ instante", () => {
+    expect(joinInstant("2027-03-29", "10:00", MADRID)).toBe("2027-03-29T08:00:00.000Z");
+    // 23:30 en Madrid ya es el día siguiente en Tokio y sigue siendo el mismo en UTC.
+    const late = Date.parse(joinInstant("2027-01-11", "23:30", MADRID));
+    expect(instantToDateOnly(late, MADRID)).toBe("2027-01-11");
+    expect(instantToDateOnly(late, "Asia/Tokyo")).toBe("2027-01-12");
+    expect(instantToDateOnly(late, "UTC")).toBe("2027-01-11");
+  });
+
   it("10:00 en Madrid es 09:00Z en invierno y 08:00Z en verano", () => {
     const winter = wallToInstant(
       { year: 2027, month: 1, day: 11, hour: 10, minute: 0, second: 0 },

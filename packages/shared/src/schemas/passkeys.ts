@@ -19,7 +19,7 @@ export const MAX_PASSKEYS = 10;
 
 const clientExtensionResults = z.record(z.string(), z.unknown());
 
-export const registrationResponseJsonSchema = z.object({
+const registrationResponseJsonSchema = z.object({
   id: base64url(1024).min(1),
   rawId: base64url(1024).min(1),
   type: z.literal("public-key"),
@@ -35,7 +35,7 @@ export const registrationResponseJsonSchema = z.object({
   clientExtensionResults,
 });
 
-export const authenticationResponseJsonSchema = z.object({
+const authenticationResponseJsonSchema = z.object({
   id: base64url(1024).min(1),
   rawId: base64url(1024).min(1),
   type: z.literal("public-key"),
@@ -67,7 +67,7 @@ export const webauthnOptionsResponseSchema = z.object({
   options: z.record(z.string(), z.unknown()),
 });
 
-export const passkeySchema = z.object({
+const passkeySchema = z.object({
   id: z.string(),
   name: z.string(),
   createdAt: isoDate,

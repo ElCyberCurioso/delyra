@@ -1,4 +1,10 @@
-import { dateOnlyToUtc, instantToWall, type Locale, type Occurrence } from "@delyra/shared";
+import {
+  dateOnlyToUtc,
+  instantToDateOnly,
+  instantToWall,
+  type Locale,
+  type Occurrence,
+} from "@delyra/shared";
 import { escapeHtml, type InlineButton } from "../lib/telegram";
 import { botText } from "./bot-text";
 
@@ -9,11 +15,6 @@ import { botText } from "./bot-text";
  */
 
 const pad = (n: number) => String(n).padStart(2, "0");
-
-function localDate(ms: number, timeZone: string): string {
-  const w = instantToWall(ms, timeZone);
-  return `${String(w.year)}-${pad(w.month)}-${pad(w.day)}`;
-}
 
 function time(ms: number, timeZone: string): string {
   const w = instantToWall(ms, timeZone);
@@ -47,12 +48,12 @@ export function describeWhen(
   now: number,
   locale: Locale = "es",
 ): string {
-  const today = localDate(now, timeZone);
+  const today = instantToDateOnly(now, timeZone);
   if (when.allDay) {
     const date = new Date(when.start).toISOString().slice(0, 10);
     return `${dayLabel(date, today, locale)}, ${botText(locale).allDay}`;
   }
-  const day = dayLabel(localDate(when.start, timeZone), today, locale);
+  const day = dayLabel(instantToDateOnly(when.start, timeZone), today, locale);
   return `${day}, ${time(when.start, timeZone)}–${time(when.end, timeZone)}`;
 }
 
@@ -64,12 +65,12 @@ function describeDeadline(
   locale: Locale = "es",
 ): string {
   const t = botText(locale);
-  const today = localDate(now, timeZone);
+  const today = instantToDateOnly(now, timeZone);
   if (when.allDay) {
     return t.due(dayLabel(new Date(when.start).toISOString().slice(0, 10), today, locale));
   }
   return t.dueAt(
-    dayLabel(localDate(when.start, timeZone), today, locale),
+    dayLabel(instantToDateOnly(when.start, timeZone), today, locale),
     time(when.start, timeZone),
   );
 }
@@ -139,10 +140,10 @@ export function agendaText(
   if (occurrences.length === 0) return `<b>${escapeHtml(heading)}</b>\n${t.nothing}`;
   const lines = [`<b>${escapeHtml(heading)}</b>`];
   let lastDay = "";
-  const today = localDate(now, timeZone);
+  const today = instantToDateOnly(now, timeZone);
   for (const o of occurrences.slice(0, 60)) {
     const start = o.allDay ? dateOnlyToUtc(o.start) : Date.parse(o.start);
-    const day = o.allDay ? o.start : localDate(start, timeZone);
+    const day = o.allDay ? o.start : instantToDateOnly(start, timeZone);
     if (withDay && day !== lastDay) {
       lines.push("", `<u>${escapeHtml(dayLabel(day, today, locale))}</u>`);
       lastDay = day;
@@ -179,7 +180,7 @@ export function tasksText(
 ): string {
   const t = botText(locale);
   if (tasks.length === 0) return `<b>${escapeHtml(heading)}</b>\n${t.noTasks}`;
-  const today = localDate(now, timeZone);
+  const today = instantToDateOnly(now, timeZone);
   const line = (task: TaskLine, withDay: boolean) => {
     const day = dayLabel(task.date, today, locale);
     const when = task.allDay

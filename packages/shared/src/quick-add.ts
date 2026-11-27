@@ -1,5 +1,6 @@
 import { parse as parseSpanish } from "chrono-node/es";
 import type { Locale } from "./constants";
+import { addDays, dateOnlyToUtc, instantToWall, joinInstant, utcToDateOnly } from "./time";
 
 /**
  * Alta rápida en lenguaje natural (F2-12): «Dentista mañana 17:30», «Yoga hoy de 18 a 19»,
@@ -21,6 +22,31 @@ export interface QuickDraft {
   /** `HH:MM` (solo con hora) */
   startTime: string | null;
   endTime: string | null;
+}
+
+/** «Ahora» en la zona del usuario como fecha local: la referencia que espera chrono-node. */
+export function quickAddReference(now: number, timeZone: string): Date {
+  const w = instantToWall(now, timeZone);
+  return new Date(w.year, w.month - 1, w.day, w.hour, w.minute);
+}
+
+/** Inicio y fin del evento de un borrador; sin hora de inicio o de fin, de 09:00 a 10:00. */
+export function draftTimes(
+  draft: QuickDraft,
+  timeZone: string,
+): { allDay: boolean; start: string; end: string } {
+  if (draft.allDay) {
+    return {
+      allDay: true,
+      start: draft.date,
+      end: utcToDateOnly(addDays(dateOnlyToUtc(draft.date), 1)),
+    };
+  }
+  return {
+    allDay: false,
+    start: joinInstant(draft.date, draft.startTime ?? "09:00", timeZone),
+    end: joinInstant(draft.date, draft.endTime ?? "10:00", timeZone),
+  };
 }
 
 const MAX_LENGTH = 200;

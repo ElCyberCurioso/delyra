@@ -51,7 +51,6 @@ export const securityOverviewResponseSchema = z.object({
   /** Llaves de acceso registradas (F7-09). */
   passkeys: z.number().int().min(0),
 });
-export type SecurityOverview = z.infer<typeof securityOverviewResponseSchema>;
 
 export const sessionsResponseSchema = z.object({
   sessions: z.array(
@@ -65,7 +64,6 @@ export const sessionsResponseSchema = z.object({
     }),
   ),
 });
-export type ActiveSessionInfo = z.infer<typeof sessionsResponseSchema>["sessions"][number];
 
 export const auditResponseSchema = z.object({
   events: z.array(
@@ -78,7 +76,6 @@ export const auditResponseSchema = z.object({
     }),
   ),
 });
-export type AuditEntry = z.infer<typeof auditResponseSchema>["events"][number];
 
 export const recoveryCodesResponseSchema = z.object({
   recoveryCodes: z.array(z.string()).min(1),

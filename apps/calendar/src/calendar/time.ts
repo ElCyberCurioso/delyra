@@ -6,7 +6,6 @@ import {
   type Occurrence,
   toFloating,
   utcToDateOnly,
-  wallToInstant,
 } from "@delyra/shared";
 import { intlLocale } from "@delyra/ui";
 
@@ -47,25 +46,6 @@ export function splitInstant(iso: string, timeZone: string): { date: string; tim
     date: `${String(wall.year)}-${pad(wall.month)}-${pad(wall.day)}`,
     time: `${pad(wall.hour)}:${pad(wall.minute)}`,
   };
-}
-
-/** Campos del editor → instante ISO en la zona del usuario. */
-export function joinInstant(date: string, time: string, timeZone: string): string {
-  const [year, month, day] = date.split("-").map(Number);
-  const [hour, minute] = time.split(":").map(Number);
-  return new Date(
-    wallToInstant(
-      {
-        year: year ?? 1970,
-        month: month ?? 1,
-        day: day ?? 1,
-        hour: hour ?? 0,
-        minute: minute ?? 0,
-        second: 0,
-      },
-      timeZone,
-    ),
-  ).toISOString();
 }
 
 /** Diferencia en hora de pared entre dos valores (instantes o fechas) del mismo tipo. */

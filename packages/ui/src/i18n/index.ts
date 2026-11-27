@@ -13,7 +13,7 @@ export {
   type Translation,
 } from "./core";
 export { formatDate, formatDateTime, formatShortDateTime, formatSize } from "./format";
-export { LOCALE_NAMES, type UiMessages } from "./ui-messages";
+export { LOCALE_NAMES } from "./ui-messages";
 
 /** Textos de los componentes comunes en el idioma actual. */
 export const ui = await defineMessages(uiEs, () => import("./ui-messages.en"));
