@@ -36,7 +36,7 @@ import app.delyra.core.network.apiError
 import app.delyra.core.ui.CodeField
 import app.delyra.core.ui.ErrorText
 import app.delyra.core.ui.PasswordField
-import app.delyra.core.ui.Tile
+import app.delyra.core.ui.TileColumn
 import app.delyra.core.ui.appViewModel
 import kotlinx.coroutines.launch
 
@@ -80,15 +80,13 @@ class DeleteAccountViewModel(private val graph: AppGraph) : ViewModel() {
 internal fun DeleteAccountTile() {
     val vm = appViewModel { DeleteAccountViewModel(it) }
     var open by rememberSaveable { mutableStateOf(false) }
-    Tile(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TileTitle(stringResource(R.string.delete_account_title))
-            Hint(stringResource(R.string.delete_account_body))
-            OutlinedButton(
-                onClick = { open = true; vm.load() },
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-            ) { Text(stringResource(R.string.delete_account_open)) }
-        }
+    TileColumn {
+        TileTitle(stringResource(R.string.delete_account_title))
+        Hint(stringResource(R.string.delete_account_body))
+        OutlinedButton(
+            onClick = { open = true; vm.load() },
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+        ) { Text(stringResource(R.string.delete_account_open)) }
     }
     if (open) DeleteAccountDialog(vm) { if (!vm.busy) open = false }
 }

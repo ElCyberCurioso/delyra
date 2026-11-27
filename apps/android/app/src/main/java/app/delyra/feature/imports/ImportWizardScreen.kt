@@ -71,6 +71,7 @@ import app.delyra.core.ui.ErrorState
 import app.delyra.core.ui.LoadingBox
 import app.delyra.core.ui.PALETTE
 import app.delyra.core.ui.Tile
+import app.delyra.core.ui.TileColumn
 import app.delyra.core.ui.appViewModel
 import app.delyra.core.ui.message
 import app.delyra.core.ui.parseHexColor
@@ -274,61 +275,59 @@ private fun PreviewForm(vm: ImportWizardViewModel, item: ImportInfo) {
 private fun CalendarChoiceCard(calendar: ImportCalendarPreview, choice: ImportChoice, own: List<CalendarInfo>, onChange: (ImportChoice) -> Unit) {
     var menu by remember { mutableStateOf(false) }
     val locale = appLocale()
-    Tile(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                calendar.color?.let {
-                    ColorDot(parseHexColor(it))
-                    Spacer(Modifier.width(8.dp))
-                }
-                Text(calendar.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+    TileColumn {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            calendar.color?.let {
+                ColorDot(parseHexColor(it))
+                Spacer(Modifier.width(8.dp))
             }
-            val facts = listOfNotNull(
-                pluralStringResource(R.plurals.imports_count_events, calendar.events, calendar.events),
-                calendar.recurring.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.imports_count_series, it, it) },
-                calendar.birthdays.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.imports_count_birthdays, it, it) },
-                calendar.withReminders.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.imports_count_with_reminders, it, it) },
-                period(calendar, locale),
-            )
-            Hint(facts.joinToString(" · "))
-            Text(stringResource(R.string.preview_destination), style = MaterialTheme.typography.labelLarge)
-            Box {
-                TextButton(onClick = { menu = true }) {
-                    Text(
-                        when (choice) {
-                            ImportChoice.Skip -> stringResource(R.string.preview_skip)
-                            is ImportChoice.New -> stringResource(R.string.preview_new)
-                            is ImportChoice.Existing -> stringResource(R.string.preview_add_to, own.firstOrNull { it.id == choice.calendarId }?.name.orEmpty())
-                        },
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.preview_new)) },
-                        onClick = { menu = false; onChange(ImportChoice.New(calendar.name.take(60), calendar.color ?: PALETTE.first().second)) },
-                    )
-                    own.forEach { target ->
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.preview_add_to, target.name)) },
-                            leadingIcon = { ColorDot(parseHexColor(target.color)) },
-                            onClick = { menu = false; onChange(ImportChoice.Existing(target.id)) },
-                        )
-                    }
-                    DropdownMenuItem(text = { Text(stringResource(R.string.preview_skip)) }, onClick = { menu = false; onChange(ImportChoice.Skip) })
-                }
-            }
-            if (choice is ImportChoice.New) {
-                OutlinedTextField(
-                    value = choice.name,
-                    onValueChange = { onChange(choice.copy(name = it.take(60))) },
-                    label = { Text(stringResource(R.string.preview_new_name)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+            Text(calendar.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        }
+        val facts = listOfNotNull(
+            pluralStringResource(R.plurals.imports_count_events, calendar.events, calendar.events),
+            calendar.recurring.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.imports_count_series, it, it) },
+            calendar.birthdays.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.imports_count_birthdays, it, it) },
+            calendar.withReminders.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.imports_count_with_reminders, it, it) },
+            period(calendar, locale),
+        )
+        Hint(facts.joinToString(" · "))
+        Text(stringResource(R.string.preview_destination), style = MaterialTheme.typography.labelLarge)
+        Box {
+            TextButton(onClick = { menu = true }) {
+                Text(
+                    when (choice) {
+                        ImportChoice.Skip -> stringResource(R.string.preview_skip)
+                        is ImportChoice.New -> stringResource(R.string.preview_new)
+                        is ImportChoice.Existing -> stringResource(R.string.preview_add_to, own.firstOrNull { it.id == choice.calendarId }?.name.orEmpty())
+                    },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                ColorPicker(choice.color, onSelect = { onChange(choice.copy(color = it)) })
             }
+            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.preview_new)) },
+                    onClick = { menu = false; onChange(ImportChoice.New(calendar.name.take(60), calendar.color ?: PALETTE.first().second)) },
+                )
+                own.forEach { target ->
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.preview_add_to, target.name)) },
+                        leadingIcon = { ColorDot(parseHexColor(target.color)) },
+                        onClick = { menu = false; onChange(ImportChoice.Existing(target.id)) },
+                    )
+                }
+                DropdownMenuItem(text = { Text(stringResource(R.string.preview_skip)) }, onClick = { menu = false; onChange(ImportChoice.Skip) })
+            }
+        }
+        if (choice is ImportChoice.New) {
+            OutlinedTextField(
+                value = choice.name,
+                onValueChange = { onChange(choice.copy(name = it.take(60))) },
+                label = { Text(stringResource(R.string.preview_new_name)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            ColorPicker(choice.color, onSelect = { onChange(choice.copy(color = it)) })
         }
     }
 }

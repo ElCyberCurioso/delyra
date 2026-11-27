@@ -3,7 +3,6 @@ package app.delyra.feature.settings
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -43,7 +42,7 @@ import app.delyra.core.network.apiCall
 import app.delyra.core.network.apiError
 import app.delyra.core.ui.ConfirmDialog
 import app.delyra.core.ui.ErrorText
-import app.delyra.core.ui.Tile
+import app.delyra.core.ui.TileColumn
 import app.delyra.feature.calendar.TimePick
 import app.delyra.feature.calendar.appLocale
 import kotlinx.coroutines.Job
@@ -180,53 +179,51 @@ internal fun TelegramTile(vm: TelegramViewModel) {
         if (vm.linkUrl != null) vm.load()
         onPauseOrDispose { }
     }
-    Tile(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TileTitle("Telegram")
-            Hint(stringResource(R.string.telegram_intro))
-            val status = vm.status
-            when {
-                status == null && vm.loadError != null -> {
-                    ErrorText(vm.loadError)
-                    OutlinedButton(onClick = vm::load) { Text(stringResource(R.string.action_retry)) }
-                }
-                status == null -> CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
-                !status.available -> Text(stringResource(R.string.telegram_unavailable), style = MaterialTheme.typography.bodyMedium)
-                !status.linked -> {
-                    val url = vm.linkUrl
-                    if (url != null) {
-                        Text(stringResource(R.string.telegram_waiting), style = MaterialTheme.typography.bodyMedium)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = { open(url) }) { Text(stringResource(R.string.telegram_open_bot, status.botUsername.orEmpty())) }
-                            TextButton(onClick = vm::cancelLink) { Text(stringResource(R.string.action_cancel)) }
-                        }
-                    } else {
-                        Button(onClick = { vm.link(open) }, enabled = !vm.busy) { Text(stringResource(R.string.telegram_link)) }
+    TileColumn {
+        TileTitle("Telegram")
+        Hint(stringResource(R.string.telegram_intro))
+        val status = vm.status
+        when {
+            status == null && vm.loadError != null -> {
+                ErrorText(vm.loadError)
+                OutlinedButton(onClick = vm::load) { Text(stringResource(R.string.action_retry)) }
+            }
+            status == null -> CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+            !status.available -> Text(stringResource(R.string.telegram_unavailable), style = MaterialTheme.typography.bodyMedium)
+            !status.linked -> {
+                val url = vm.linkUrl
+                if (url != null) {
+                    Text(stringResource(R.string.telegram_waiting), style = MaterialTheme.typography.bodyMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = { open(url) }) { Text(stringResource(R.string.telegram_open_bot, status.botUsername.orEmpty())) }
+                        TextButton(onClick = vm::cancelLink) { Text(stringResource(R.string.action_cancel)) }
                     }
-                    if (noApp) Text(stringResource(R.string.telegram_no_app), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                } else {
+                    Button(onClick = { vm.link(open) }, enabled = !vm.busy) { Text(stringResource(R.string.telegram_link)) }
                 }
-                else -> {
-                    val bot = status.botUsername.orEmpty()
-                    Text(
-                        status.linkedAt?.let { stringResource(R.string.telegram_linked_since, bot, accountDateTime(it)) }
-                            ?: stringResource(R.string.telegram_linked_with, bot),
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    status.mutedUntil?.let { until ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(stringResource(R.string.telegram_muted_until, accountDateTime(until)), Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                            TextButton(onClick = vm::unmute, enabled = !vm.busy) { Text(stringResource(R.string.telegram_unmute)) }
-                        }
+                if (noApp) Text(stringResource(R.string.telegram_no_app), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+            else -> {
+                val bot = status.botUsername.orEmpty()
+                Text(
+                    status.linkedAt?.let { stringResource(R.string.telegram_linked_since, bot, accountDateTime(it)) }
+                        ?: stringResource(R.string.telegram_linked_with, bot),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                status.mutedUntil?.let { until ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.telegram_muted_until, accountDateTime(until)), Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                        TextButton(onClick = vm::unmute, enabled = !vm.busy) { Text(stringResource(R.string.telegram_unmute)) }
                     }
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = vm::sendTest, enabled = !vm.busy) { Text(stringResource(R.string.telegram_send_test)) }
-                        TextButton(onClick = { confirmUnlink = true }, enabled = !vm.busy) {
-                            Text(stringResource(R.string.telegram_unlink), color = MaterialTheme.colorScheme.error)
-                        }
-                    }
-                    HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                    TelegramPreferences(status, busy = vm.busy, onSave = vm::savePreferences)
                 }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = vm::sendTest, enabled = !vm.busy) { Text(stringResource(R.string.telegram_send_test)) }
+                    TextButton(onClick = { confirmUnlink = true }, enabled = !vm.busy) {
+                        Text(stringResource(R.string.telegram_unlink), color = MaterialTheme.colorScheme.error)
+                    }
+                }
+                HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                TelegramPreferences(status, busy = vm.busy, onSave = vm::savePreferences)
             }
         }
     }

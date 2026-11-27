@@ -73,7 +73,7 @@ import app.delyra.core.network.apiCall
 import app.delyra.core.network.apiError
 import app.delyra.core.ui.ConfirmDialog
 import app.delyra.core.ui.ErrorText
-import app.delyra.core.ui.Tile
+import app.delyra.core.ui.TileColumn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -275,59 +275,57 @@ internal fun BackupsTile(vm: BackupsViewModel) {
     }
     val data = vm.data
     val running = data?.backups?.any { it.status == "running" } == true
-    Tile(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.weight(1f)) { TileTitle(stringResource(R.string.backups_title)) }
-                Button(onClick = vm::create, enabled = data != null && !vm.busy && !running) {
-                    if (running) CircularProgressIndicator(Modifier.padding(end = 8.dp).size(16.dp), strokeWidth = 2.dp)
-                    Text(stringResource(R.string.backups_create))
-                }
+    TileColumn {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f)) { TileTitle(stringResource(R.string.backups_title)) }
+            Button(onClick = vm::create, enabled = data != null && !vm.busy && !running) {
+                if (running) CircularProgressIndicator(Modifier.padding(end = 8.dp).size(16.dp), strokeWidth = 2.dp)
+                Text(stringResource(R.string.backups_create))
             }
-            Hint(stringResource(R.string.backups_intro))
-            if (data == null) {
-                if (vm.loadError != null) {
-                    ErrorText(vm.loadError)
-                    OutlinedButton(onClick = vm::refresh) { Text(stringResource(R.string.action_retry)) }
-                } else {
-                    CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
-                }
-                return@Column
+        }
+        Hint(stringResource(R.string.backups_intro))
+        if (data == null) {
+            if (vm.loadError != null) {
+                ErrorText(vm.loadError)
+                OutlinedButton(onClick = vm::refresh) { Text(stringResource(R.string.action_retry)) }
+            } else {
+                CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
             }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                LabeledMenu(
-                    label = stringResource(R.string.backups_auto),
-                    value = frequencyLabel(data.settings.frequency),
-                    options = FREQUENCIES.map { it to frequencyLabel(it) },
-                    onPick = vm::setFrequency,
-                )
-                LabeledMenu(
-                    label = stringResource(R.string.backups_keep),
-                    value = data.settings.keep.toString(),
-                    options = (1..KEEP_AUTO_MAX).map { it.toString() to it.toString() },
-                    enabled = data.settings.frequency != "off",
-                    onPick = { vm.setKeep(it.toInt()) },
-                )
-            }
-            vm.restore?.let { RestorePanel(vm, it) }
-            OutlinedButton(
-                onClick = { pickFile.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/json", "application/octet-stream")) },
+            return@TileColumn
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            LabeledMenu(
+                label = stringResource(R.string.backups_auto),
+                value = frequencyLabel(data.settings.frequency),
+                options = FREQUENCIES.map { it to frequencyLabel(it) },
+                onPick = vm::setFrequency,
+            )
+            LabeledMenu(
+                label = stringResource(R.string.backups_keep),
+                value = data.settings.keep.toString(),
+                options = (1..KEEP_AUTO_MAX).map { it.toString() to it.toString() },
+                enabled = data.settings.frequency != "off",
+                onPick = { vm.setKeep(it.toInt()) },
+            )
+        }
+        vm.restore?.let { RestorePanel(vm, it) }
+        OutlinedButton(
+            onClick = { pickFile.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/json", "application/octet-stream")) },
+            enabled = !vm.busy,
+        ) {
+            Icon(Icons.Outlined.UploadFile, null, Modifier.padding(end = 8.dp).size(18.dp))
+            Text(stringResource(R.string.backups_from_file))
+        }
+        HorizontalDivider(Modifier.padding(vertical = 4.dp))
+        if (data.backups.isEmpty()) Hint(stringResource(R.string.backups_none))
+        data.backups.forEach { backup ->
+            BackupRow(
+                backup,
                 enabled = !vm.busy,
-            ) {
-                Icon(Icons.Outlined.UploadFile, null, Modifier.padding(end = 8.dp).size(18.dp))
-                Text(stringResource(R.string.backups_from_file))
-            }
-            HorizontalDivider(Modifier.padding(vertical = 4.dp))
-            if (data.backups.isEmpty()) Hint(stringResource(R.string.backups_none))
-            data.backups.forEach { backup ->
-                BackupRow(
-                    backup,
-                    enabled = !vm.busy,
-                    onDownload = { downloading = backup; saveZip.launch("delyra-copia-${backup.createdAt.take(10)}.zip") },
-                    onRestore = { vm.restoreFrom(backup) },
-                    onDelete = { deleting = backup },
-                )
-            }
+                onDownload = { downloading = backup; saveZip.launch("delyra-copia-${backup.createdAt.take(10)}.zip") },
+                onRestore = { vm.restoreFrom(backup) },
+                onDelete = { deleting = backup },
+            )
         }
     }
     deleting?.let { backup ->

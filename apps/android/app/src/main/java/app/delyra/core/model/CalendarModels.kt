@@ -83,9 +83,6 @@ data class EventDetail(
 data class EventResponse(val event: EventDetail)
 
 @Serializable
-data class ReminderInput(val offsetMinutes: Int, val channel: String)
-
-@Serializable
 data class Holiday(val date: String, val name: String, val regional: Boolean = false)
 
 @Serializable
