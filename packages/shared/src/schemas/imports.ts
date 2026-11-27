@@ -4,7 +4,6 @@ import { idSchema } from "../ids";
 /** Importación desde Google Calendar y suscripciones iCal (Fase 5). */
 
 export const IMPORT_SOURCES = ["file", "google"] as const;
-export type ImportSource = (typeof IMPORT_SOURCES)[number];
 
 /**
  * - `analyzing`: el Workflow lee el fichero (o descarga Google) y prepara la vista previa.
@@ -20,13 +19,11 @@ export const IMPORT_STATUSES = [
   "failed",
   "expired",
 ] as const;
-export type ImportStatus = (typeof IMPORT_STATUSES)[number];
 
 export const SUBSCRIPTION_STATUSES = ["pending", "ok", "error"] as const;
-export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
 
 /** Un calendario encontrado en el fichero o en la cuenta de Google. */
-export const importCalendarPreviewSchema = z.object({
+const importCalendarPreviewSchema = z.object({
   /** Clave del calendario dentro de la importación (`0`, `1`…). */
   key: z.string(),
   name: z.string(),
@@ -66,7 +63,7 @@ export const importReportSchema = z.object({
 });
 export type ImportReport = z.infer<typeof importReportSchema>;
 
-export const importSchema = z.object({
+const importSchema = z.object({
   id: z.string(),
   source: z.enum(IMPORT_SOURCES),
   status: z.enum(IMPORT_STATUSES),
@@ -121,7 +118,7 @@ export const googleAuthorizeResponseSchema = z.object({ url: z.string() });
 
 // ── Suscripciones iCal (F5-06) ───────────────────────────────────────────────
 
-export const GOOGLE_ICAL_HOST = "calendar.google.com";
+const GOOGLE_ICAL_HOST = "calendar.google.com";
 
 /**
  * Dirección secreta en formato iCal de Google Calendar. Solo `https://calendar.google.com/
@@ -155,9 +152,8 @@ export const createSubscriptionRequestSchema = z.object({
   name: z.string().trim().max(60).optional(),
   color: colorSchema.optional(),
 });
-export type CreateSubscriptionRequest = z.infer<typeof createSubscriptionRequestSchema>;
 
-export const subscriptionSchema = z.object({
+const subscriptionSchema = z.object({
   id: z.string(),
   calendarId: z.string(),
   name: z.string(),
@@ -180,10 +176,9 @@ export const subscriptionsResponseSchema = z.object({
 // ── Sincronización continua con Google (F7-09) ───────────────────────────────
 
 export const GOOGLE_CONNECTION_STATUSES = ["ok", "revoked"] as const;
-export type GoogleConnectionStatus = (typeof GOOGLE_CONNECTION_STATUSES)[number];
 
 /** Un calendario de Google que se refleja (solo lectura) en un calendario de Delyra. */
-export const googleSyncedCalendarSchema = z.object({
+const googleSyncedCalendarSchema = z.object({
   id: z.string(),
   calendarId: z.string(),
   name: z.string(),

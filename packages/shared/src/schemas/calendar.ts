@@ -90,7 +90,7 @@ export const updateCalendarRequestSchema = z
   .partial()
   .refine((value) => Object.keys(value).length > 0, { error: "No hay nada que cambiar" });
 
-export const calendarSchema = z.object({
+const calendarSchema = z.object({
   id: z.string(),
   name: z.string(),
   color: z.string(),
@@ -107,9 +107,9 @@ export const calendarsResponseSchema = z.object({ calendars: z.array(calendarSch
 // ── Eventos ────────────────────────────────────────────────────────────────────
 
 /** `AAAA-MM-DD` (día completo). */
-export const dateOnlySchema = z.string().refine(isValidDateOnly, { error: "Fecha no válida" });
+const dateOnlySchema = z.string().refine(isValidDateOnly, { error: "Fecha no válida" });
 /** Instante ISO 8601 con zona (`2026-11-21T10:00:00Z` o `…+01:00`). */
-export const instantSchema = z.iso.datetime({ offset: true, error: "Fecha y hora no válidas" });
+const instantSchema = z.iso.datetime({ offset: true, error: "Fecha y hora no válidas" });
 
 const optionalText = (max: number) =>
   z
@@ -132,7 +132,7 @@ const urlSchema = z
   .optional();
 
 /** Formato básico; la API comprueba además que la regla sea válida y razonable. */
-export const rruleSchema = z
+const rruleSchema = z
   .string()
   .trim()
   .max(EVENT_LIMITS.rrule)
@@ -245,7 +245,7 @@ export const searchQuerySchema = z.object({
 });
 
 /** Una ocurrencia lista para pintar (las series se expanden en el servidor). */
-export const occurrenceSchema = z.object({
+const occurrenceSchema = z.object({
   /** Clave única de la ocurrencia (`eventId` o `eventId:inicioOriginal`). */
   id: z.string(),
   eventId: z.string(),
@@ -270,7 +270,7 @@ export type Occurrence = z.infer<typeof occurrenceSchema>;
 
 export const occurrencesResponseSchema = z.object({ events: z.array(occurrenceSchema) });
 
-export const eventDetailSchema = z.object({
+const eventDetailSchema = z.object({
   id: z.string(),
   calendarId: z.string(),
   type: z.enum(EVENT_TYPES),

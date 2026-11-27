@@ -4,6 +4,7 @@ import {
   type EventDetail,
   type EventType,
   type Feb29Rule,
+  joinInstant,
   type Occurrence,
   utcToDateOnly,
 } from "@delyra/shared";
@@ -37,7 +38,7 @@ import {
   toRrule,
 } from "./presets";
 import { useScopeDialog } from "./scope-dialog";
-import { describeWhen, joinInstant, shiftSeries, splitInstant, wallDelta } from "./time";
+import { describeWhen, shiftSeries, splitInstant, wallDelta } from "./time";
 
 const DAY_MS = 86_400_000;
 

@@ -1,11 +1,10 @@
 import {
   type CalendarInfo,
-  dateOnlyToUtc,
-  instantToWall,
+  draftTimes,
   type Occurrence,
   parseQuickAdd,
   type QuickAddParser,
-  type QuickDraft,
+  quickAddReference,
 } from "@delyra/shared";
 import { Button, errorMessage, getLocale, Input, toast } from "@delyra/ui";
 import { useQuery } from "@tanstack/react-query";
@@ -14,7 +13,7 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { createEvent, searchEvents, useInvalidateEvents } from "./api";
 import type { EditorTarget } from "./event-editor";
 import { calendarMessages } from "./messages";
-import { describeWhen, joinInstant } from "./time";
+import { describeWhen } from "./time";
 import { useDictation } from "./use-dictation";
 
 let englishParser: QuickAddParser | null = null;
@@ -33,25 +32,8 @@ function useQuickAddParser(): QuickAddParser | undefined {
   return english ? (parser ?? undefined) : undefined;
 }
 
-const DAY_MS = 86_400_000;
-
 /** «Ahora» en la zona del usuario, como fecha local (lo que espera chrono-node). */
-function reference(timeZone: string): Date {
-  const w = instantToWall(Date.now(), timeZone);
-  return new Date(w.year, w.month - 1, w.day, w.hour, w.minute);
-}
-
-function draftTimes(draft: QuickDraft, timeZone: string) {
-  if (draft.allDay) {
-    const end = new Date(dateOnlyToUtc(draft.date) + DAY_MS).toISOString().slice(0, 10);
-    return { allDay: true, start: draft.date, end };
-  }
-  return {
-    allDay: false,
-    start: joinInstant(draft.date, draft.startTime ?? "09:00", timeZone),
-    end: joinInstant(draft.date, draft.endTime ?? "10:00", timeZone),
-  };
-}
+const reference = (timeZone: string) => quickAddReference(Date.now(), timeZone);
 
 /** Alta rápida en lenguaje natural con vista previa antes de guardar (F2-12). */
 export function QuickAdd({
@@ -69,7 +51,11 @@ export function QuickAdd({
   const calendar = calendars.find((c) => c.kind === "personal") ?? calendars[0];
   const parser = useQuickAddParser();
   const draft = useMemo(
-    () => parseQuickAdd(text, reference(timeZone), { locale: getLocale(), parse: parser }),
+    () =>
+      parseQuickAdd(text, reference(timeZone), {
+        locale: getLocale(),
+        parse: parser,
+      }),
     [text, timeZone, parser],
   );
   const t = calendarMessages().quickAdd;

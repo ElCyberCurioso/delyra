@@ -17,6 +17,7 @@ import {
   expandSeries,
   floatingDelta,
   isOccurrenceStart,
+  parseExdates,
   type Series,
   seriesEnd,
   shiftInSeries,
@@ -42,7 +43,7 @@ export interface EventContext {
 
 // ── Conversión ───────────────────────────────────────────────────────────────
 
-export function formatTime(ms: number, allDay: boolean): string {
+function formatTime(ms: number, allDay: boolean): string {
   return allDay ? utcToDateOnly(ms) : new Date(ms).toISOString();
 }
 
@@ -53,15 +54,6 @@ function parseTime(value: string, allDay: boolean, path: string): number {
     return ms;
   } catch {
     throw invalidField(path, allDay ? "Fecha no válida" : "Fecha y hora no válidas");
-  }
-}
-
-function parseExdates(value: string): number[] {
-  try {
-    const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.filter((v): v is number => typeof v === "number") : [];
-  } catch {
-    return [];
   }
 }
 

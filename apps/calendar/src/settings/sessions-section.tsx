@@ -1,14 +1,16 @@
 import { auditResponseSchema, sessionsResponseSchema } from "@delyra/shared";
-import { type ActiveSession, apiFetch, Button, cn, errorMessage, toast } from "@delyra/ui";
+import {
+  type ActiveSession,
+  apiFetch,
+  Button,
+  cn,
+  errorMessage,
+  formatDateTime,
+  toast,
+} from "@delyra/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MonitorSmartphoneIcon, TriangleAlertIcon } from "lucide-react";
-import {
-  auditLabel,
-  countryName,
-  describeUserAgent,
-  formatDateTime,
-  SUSPICIOUS_EVENTS,
-} from "./format";
+import { auditLabel, countryName, describeUserAgent, SUSPICIOUS_EVENTS } from "./format";
 import { settingsMessages } from "./messages";
 import { Section } from "./section";
 

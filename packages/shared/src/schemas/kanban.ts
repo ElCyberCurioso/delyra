@@ -19,7 +19,7 @@ export const BOARD_TEMPLATES = ["personal", "sprint", "audit", "empty"] as const
 /** Tableros compartidos (F7-04): papel de un miembro y papel de quien mira el tablero. */
 export const BOARD_MEMBER_ROLES = ["editor", "reader"] as const;
 export type BoardMemberRole = (typeof BOARD_MEMBER_ROLES)[number];
-export const BOARD_ROLES = ["owner", "editor", "reader"] as const;
+const BOARD_ROLES = ["owner", "editor", "reader"] as const;
 export type BoardRole = (typeof BOARD_ROLES)[number];
 export type BoardTemplate = (typeof BOARD_TEMPLATES)[number];
 
@@ -109,7 +109,7 @@ export const labelRequestSchema = z.object({
 export const updateLabelRequestSchema = labelRequestSchema.partial();
 
 /** Fecha límite: `AAAA-MM-DD` (todo el día) o instante ISO. */
-export const dueSchema = z
+const dueSchema = z
   .object({
     allDay: z.boolean(),
     at: z.string().max(40),
@@ -169,7 +169,7 @@ export const commentRequestSchema = z.object({
 
 const iso = z.iso.datetime();
 
-export const boardSummarySchema = z.object({
+const boardSummarySchema = z.object({
   id: z.string(),
   name: z.string(),
   template: z.enum(BOARD_TEMPLATES),
@@ -185,7 +185,7 @@ export const boardSummarySchema = z.object({
 });
 export type BoardSummary = z.infer<typeof boardSummarySchema>;
 
-export const columnSchema = z.object({
+const columnSchema = z.object({
   id: z.string(),
   name: z.string(),
   position: z.string(),
@@ -195,12 +195,12 @@ export const columnSchema = z.object({
 });
 export type BoardColumn = z.infer<typeof columnSchema>;
 
-export const labelSchema = z.object({ id: z.string(), name: z.string(), color: z.string() });
+const labelSchema = z.object({ id: z.string(), name: z.string(), color: z.string() });
 export type CardLabel = z.infer<typeof labelSchema>;
 
-export const dueInfoSchema = z.object({ allDay: z.boolean(), at: z.string(), tz: z.string() });
+const dueInfoSchema = z.object({ allDay: z.boolean(), at: z.string(), tz: z.string() });
 
-export const cardSummarySchema = z.object({
+const cardSummarySchema = z.object({
   id: z.string(),
   columnId: z.string(),
   title: z.string(),
@@ -229,7 +229,7 @@ export const boardDetailSchema = z.object({
 });
 export type BoardDetail = z.infer<typeof boardDetailSchema>;
 
-export const cardDetailSchema = cardSummarySchema.extend({
+const cardDetailSchema = cardSummarySchema.extend({
   boardId: z.string(),
   description: z.string(),
   checklistItems: z.array(z.object({ id: z.string(), text: z.string(), done: z.boolean() })),
@@ -269,7 +269,7 @@ export const cardDetailSchema = cardSummarySchema.extend({
 export type CardDetail = z.infer<typeof cardDetailSchema>;
 
 /** Tarjetas con fecha límite para la capa «Tareas» del calendario (F4-11). */
-export const dueCardSchema = z.object({
+const dueCardSchema = z.object({
   id: z.string(),
   boardId: z.string(),
   boardName: z.string(),
@@ -289,14 +289,13 @@ export const moveCardResponseSchema = z.object({
   wipExceeded: z.boolean(),
 });
 export const labelResponseSchema = z.object({ label: labelSchema });
-export const archivedCardSchema = z.object({
+const archivedCardSchema = z.object({
   id: z.string(),
   title: z.string(),
   columnId: z.string(),
   archivedAt: iso.nullable(),
   completedAt: iso.nullable(),
 });
-export type ArchivedCard = z.infer<typeof archivedCardSchema>;
 export const archivedCardsResponseSchema = z.object({ cards: z.array(archivedCardSchema) });
 export const dueCardsResponseSchema = z.object({ cards: z.array(dueCardSchema) });
 
@@ -304,7 +303,7 @@ export const dueCardsResponseSchema = z.object({ cards: z.array(dueCardSchema) }
 
 export const BOARD_SHARING_LIMITS = { members: 20, invitationDays: 14 } as const;
 
-export const boardMemberSchema = z.object({
+const boardMemberSchema = z.object({
   userId: z.string(),
   name: z.string(),
   role: z.enum(BOARD_ROLES),
@@ -312,9 +311,8 @@ export const boardMemberSchema = z.object({
   email: z.string().nullable(),
   you: z.boolean(),
 });
-export type BoardMember = z.infer<typeof boardMemberSchema>;
 
-export const boardInvitationSchema = z.object({
+const boardInvitationSchema = z.object({
   id: z.string(),
   email: z.string(),
   role: z.enum(BOARD_MEMBER_ROLES),
@@ -336,7 +334,7 @@ export const inviteToBoardRequestSchema = z.object({
 });
 export const updateBoardMemberRequestSchema = z.object({ role: z.enum(BOARD_MEMBER_ROLES) });
 
-export const pendingBoardInvitationSchema = z.object({
+const pendingBoardInvitationSchema = z.object({
   id: z.string(),
   boardName: z.string(),
   invitedBy: z.string().nullable(),

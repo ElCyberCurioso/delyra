@@ -1,6 +1,7 @@
 import { BACKUP_KINDS, BACKUP_STATUSES, RESTORE_MODES, RESTORE_STATUSES } from "@delyra/shared";
 import { sql } from "drizzle-orm";
 import { check, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { quoted } from "./check";
 import { users } from "./identity";
 
 /**
@@ -9,8 +10,6 @@ import { users } from "./identity";
  * - restauraciones (fichero subido y datos ya validados): `delyra-imports` →
  *   `restores/<ownerId>/<restoreId>/…`, que el ciclo de vida borra a los 7 días.
  */
-
-const quoted = (values: readonly string[]) => sql.raw(values.map((v) => `'${v}'`).join(", "));
 
 export const userBackups = sqliteTable(
   "user_backups",

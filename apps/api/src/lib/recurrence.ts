@@ -52,6 +52,16 @@ export interface Series {
   feb29Rule?: Feb29Rule | null;
 }
 
+/** Columna `exdates` (JSON con instantes en ms); si está dañada, sin exclusiones. */
+export function parseExdates(value: string): number[] {
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((v): v is number => typeof v === "number") : [];
+  } catch {
+    return [];
+  }
+}
+
 export interface Occurrence {
   start: number;
   end: number;
@@ -114,7 +124,7 @@ function buildRule(series: Series): RRule {
 // ── Cumpleaños ─────────────────────────────────────────────────────────────────
 
 /** Día de un cumpleaños en un año dado, con la regla del 29 de febrero. */
-export function birthdayInYear(series: Series, year: number): number {
+function birthdayInYear(series: Series, year: number): number {
   const base = new Date(series.startAt);
   const month = base.getUTCMonth();
   const day = base.getUTCDate();

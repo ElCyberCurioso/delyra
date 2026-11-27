@@ -6,7 +6,7 @@ import type { NotificationMessage } from "./notifications";
 import { telegramConfig } from "./telegram-links";
 
 /** «Chrome en Windows» a partir del User-Agent (aproximado, solo para el aviso). */
-export function describeDevice(userAgent: string | null): string | null {
+function describeDevice(userAgent: string | null): string | null {
   if (!userAgent) return null;
   const browsers: [string, string][] = [
     ["Edg/", "Edge"],

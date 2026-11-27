@@ -33,7 +33,7 @@ import { fromBase64Url, toBase64Url } from "../lib/crypto";
  *   la llave es el segundo factor después de la contraseña.
  */
 
-export const WEBAUTHN_CHALLENGE_TTL_MS = 5 * 60_000;
+const WEBAUTHN_CHALLENGE_TTL_MS = 5 * 60_000;
 const RP_NAME = "Delyra";
 
 export interface RelyingParty {

@@ -65,7 +65,7 @@ import app.delyra.core.ui.ConfirmDialog
 import app.delyra.core.ui.ErrorText
 import app.delyra.core.ui.PasswordField
 import app.delyra.core.ui.SecureScreen
-import app.delyra.core.ui.Tile
+import app.delyra.core.ui.TileColumn
 import app.delyra.feature.auth.RecoveryCodesView
 import app.delyra.feature.auth.TotpSecretBlock
 import kotlinx.coroutines.launch
@@ -206,38 +206,36 @@ internal fun SecurityTile(vm: SecurityViewModel) {
     var changingPassword by rememberSaveable { mutableStateOf(false) }
     var removing by remember { mutableStateOf<Passkey?>(null) }
     val security = vm.security
-    Tile(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TileTitle(stringResource(R.string.settings_security))
-            Hint(stringResource(R.string.settings_two_factor_hint))
-            if (security != null) {
-                security.totpConfirmedAt?.let { Text(stringResource(R.string.settings_totp_active_since, accountDateTime(it)), style = MaterialTheme.typography.bodyMedium) }
-                val left = security.remainingRecoveryCodes
-                Text(
-                    if (left == 0) stringResource(R.string.settings_no_codes_left) else pluralStringResource(R.plurals.settings_recovery_left, left, left),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (left <= 2) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                )
-                security.passwordChangedAt?.let { Hint(stringResource(R.string.settings_password_changed_at, accountDateTime(it))) }
-            }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                OutlinedButton(onClick = { changingPassword = true }) { Text(stringResource(R.string.settings_change_password)) }
-                OutlinedButton(onClick = { vm.startReauth(ReauthPurpose.RecoveryCodes) }) { Text(stringResource(R.string.settings_regenerate_codes)) }
-                OutlinedButton(onClick = { vm.startReauth(ReauthPurpose.AuthenticatorApp) }) { Text(stringResource(R.string.settings_change_app)) }
-            }
-            HorizontalDivider(Modifier.padding(vertical = 4.dp))
-            Text(stringResource(R.string.settings_passkeys_title), style = MaterialTheme.typography.titleSmall)
-            Hint(stringResource(R.string.settings_passkeys_intro))
-            val passkeys = vm.passkeys
-            when {
-                passkeys == null -> Unit
-                passkeys.isEmpty() -> Hint(stringResource(R.string.settings_passkeys_none))
-                else -> passkeys.forEach { passkey -> PasskeyRow(passkey, onRemove = { removing = passkey }) }
-            }
-            if (Passkeys.supported) OutlinedButton(onClick = { vm.startReauth(ReauthPurpose.Passkey) }) {
-                Icon(Icons.Outlined.Key, null, Modifier.padding(end = 8.dp).size(18.dp))
-                Text(stringResource(R.string.settings_passkey_add))
-            }
+    TileColumn {
+        TileTitle(stringResource(R.string.settings_security))
+        Hint(stringResource(R.string.settings_two_factor_hint))
+        if (security != null) {
+            security.totpConfirmedAt?.let { Text(stringResource(R.string.settings_totp_active_since, accountDateTime(it)), style = MaterialTheme.typography.bodyMedium) }
+            val left = security.remainingRecoveryCodes
+            Text(
+                if (left == 0) stringResource(R.string.settings_no_codes_left) else pluralStringResource(R.plurals.settings_recovery_left, left, left),
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (left <= 2) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+            )
+            security.passwordChangedAt?.let { Hint(stringResource(R.string.settings_password_changed_at, accountDateTime(it))) }
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            OutlinedButton(onClick = { changingPassword = true }) { Text(stringResource(R.string.settings_change_password)) }
+            OutlinedButton(onClick = { vm.startReauth(ReauthPurpose.RecoveryCodes) }) { Text(stringResource(R.string.settings_regenerate_codes)) }
+            OutlinedButton(onClick = { vm.startReauth(ReauthPurpose.AuthenticatorApp) }) { Text(stringResource(R.string.settings_change_app)) }
+        }
+        HorizontalDivider(Modifier.padding(vertical = 4.dp))
+        Text(stringResource(R.string.settings_passkeys_title), style = MaterialTheme.typography.titleSmall)
+        Hint(stringResource(R.string.settings_passkeys_intro))
+        val passkeys = vm.passkeys
+        when {
+            passkeys == null -> Unit
+            passkeys.isEmpty() -> Hint(stringResource(R.string.settings_passkeys_none))
+            else -> passkeys.forEach { passkey -> PasskeyRow(passkey, onRemove = { removing = passkey }) }
+        }
+        if (Passkeys.supported) OutlinedButton(onClick = { vm.startReauth(ReauthPurpose.Passkey) }) {
+            Icon(Icons.Outlined.Key, null, Modifier.padding(end = 8.dp).size(18.dp))
+            Text(stringResource(R.string.settings_passkey_add))
         }
     }
     if (changingPassword) PasswordDialog(onDismiss = { changingPassword = false }, onSave = vm::changePassword)

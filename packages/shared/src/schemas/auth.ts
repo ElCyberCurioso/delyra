@@ -21,9 +21,9 @@ export const passwordSchema = z
 export const nameSchema = z.string().trim().min(1, { error: "Indica tu nombre" }).max(80);
 
 /** Token opaco (invitación, recuperación) en base64url. */
-export const opaqueTokenSchema = z.string().regex(/^[\w-]{20,128}$/, { error: "Enlace no válido" });
+const opaqueTokenSchema = z.string().regex(/^[\w-]{20,128}$/, { error: "Enlace no válido" });
 
-export const totpCodeSchema = z.string().regex(/^\d{6}$/, { error: "Código de 6 dígitos" });
+const totpCodeSchema = z.string().regex(/^\d{6}$/, { error: "Código de 6 dígitos" });
 
 /** Código de recuperación: 10 caracteres base32 en dos grupos (`abcde-fghij`). */
 export const recoveryCodeSchema = z
@@ -32,10 +32,7 @@ export const recoveryCodeSchema = z
   .toLowerCase()
   .regex(/^[a-z2-7]{5}-?[a-z2-7]{5}$/, { error: "Código de recuperación no válido" });
 
-export const turnstileTokenSchema = z
-  .string()
-  .min(1, { error: "Completa la verificación" })
-  .max(2048);
+const turnstileTokenSchema = z.string().min(1, { error: "Completa la verificación" }).max(2048);
 
 export const loginRequestSchema = z.object({
   email: emailSchema,
@@ -75,7 +72,6 @@ export const createInvitationRequestSchema = z.object({
 });
 
 export const SESSION_STATES = ["pending_2fa", "pending_totp", "active"] as const;
-export type SessionStateName = (typeof SESSION_STATES)[number];
 
 export const meResponseSchema = z.object({
   state: z.enum(SESSION_STATES),
@@ -110,8 +106,6 @@ export type AuthConfigResponse = z.infer<typeof authConfigResponseSchema>;
 export const authStepResponseSchema = z.object({
   next: z.enum(["2fa", "totp-setup", "done"]),
 });
-
-export type AuthStepResponse = z.infer<typeof authStepResponseSchema>;
 
 export const secondFactorResponseSchema = z.object({
   next: z.literal("done"),

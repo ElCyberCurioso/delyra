@@ -18,7 +18,7 @@ import {
 
 const DAY_MS = 86_400_000;
 
-export const RETENTION_DAYS = {
+const RETENTION_DAYS = {
   /** Sesiones caducadas o cerradas. */
   sessions: 30,
   /** Intentos de inicio de sesión y de segundo factor (los bloqueos miran 15 minutos). */

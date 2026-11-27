@@ -1,13 +1,7 @@
+import { joinInstant } from "@delyra/shared";
 import { describe, expect, it } from "vitest";
 import { fromRrule, toRrule } from "./presets";
-import {
-  fromCalendarDate,
-  joinInstant,
-  shiftSeries,
-  splitInstant,
-  toCalendarTime,
-  wallDelta,
-} from "./time";
+import { fromCalendarDate, shiftSeries, splitInstant, toCalendarTime, wallDelta } from "./time";
 
 const MADRID = "Europe/Madrid";
 

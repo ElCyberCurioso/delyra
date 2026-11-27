@@ -70,6 +70,33 @@ export function wallToInstant(wall: WallTime, timeZone: string): number {
   return valid.length > 0 ? Math.min(...valid) : local - before;
 }
 
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** Día (`AAAA-MM-DD`) en que cae un instante en una zona: «hoy» para el usuario. */
+export function instantToDateOnly(ms: number, timeZone: string): string {
+  const w = instantToWall(ms, timeZone);
+  return `${String(w.year)}-${pad(w.month)}-${pad(w.day)}`;
+}
+
+/** Fecha (`AAAA-MM-DD`) y hora (`HH:MM`) locales de una zona → instante ISO. */
+export function joinInstant(date: string, time: string, timeZone: string): string {
+  const [year, month, day] = date.split("-").map(Number);
+  const [hour, minute] = time.split(":").map(Number);
+  return new Date(
+    wallToInstant(
+      {
+        year: year ?? 1970,
+        month: month ?? 1,
+        day: day ?? 1,
+        hour: hour ?? 0,
+        minute: minute ?? 0,
+        second: 0,
+      },
+      timeZone,
+    ),
+  ).toISOString();
+}
+
 /**
  * Representación «flotante»: un instante ficticio cuyos campos UTC son la hora local de la zona.
  * Permite aplicar reglas (RRULE) sin cambios de horario y volver a la zona al final.

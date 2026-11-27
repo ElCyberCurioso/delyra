@@ -51,12 +51,12 @@ import { backupKey } from "./user-backups";
  */
 
 const HOUR_MS = 3_600_000;
-export const RESTORE_READY_TTL_MS = 6 * 24 * HOUR_MS;
-export const RESTORE_STALE_MS = 2 * HOUR_MS;
+const RESTORE_READY_TTL_MS = 6 * 24 * HOUR_MS;
+const RESTORE_STALE_MS = 2 * HOUR_MS;
 const EVENTS_PER_CHUNK = 400;
 const CARDS_PER_CHUNK = 250;
 
-export const restorePrefix = (ownerId: string, id: string) => `restores/${ownerId}/${id}/`;
+const restorePrefix = (ownerId: string, id: string) => `restores/${ownerId}/${id}/`;
 export const restoreSourceKey = (ownerId: string, id: string) =>
   `${restorePrefix(ownerId, id)}source`;
 const chunkKey = (row: Pick<UserRestoreRow, "ownerId" | "id">, name: string) =>

@@ -8,7 +8,7 @@ import { pseudonym } from "../lib/pseudonym";
 
 /** Vinculación de cuentas con Telegram (F3-04). */
 
-export const LINK_TOKEN_TTL_MS = 10 * 60_000;
+const LINK_TOKEN_TTL_MS = 10 * 60_000;
 
 type TelegramEnv = Pick<
   Env,

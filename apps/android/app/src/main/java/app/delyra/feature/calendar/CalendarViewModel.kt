@@ -107,10 +107,6 @@ class CalendarViewModel(private val graph: AppGraph) : ViewModel() {
         viewModelScope.launch { graph.preferences.setCalendarView(target.name) }
     }
 
-    fun goToday() {
-        anchor = today
-    }
-
     fun toggleLayer(holidays: Boolean = showHolidays, tasks: Boolean = showTasks) {
         showHolidays = holidays
         showTasks = tasks

@@ -37,7 +37,7 @@ export const holidaysQuerySchema = z.object({
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
-export const holidaySchema = z.object({
+const holidaySchema = z.object({
   /** `AAAA-MM-DD` */
   date: z.string(),
   name: z.string(),

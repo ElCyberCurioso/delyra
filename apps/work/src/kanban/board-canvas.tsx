@@ -98,7 +98,7 @@ const HORIZONTAL = ["ArrowLeft", "ArrowRight"];
  * salta a la columna vecina, a la misma altura (o al hueco de la columna si está vacía). Las
  * columnas se mueven igual, de vecina en vecina.
  */
-export function boardKeyboardCoordinates(items: Items, columns: readonly string[]) {
+function boardKeyboardCoordinates(items: Items, columns: readonly string[]) {
   const getter: KeyboardCoordinateGetter = (event, args) => {
     const { active, droppableRects, over } = args.context;
     if (!active || !HORIZONTAL.includes(event.code))
@@ -591,7 +591,7 @@ const PRIORITY_STYLES = {
   urgent: "bg-destructive/15 text-destructive",
 } as const;
 
-export function CardView({ card, labels, timeZone, now, overlay = false }: CardViewProps) {
+function CardView({ card, labels, timeZone, now, overlay = false }: CardViewProps) {
   const cardLabels = labels.filter((l) => card.labelIds.includes(l.id));
   const overdue = isOverdue(card, now, timeZone);
   const t = workMessages().canvas;

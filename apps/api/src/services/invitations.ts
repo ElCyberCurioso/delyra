@@ -8,6 +8,14 @@ import { randomToken, sha256Hex } from "../lib/crypto";
 
 const DAY_MS = 24 * 60 * 60_000;
 
+/** La invitación `invitationId`, si nadie la ha usado ni revocado. */
+const unused = (invitationId: string) =>
+  and(
+    eq(invitations.id, invitationId),
+    isNull(invitations.acceptedAt),
+    isNull(invitations.revokedAt),
+  );
+
 /** El token va en el fragmento (`#`): el navegador no lo envía al servidor ni en el Referer. */
 export function invitationLink(environment: AppEnvironment, token: string): string {
   return `${APP_ORIGINS[environment].calendar}/registro#token=${token}`;
@@ -68,13 +76,7 @@ export async function claimInvitation(
   const rows = await db
     .update(invitations)
     .set({ acceptedAt: new Date(now) })
-    .where(
-      and(
-        eq(invitations.id, invitationId),
-        isNull(invitations.acceptedAt),
-        isNull(invitations.revokedAt),
-      ),
-    )
+    .where(unused(invitationId))
     .returning({ id: invitations.id });
   return rows.length === 1;
 }
@@ -105,13 +107,7 @@ export async function resendInvitation(
   const [invitation] = await db
     .update(invitations)
     .set({ tokenHash: await sha256Hex(token), expiresAt: new Date(now + expiresInDays * DAY_MS) })
-    .where(
-      and(
-        eq(invitations.id, invitationId),
-        isNull(invitations.acceptedAt),
-        isNull(invitations.revokedAt),
-      ),
-    )
+    .where(unused(invitationId))
     .returning();
   return invitation ? { invitation, token } : null;
 }
@@ -120,13 +116,7 @@ export async function revokeInvitation(db: Database, invitationId: string, now =
   const rows = await db
     .update(invitations)
     .set({ revokedAt: new Date(now) })
-    .where(
-      and(
-        eq(invitations.id, invitationId),
-        isNull(invitations.acceptedAt),
-        isNull(invitations.revokedAt),
-      ),
-    )
+    .where(unused(invitationId))
     .returning({ id: invitations.id });
   return rows.length === 1;
 }

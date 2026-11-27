@@ -34,10 +34,10 @@ import { userTimeZone } from "./imports";
  */
 
 const HOUR_MS = 3_600_000;
-export const SUBSCRIPTION_INTERVAL_MS = HOUR_MS;
+const SUBSCRIPTION_INTERVAL_MS = HOUR_MS;
 /** «Sincronizar ahora» como mucho cada 5 minutos. */
 export const MANUAL_SYNC_MIN_MS = 5 * 60_000;
-export const MAX_SUBSCRIPTIONS = 10;
+const MAX_SUBSCRIPTIONS = 10;
 const MAX_BACKOFF_MS = 24 * HOUR_MS;
 const FETCH_TIMEOUT_MS = 20_000;
 /** Mientras una sincronización está en curso, nadie más la reclama. */
@@ -46,7 +46,7 @@ const CLAIM_MS = 10 * 60_000;
 const aad = (ownerId: string, id: string) => `subscription:${ownerId}:${id}`;
 
 /** `calendar.google.com/calendar/ical/abcd…/basic.ics`: reconocible pero sin el secreto. */
-export function urlHint(raw: string): string {
+function urlHint(raw: string): string {
   const url = new URL(raw);
   const parts = url.pathname.split("/").filter(Boolean);
   const calendar = decodeURIComponent(parts[2] ?? "");
@@ -54,16 +54,16 @@ export function urlHint(raw: string): string {
   return `${url.hostname}/calendar/ical/${calendar.slice(0, 4)}…/${file}`;
 }
 
-export class FeedError extends Error {
+class FeedError extends Error {
   override name = "FeedError";
 }
 
-export type FeedResult =
+type FeedResult =
   | { status: "not-modified" }
   | { status: "ok"; text: string; etag: string | null; lastModified: string | null };
 
 /** Descarga el `.ics` respetando la caché del servidor (ETag / Last-Modified). */
-export async function fetchFeed(
+async function fetchFeed(
   url: string,
   cache: { etag: string | null; lastModified: string | null },
   fetchImpl: typeof fetch = fetch,
@@ -127,7 +127,7 @@ export async function fetchFeed(
   };
 }
 
-export function subscriptionMessage(error: unknown): string {
+function subscriptionMessage(error: unknown): string {
   if (
     error instanceof FeedError ||
     error instanceof ImportFormatError ||

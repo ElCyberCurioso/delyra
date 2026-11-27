@@ -4,9 +4,6 @@ import { telegramClient } from "../lib/telegram";
 import { deliver, notificationMessageSchema } from "../services/notifications";
 import { telegramConfig } from "../services/telegram-links";
 
-export { notificationMessageSchema };
-export type { NotificationMessage } from "../services/notifications";
-
 /**
  * Consumidor de `delyra-notifications` (F3-06). Cada mensaje se entrega una vez (clave de
  * idempotencia en D1); los errores pasajeros de Telegram (429, 5xx, red) se reintentan con la

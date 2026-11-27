@@ -19,7 +19,7 @@ export const SESSION_TTL = {
   activeIdle: 7 * 24 * 60 * 60_000,
   activeAbsolute: 30 * 24 * 60 * 60_000,
 } as const;
-export const MAX_SECOND_FACTOR_ATTEMPTS = 5;
+const MAX_SECOND_FACTOR_ATTEMPTS = 5;
 const TOUCH_INTERVAL_MS = 5 * 60_000;
 
 function expiryFor(state: SessionState, now: number): Date {

@@ -16,6 +16,7 @@ import {
   text,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
+import { quoted } from "./check";
 import { users } from "./identity";
 
 /**
@@ -28,8 +29,6 @@ import { users } from "./identity";
  * - Eventos de día completo: `start_at`/`end_at` son medianoches UTC (fecha sin hora) y `end_at`
  *   es exclusivo (un evento de un día termina a la medianoche siguiente).
  */
-
-const quoted = (values: readonly string[]) => sql.raw(values.map((v) => `'${v}'`).join(", "));
 
 export const calendars = sqliteTable(
   "calendars",

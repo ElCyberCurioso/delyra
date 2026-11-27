@@ -40,7 +40,7 @@ export async function buildBackupJson(
  * Migraciones de formato: cada versión anterior se convierte a la actual. Por ahora solo existe
  * la v1; una versión posterior (de una Delyra más nueva) no se puede interpretar.
  */
-export function migrateBackupData(version: number, data: unknown): unknown {
+function migrateBackupData(version: number, data: unknown): unknown {
   if (version > BACKUP_FORMAT_VERSION) {
     throw new BackupError(
       `La copia es de una versión más nueva del formato (v${String(version)}) y no se puede leer`,
@@ -98,7 +98,7 @@ function uniqueIds(name: string, rows: readonly { id: string }[]): Set<string> {
  * Integridad interna: toda referencia apunta a algo de la misma copia. Así un id ajeno
  * (de otro usuario, inyectado a mano) no puede colarse: no existe dentro de la copia.
  */
-export function checkReferences(data: BackupDataV1): void {
+function checkReferences(data: BackupDataV1): void {
   const fail = (what: string) => {
     throw new BackupError(`La copia tiene referencias rotas (${what})`);
   };

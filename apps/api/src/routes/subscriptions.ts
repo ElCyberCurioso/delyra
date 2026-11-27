@@ -1,9 +1,9 @@
-import { CALENDAR_COLORS, createSubscriptionRequestSchema, idSchema } from "@delyra/shared";
+import { CALENDAR_COLORS, createSubscriptionRequestSchema } from "@delyra/shared";
 import { type Context, Hono } from "hono";
 import { createDb } from "../db/client";
 import { AppError } from "../lib/errors";
 import { keyringFromEnv } from "../lib/field-crypto";
-import { readBody } from "../lib/http";
+import { idParam, readBody } from "../lib/http";
 import { currentAuth, requireActiveSession } from "../middleware/session";
 import { calendarRepository } from "../repositories/calendars";
 import { eventRepository } from "../repositories/events";
@@ -17,12 +17,6 @@ import {
 import type { AppEnv } from "../types";
 
 /** Suscripciones a la dirección iCal secreta de Google (F5-06). */
-
-function idParam(c: Context<AppEnv>): string {
-  const id = idSchema.safeParse(c.req.param("id"));
-  if (!id.success) throw new AppError(404);
-  return id.data;
-}
 
 function deps(c: Context<AppEnv>) {
   const db = createDb(c.env.DB);

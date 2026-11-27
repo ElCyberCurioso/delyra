@@ -1,17 +1,16 @@
 import {
   BACKUP_LIMITS,
   backupSettingsSchema,
-  idSchema,
   restoreFromBackupRequestSchema,
   startRestoreRequestSchema,
 } from "@delyra/shared";
 import { type Context, Hono } from "hono";
 import { createDb } from "../db/client";
 import { AppError } from "../lib/errors";
-import { invalidField, readBody } from "../lib/http";
+import { idParam, invalidField, readBody, readUpload } from "../lib/http";
 import { safeErrorMessage } from "../lib/logger";
 import { currentAuth, requireActiveSession } from "../middleware/session";
-import { peekStream, sanitizeFilename } from "../services/attachments";
+import { isZipHead, peekStream, sanitizeFilename } from "../services/attachments";
 import { audit } from "../services/audit";
 import {
   deleteRestoreData,
@@ -48,12 +47,6 @@ function deps(c: Context<AppEnv>) {
     backups: backupRepository(db, ownerId),
     restores: restoreRepository(db, ownerId),
   };
-}
-
-function idParam(c: Context<AppEnv>): string {
-  const id = idSchema.safeParse(c.req.param("id"));
-  if (!id.success) throw new AppError(404);
-  return id.data;
 }
 
 /** Una operación de copia o restauración a la vez por usuario. */
@@ -201,23 +194,13 @@ export const restoreRoutes = new Hono<AppEnv>()
   .post("/upload", async (c) => {
     await assertIdle(c);
     await assertRestoreQuota(c);
-    const length = Number(c.req.header("content-length"));
-    if (!Number.isInteger(length) || length <= 0) {
-      throw new AppError(411, { detail: "Falta el tamaño del fichero" });
-    }
-    if (length > BACKUP_LIMITS.uploadBytes) {
-      throw new AppError(413, { detail: "La copia supera los 200 MB" });
-    }
-    let rawName: string;
-    try {
-      rawName = decodeURIComponent(c.req.header("x-filename") ?? "");
-    } catch {
-      throw invalidField("filename", "Nombre de fichero no válido");
-    }
-    const body = c.req.raw.body as ReadableStream<Uint8Array> | null;
-    if (!body) throw new AppError(400, { detail: "Falta el fichero" });
+    const { length, rawName, body } = readUpload(
+      c,
+      BACKUP_LIMITS.uploadBytes,
+      "La copia supera los 200 MB",
+    );
     const { head, stream } = await peekStream(body);
-    const isZip = head[0] === 0x50 && head[1] === 0x4b && head[2] === 0x03 && head[3] === 0x04;
+    const isZip = isZipHead(head);
     const isJson =
       !isZip && new TextDecoder().decode(head.slice(0, 64)).trimStart().startsWith("{");
     if (!isZip && !isJson) {

@@ -62,6 +62,7 @@ import app.delyra.core.ui.EmptyState
 import app.delyra.core.ui.ErrorState
 import app.delyra.core.ui.LoadingBox
 import app.delyra.core.ui.Tile
+import app.delyra.core.ui.TileColumn
 import app.delyra.core.ui.appViewModel
 import app.delyra.core.ui.message
 import kotlinx.coroutines.flow.drop
@@ -214,17 +215,15 @@ private fun BoardTile(board: BoardSummary, onClick: () -> Unit) {
 
 @Composable
 private fun InvitationTile(invitation: PendingBoardInvitation, onAnswer: (PendingBoardInvitation, Boolean) -> Unit) {
-    Tile(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                stringResource(R.string.invitation_title, invitation.invitedBy ?: stringResource(R.string.invitation_someone), invitation.boardName),
-                style = MaterialTheme.typography.titleSmall,
-            )
-            Text(roleLabel(invitation.role), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { onAnswer(invitation, true) }) { Text(stringResource(R.string.invitation_accept)) }
-                OutlinedButton(onClick = { onAnswer(invitation, false) }) { Text(stringResource(R.string.invitation_decline)) }
-            }
+    TileColumn {
+        Text(
+            stringResource(R.string.invitation_title, invitation.invitedBy ?: stringResource(R.string.invitation_someone), invitation.boardName),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        Text(roleLabel(invitation.role), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = { onAnswer(invitation, true) }) { Text(stringResource(R.string.invitation_accept)) }
+            OutlinedButton(onClick = { onAnswer(invitation, false) }) { Text(stringResource(R.string.invitation_decline)) }
         }
     }
 }

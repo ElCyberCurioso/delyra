@@ -2,8 +2,8 @@ import type { GoogleSyncedCalendar } from "@delyra/shared";
 import {
   Button,
   errorMessage,
+  formatShortDateTime,
   FormError,
-  intlLocale,
   SelectField,
   toast,
   translateServer,
@@ -38,11 +38,6 @@ import { importMessages } from "./messages";
  * de solo lectura), elegir calendarios y ver su estado. Cada calendario se refleja en uno de solo
  * lectura que se pone al día cada 15 minutos.
  */
-
-const formatDateTime = (iso: string) =>
-  new Intl.DateTimeFormat(intlLocale(), { dateStyle: "short", timeStyle: "short" }).format(
-    new Date(iso),
-  );
 
 function useRefreshAll() {
   const queryClient = useQueryClient();
@@ -86,7 +81,7 @@ function SyncedRow({ calendar }: { calendar: GoogleSyncedCalendar }) {
         ? translateServer(calendar.error ?? "")
         : `${t.counts.events(calendar.events)}${
             calendar.lastSyncedAt
-              ? t.subscriptions.updated(formatDateTime(calendar.lastSyncedAt))
+              ? t.subscriptions.updated(formatShortDateTime(calendar.lastSyncedAt))
               : ""
           }`;
   return (

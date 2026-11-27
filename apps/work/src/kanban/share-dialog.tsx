@@ -9,7 +9,6 @@ import {
 import {
   ApiError,
   Button,
-  intlLocale,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -17,6 +16,7 @@ import {
   DialogTitle,
   errorMessage,
   Field,
+  formatDate,
   FormError,
   toast,
 } from "@delyra/ui";
@@ -42,9 +42,6 @@ import { workMessages } from "./messages";
 export const roleLabel = (role: BoardRole): string => workMessages().roles[role];
 
 const SELECT = "h-9 rounded-md border bg-background px-2 text-base sm:text-sm";
-
-const formatDate = (iso: string) =>
-  new Intl.DateTimeFormat(intlLocale(), { dateStyle: "medium" }).format(new Date(iso));
 
 export function ShareDialog({
   board,

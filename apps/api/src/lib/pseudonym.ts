@@ -9,7 +9,7 @@ const DEV_PSEUDONYM_KEY = "delyra-dev-pseudonym-key";
 
 export type PseudonymEnv = Pick<Env, "APP_ENV" | "LOG_PSEUDONYM_KEY">;
 
-export function pseudonymKey(env: PseudonymEnv): string {
+function pseudonymKey(env: PseudonymEnv): string {
   if (env.LOG_PSEUDONYM_KEY) return env.LOG_PSEUDONYM_KEY;
   if (env.APP_ENV === "production") throw new Error("Falta el secreto LOG_PSEUDONYM_KEY");
   return DEV_PSEUDONYM_KEY;

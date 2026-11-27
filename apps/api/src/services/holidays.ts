@@ -16,7 +16,7 @@ import type { Logger } from "../lib/logger";
  * responde y aún no hay datos de ese año, se calculan los nacionales fijos más el Viernes Santo.
  */
 
-export const HOLIDAYS_URL = "https://date.nager.at/api/v3/PublicHolidays";
+const HOLIDAYS_URL = "https://date.nager.at/api/v3/PublicHolidays";
 const COUNTRY = "ES";
 const REFRESH_MS = 30 * 86_400_000;
 const MAX_BYTES = 256 * 1024;
@@ -57,7 +57,7 @@ export async function fetchHolidays(year: number, fetchImpl: typeof fetch = fetc
   });
 }
 
-export async function storeHolidays(
+async function storeHolidays(
   db: Database,
   year: number,
   rows: readonly { date: string; name: string; nameEn?: string | null; regions: string }[],

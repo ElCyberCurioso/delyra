@@ -5,6 +5,7 @@ import {
   type CardPriority,
   type CardSummary,
   dateOnlyToUtc,
+  instantToDateOnly,
   instantToWall,
   utcToDateOnly,
   wallToInstant,
@@ -15,7 +16,7 @@ import { workMessages } from "./messages";
 
 /** Lógica del tablero sin React: orden, movimientos optimistas, filtros y fechas (F4-08, F4-10). */
 
-export const byPosition = <T extends { position: string }>(a: T, b: T) =>
+const byPosition = <T extends { position: string }>(a: T, b: T) =>
   a.position < b.position ? -1 : a.position > b.position ? 1 : 0;
 
 export function sortedColumns(board: BoardDetail): BoardColumn[] {
@@ -101,11 +102,6 @@ export function moveColumnLocally(board: BoardDetail, columnId: string, index: n
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-export function localDate(ms: number, timeZone: string): string {
-  const w = instantToWall(ms, timeZone);
-  return `${String(w.year)}-${pad(w.month)}-${pad(w.day)}`;
-}
-
 export interface DueInfo {
   allDay: boolean;
   at: string;
@@ -113,8 +109,8 @@ export interface DueInfo {
 }
 
 /** Día local de la fecha límite (las de todo el día ya son un día). */
-export function dueDate(due: DueInfo, timeZone: string): string {
-  return due.allDay ? due.at : localDate(Date.parse(due.at), timeZone);
+function dueDate(due: DueInfo, timeZone: string): string {
+  return due.allDay ? due.at : instantToDateOnly(Date.parse(due.at), timeZone);
 }
 
 export function isOverdue(
@@ -123,13 +119,15 @@ export function isOverdue(
   timeZone: string,
 ): boolean {
   if (!card.due || card.completedAt) return false;
-  return card.due.allDay ? card.due.at < localDate(now, timeZone) : Date.parse(card.due.at) < now;
+  return card.due.allDay
+    ? card.due.at < instantToDateOnly(now, timeZone)
+    : Date.parse(card.due.at) < now;
 }
 
 /** ¿Vence en los próximos 7 días (hoy incluido)? */
 export function dueThisWeek(card: Pick<CardSummary, "due">, now: number, timeZone: string) {
   if (!card.due) return false;
-  const today = localDate(now, timeZone);
+  const today = instantToDateOnly(now, timeZone);
   const last = utcToDateOnly(dateOnlyToUtc(today) + 6 * 86_400_000);
   const date = dueDate(card.due, timeZone);
   return date >= today && date <= last;
@@ -138,7 +136,7 @@ export function dueThisWeek(card: Pick<CardSummary, "due">, now: number, timeZon
 /** «Hoy», «Mañana 17:00», «12 may»… */
 export function dueLabel(due: DueInfo, timeZone: string, now: number): string {
   const date = dueDate(due, timeZone);
-  const today = localDate(now, timeZone);
+  const today = instantToDateOnly(now, timeZone);
   const tomorrow = utcToDateOnly(dateOnlyToUtc(today) + 86_400_000);
   const yesterday = utcToDateOnly(dateOnlyToUtc(today) - 86_400_000);
   const t = workMessages().due;

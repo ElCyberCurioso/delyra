@@ -9,7 +9,7 @@ import type { ATTACHMENT_TYPES } from "@delyra/shared";
 export type AttachmentType = (typeof ATTACHMENT_TYPES)[number];
 
 /** Bytes que se leen antes de decidir el tipo. */
-export const SNIFF_BYTES = 512;
+const SNIFF_BYTES = 512;
 
 const OOXML: AttachmentType[] = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -87,6 +87,11 @@ export async function deletePrefix(bucket: R2Bucket, prefix: string): Promise<vo
     if (keys.length > 0) await bucket.delete(keys);
     cursor = listing.truncated ? listing.cursor : undefined;
   } while (cursor);
+}
+
+/** ¿Empieza como un zip (`PK\x03\x04`)? */
+export function isZipHead(head: Uint8Array): boolean {
+  return head[0] === 0x50 && head[1] === 0x4b && head[2] === 0x03 && head[3] === 0x04;
 }
 
 /**

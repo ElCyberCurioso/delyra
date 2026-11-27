@@ -8,7 +8,6 @@ import { SUBSCRIPTION_STATUSES } from "./imports";
  */
 
 export const MICROSOFT_CONNECTION_STATUSES = ["ok", "revoked"] as const;
-export type MicrosoftConnectionStatus = (typeof MICROSOFT_CONNECTION_STATUSES)[number];
 
 /** Días por delante que se vuelcan. */
 export const MICROSOFT_DAYS_AHEAD = [7, 14, 30] as const;

@@ -122,8 +122,6 @@ export function googleSyncRepository(db: Database, ownerId: string) {
   };
 }
 
-export type GoogleSyncRepository = ReturnType<typeof googleSyncRepository>;
-
 /** Calendarios de cualquier usuario que toca sincronizar (planificador). */
 export async function dueGoogleCalendars(
   db: Database,

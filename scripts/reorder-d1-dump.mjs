@@ -18,7 +18,7 @@ if (!input || !output) {
 }
 
 /** Separa sentencias por `;` fuera de cadenas ('…') e identificadores ("…", `…`, […]). */
-export function splitStatements(sql) {
+function splitStatements(sql) {
   const statements = [];
   let start = 0;
   let quote = null;

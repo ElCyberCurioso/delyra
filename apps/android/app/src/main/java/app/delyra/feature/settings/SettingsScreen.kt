@@ -69,7 +69,7 @@ import app.delyra.core.session.SessionState
 import app.delyra.core.ui.ConfirmDialog
 import app.delyra.core.ui.LocalAppGraph
 import app.delyra.core.ui.TextInputDialog
-import app.delyra.core.ui.Tile
+import app.delyra.core.ui.TileColumn
 import app.delyra.core.ui.appViewModel
 import app.delyra.core.ui.message
 import app.delyra.core.ui.openInBrowser
@@ -225,15 +225,13 @@ internal fun Hint(text: String) {
 @Composable
 private fun ProfileTile(session: SessionState.Active, vm: SettingsViewModel, onAdmin: () -> Unit) {
     var editing by rememberSaveable { mutableStateOf(false) }
-    Tile(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TileTitle(stringResource(R.string.settings_profile))
-            Text(session.user.name, style = MaterialTheme.typography.headlineSmall)
-            Text(session.user.email, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (session.user.isAdmin) Text(stringResource(R.string.settings_admin), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-            OutlinedButton(onClick = { editing = true }) { Text(stringResource(R.string.settings_rename)) }
-            if (session.user.isAdmin) Button(onClick = onAdmin) { Text(stringResource(R.string.admin_open)) }
-        }
+    TileColumn {
+        TileTitle(stringResource(R.string.settings_profile))
+        Text(session.user.name, style = MaterialTheme.typography.headlineSmall)
+        Text(session.user.email, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (session.user.isAdmin) Text(stringResource(R.string.settings_admin), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        OutlinedButton(onClick = { editing = true }) { Text(stringResource(R.string.settings_rename)) }
+        if (session.user.isAdmin) Button(onClick = onAdmin) { Text(stringResource(R.string.admin_open)) }
     }
     if (editing) {
         TextInputDialog(
@@ -254,41 +252,39 @@ private fun PreferencesTile(session: SessionState.Active, vm: SettingsViewModel)
     val settings = session.settings
     var pickZone by remember { mutableStateOf(false) }
     var weekMenu by remember { mutableStateOf(false) }
-    Tile(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TileTitle(stringResource(R.string.settings_preferences))
-            Text(stringResource(R.string.settings_time_zone), style = MaterialTheme.typography.labelLarge)
-            TextButton(onClick = { pickZone = true }) { Text(settings.timeZone) }
-            val device = ZoneId.systemDefault().id
-            if (device != settings.timeZone) {
-                TextButton(onClick = { vm.updateSettings(settings.copy(timeZone = device)) }) { Text(stringResource(R.string.settings_use_device_zone, device)) }
-            }
-            Text(stringResource(R.string.settings_week_start), style = MaterialTheme.typography.labelLarge)
-            Box {
-                TextButton(onClick = { weekMenu = true }) { Text(dayName(settings.weekStart, locale)) }
-                DropdownMenu(expanded = weekMenu, onDismissRequest = { weekMenu = false }) {
-                    listOf(1, 6, 0).forEach { day ->
-                        DropdownMenuItem(text = { Text(dayName(day, locale)) }, onClick = { weekMenu = false; vm.updateSettings(settings.copy(weekStart = day)) })
-                    }
-                }
-            }
-            Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("es" to "Español", "en" to "English").forEach { (code, name) ->
-                    Row(
-                        Modifier.selectable(settings.locale == code, role = Role.RadioButton) {
-                            vm.updateSettings(settings.copy(locale = code))
-                            applyAppLanguage(context, code)
-                        },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(selected = settings.locale == code, onClick = null)
-                        Text(name, Modifier.padding(start = 4.dp, end = 12.dp))
-                    }
-                }
-            }
-            Text(stringResource(R.string.settings_language_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    TileColumn {
+        TileTitle(stringResource(R.string.settings_preferences))
+        Text(stringResource(R.string.settings_time_zone), style = MaterialTheme.typography.labelLarge)
+        TextButton(onClick = { pickZone = true }) { Text(settings.timeZone) }
+        val device = ZoneId.systemDefault().id
+        if (device != settings.timeZone) {
+            TextButton(onClick = { vm.updateSettings(settings.copy(timeZone = device)) }) { Text(stringResource(R.string.settings_use_device_zone, device)) }
         }
+        Text(stringResource(R.string.settings_week_start), style = MaterialTheme.typography.labelLarge)
+        Box {
+            TextButton(onClick = { weekMenu = true }) { Text(dayName(settings.weekStart, locale)) }
+            DropdownMenu(expanded = weekMenu, onDismissRequest = { weekMenu = false }) {
+                listOf(1, 6, 0).forEach { day ->
+                    DropdownMenuItem(text = { Text(dayName(day, locale)) }, onClick = { weekMenu = false; vm.updateSettings(settings.copy(weekStart = day)) })
+                }
+            }
+        }
+        Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.labelLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("es" to "Español", "en" to "English").forEach { (code, name) ->
+                Row(
+                    Modifier.selectable(settings.locale == code, role = Role.RadioButton) {
+                        vm.updateSettings(settings.copy(locale = code))
+                        applyAppLanguage(context, code)
+                    },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(selected = settings.locale == code, onClick = null)
+                    Text(name, Modifier.padding(start = 4.dp, end = 12.dp))
+                }
+            }
+        }
+        Text(stringResource(R.string.settings_language_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     if (pickZone) ZoneDialog(settings.timeZone, onDismiss = { pickZone = false }) { vm.updateSettings(settings.copy(timeZone = it)) }
 }
@@ -337,30 +333,28 @@ private fun SessionsTile(vm: SettingsViewModel) {
     val locale = appLocale()
     val zone = LocalAppGraph.current.session.active?.zone ?: ZoneId.systemDefault()
     var confirmOthers by remember { mutableStateOf(false) }
-    Tile(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TileTitle(stringResource(R.string.settings_sessions))
-            vm.sessions.forEachIndexed { index, s ->
-                if (index > 0) HorizontalDivider()
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            describeDevice(s.userAgent) + if (s.current) " · " + stringResource(R.string.settings_this_device) else "",
-                            style = MaterialTheme.typography.bodyMedium,
-                            maxLines = 2,
-                        )
-                        Text(
-                            listOfNotNull(countryName(s.country, locale), stringResource(R.string.settings_last_seen, shortDateTime(s.lastSeenAt, zone, locale))).joinToString(" · "),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    if (!s.current) TextButton(onClick = { vm.revoke(s) }) { Text(stringResource(R.string.settings_close_session)) }
+    TileColumn {
+        TileTitle(stringResource(R.string.settings_sessions))
+        vm.sessions.forEachIndexed { index, s ->
+            if (index > 0) HorizontalDivider()
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        describeDevice(s.userAgent) + if (s.current) " · " + stringResource(R.string.settings_this_device) else "",
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                    )
+                    Text(
+                        listOfNotNull(countryName(s.country, locale), stringResource(R.string.settings_last_seen, shortDateTime(s.lastSeenAt, zone, locale))).joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
+                if (!s.current) TextButton(onClick = { vm.revoke(s) }) { Text(stringResource(R.string.settings_close_session)) }
             }
-            if (vm.sessions.count { !it.current } > 0) {
-                OutlinedButton(onClick = { confirmOthers = true }) { Text(stringResource(R.string.settings_close_others)) }
-            }
+        }
+        if (vm.sessions.count { !it.current } > 0) {
+            OutlinedButton(onClick = { confirmOthers = true }) { Text(stringResource(R.string.settings_close_others)) }
         }
     }
     if (confirmOthers) {
@@ -380,37 +374,35 @@ private fun ActivityTile(vm: SettingsViewModel) {
     val locale = appLocale()
     var all by rememberSaveable { mutableStateOf(false) }
     val events = vm.audit
-    Tile(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TileTitle(stringResource(R.string.settings_activity))
-            Hint(stringResource(R.string.settings_activity_intro))
-            if (events == null) return@Column
-            val shown = if (all) events else events.take(8)
-            shown.forEachIndexed { index, entry ->
-                if (index > 0) HorizontalDivider()
-                val suspicious = entry.event in SUSPICIOUS_EVENTS
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (suspicious) Icon(Icons.Outlined.WarningAmber, stringResource(R.string.settings_activity_suspicious), tint = MaterialTheme.colorScheme.error)
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            auditLabel(entry.event),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (suspicious) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                        )
-                        Hint(
-                            listOfNotNull(
-                                accountDateTime(entry.createdAt),
-                                countryName(entry.country, locale),
-                                entry.userAgent?.let { describeDevice(it) },
-                            ).joinToString(" · "),
-                        )
-                    }
+    TileColumn {
+        TileTitle(stringResource(R.string.settings_activity))
+        Hint(stringResource(R.string.settings_activity_intro))
+        if (events == null) return@TileColumn
+        val shown = if (all) events else events.take(8)
+        shown.forEachIndexed { index, entry ->
+            if (index > 0) HorizontalDivider()
+            val suspicious = entry.event in SUSPICIOUS_EVENTS
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (suspicious) Icon(Icons.Outlined.WarningAmber, stringResource(R.string.settings_activity_suspicious), tint = MaterialTheme.colorScheme.error)
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        auditLabel(entry.event),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (suspicious) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                    )
+                    Hint(
+                        listOfNotNull(
+                            accountDateTime(entry.createdAt),
+                            countryName(entry.country, locale),
+                            entry.userAgent?.let { describeDevice(it) },
+                        ).joinToString(" · "),
+                    )
                 }
             }
-            if (events.size > 8) {
-                TextButton(onClick = { all = !all }) {
-                    Text(stringResource(if (all) R.string.settings_activity_fewer else R.string.settings_activity_all))
-                }
+        }
+        if (events.size > 8) {
+            TextButton(onClick = { all = !all }) {
+                Text(stringResource(if (all) R.string.settings_activity_fewer else R.string.settings_activity_all))
             }
         }
     }
@@ -420,20 +412,18 @@ private fun ActivityTile(vm: SettingsViewModel) {
 private fun EnvironmentTile(vm: SettingsViewModel) {
     val graph = LocalAppGraph.current
     val current by graph.environmentFlow.collectAsState()
-    Tile(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TileTitle(stringResource(R.string.settings_environment))
-            Environment.entries.forEach { env ->
-                Row(
-                    Modifier.fillMaxWidth().selectable(current == env, role = Role.RadioButton) { vm.switchEnvironment(env) },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    RadioButton(selected = current == env, onClick = null)
-                    Text(env.origin, Modifier.padding(start = 8.dp))
-                }
+    TileColumn {
+        TileTitle(stringResource(R.string.settings_environment))
+        Environment.entries.forEach { env ->
+            Row(
+                Modifier.fillMaxWidth().selectable(current == env, role = Role.RadioButton) { vm.switchEnvironment(env) },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RadioButton(selected = current == env, onClick = null)
+                Text(env.origin, Modifier.padding(start = 8.dp))
             }
-            Text(stringResource(R.string.settings_environment_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        Text(stringResource(R.string.settings_environment_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -445,16 +435,14 @@ private fun AboutTile(vm: SettingsViewModel) {
     val graph = LocalAppGraph.current
     // Páginas legales de la web (Google Play exige la política de privacidad dentro de la app).
     val openLegal = { path: String -> openInBrowser(context, graph.environment.origin + path) }
-    Tile(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            TileTitle(stringResource(R.string.app_name))
-            Text("${BuildConfig.VERSION_NAME} · Android ${Build.VERSION.RELEASE}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { openLegal("/privacidad") }) { Text(stringResource(R.string.settings_privacy_policy)) }
-                TextButton(onClick = { openLegal("/terminos") }) { Text(stringResource(R.string.settings_terms)) }
-            }
-            Button(onClick = { confirm = true }) { Text(stringResource(R.string.settings_logout)) }
+    TileColumn {
+        TileTitle(stringResource(R.string.app_name))
+        Text("${BuildConfig.VERSION_NAME} · Android ${Build.VERSION.RELEASE}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = { openLegal("/privacidad") }) { Text(stringResource(R.string.settings_privacy_policy)) }
+            TextButton(onClick = { openLegal("/terminos") }) { Text(stringResource(R.string.settings_terms)) }
         }
+        Button(onClick = { confirm = true }) { Text(stringResource(R.string.settings_logout)) }
     }
     if (confirm) {
         ConfirmDialog(

@@ -2,7 +2,7 @@ import type { Logger } from "./lib/logger";
 import type { RequestMeta } from "./lib/request-meta";
 import type { ResolvedSession } from "./services/sessions";
 
-export interface AppVariables {
+interface AppVariables {
   requestId: string;
   logger: Logger;
   meta: RequestMeta;

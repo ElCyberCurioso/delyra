@@ -1,9 +1,14 @@
-import type { CalendarInfo, EventDetail, Occurrence, TelegramStatus } from "@delyra/shared";
+import {
+  type CalendarInfo,
+  type EventDetail,
+  instantToDateOnly,
+  type Occurrence,
+  type TelegramStatus,
+} from "@delyra/shared";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createDb } from "../src/db/client";
 import { reminders, telegramLinks } from "../src/db/schema";
-import { localToday } from "../src/services/agenda";
 import { registerUser, type TestClient } from "./helpers";
 import { env, interceptTelegram, newChatId, postUpdate, textUpdate } from "./telegram-fake";
 
@@ -125,7 +130,7 @@ describe("vinculación (F3-04)", () => {
 describe("comandos (F3-08)", () => {
   it("/hoy lista los eventos del día en la zona del usuario", async () => {
     const { client, chatId } = await linkedUser();
-    const today = localToday(Date.now(), "Europe/Madrid");
+    const today = instantToDateOnly(Date.now(), "Europe/Madrid");
     const tomorrow = new Date(Date.parse(today) + 86_400_000).toISOString().slice(0, 10);
     await client.post("/api/events", {
       calendarId: await personalCalendar(client),

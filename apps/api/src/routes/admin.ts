@@ -1,16 +1,11 @@
-import {
-  appEnvironmentSchema,
-  createInvitationRequestSchema,
-  idSchema,
-  newId,
-} from "@delyra/shared";
+import { appEnvironmentSchema, createInvitationRequestSchema, newId } from "@delyra/shared";
 import { eq } from "drizzle-orm";
 import { type Context, Hono } from "hono";
 import { createDb } from "../db/client";
 import { users } from "../db/schema";
 import { AppError } from "../lib/errors";
 import { requestLocale } from "../lib/locale";
-import { readBody } from "../lib/http";
+import { idParam, readBody } from "../lib/http";
 import { currentAuth, requireAdmin } from "../middleware/session";
 import { audit } from "../services/audit";
 import { invitationEmail } from "../services/email-templates";
@@ -29,12 +24,6 @@ import { findUserByEmail, findUserById, listUsers } from "../services/users";
 import type { AppEnv } from "../types";
 
 /** Administración mínima (F1-06, F1-17). Todo responde 404 a quien no es administrador. */
-
-function idParam(c: Context<AppEnv>): string {
-  const id = idSchema.safeParse(c.req.param("id"));
-  if (!id.success) throw new AppError(404);
-  return id.data;
-}
 
 /** Envía la invitación por correo si se puede; el enlace se devuelve siempre al administrador. */
 async function deliverInvitation(

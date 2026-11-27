@@ -40,9 +40,9 @@ import { mirrorCalendar, type SyncResult } from "./subscriptions";
  *   llamar a Google hasta que la persona reconecte.
  */
 
-export const GOOGLE_SYNC_INTERVAL_MS = 15 * 60_000;
+const GOOGLE_SYNC_INTERVAL_MS = 15 * 60_000;
 export const MANUAL_GOOGLE_SYNC_MIN_MS = 2 * 60_000;
-export const MAX_GOOGLE_SYNCED = 10;
+const MAX_GOOGLE_SYNCED = 10;
 const DAY_MS = 86_400_000;
 const CLAIM_MS = 10 * 60_000;
 /** Margen para no usar un token de acceso a punto de caducar. */
@@ -55,7 +55,7 @@ const GONE_MESSAGE =
 const refreshAad = (ownerId: string, id: string) => `google-refresh:${ownerId}:${id}`;
 const accessAad = (ownerId: string, id: string) => `google-access:${ownerId}:${id}`;
 
-export function googleSyncMessage(error: unknown): string {
+function googleSyncMessage(error: unknown): string {
   if (error instanceof GoogleRevokedError) return REVOKED_MESSAGE;
   if (error instanceof GoogleApiError && error.status === 404) return GONE_MESSAGE;
   if (

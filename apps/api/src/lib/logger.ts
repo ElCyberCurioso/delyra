@@ -8,7 +8,7 @@
  * (lista en `isSensitiveKey` y en docs/observabilidad.md). Ver §3.5 del plan.
  */
 
-export type LogLevel = "debug" | "info" | "warn" | "error";
+type LogLevel = "debug" | "info" | "warn" | "error";
 export type LogFields = Record<string, unknown>;
 
 export interface LogEntry extends LogFields {
@@ -102,7 +102,7 @@ export function sanitize(value: unknown, depth = 0): unknown {
   return `[${typeof value}]`;
 }
 
-export const consoleSink: LogSink = (entry) => {
+const consoleSink: LogSink = (entry) => {
   const line = JSON.stringify(entry);
   switch (entry.level) {
     case "debug":

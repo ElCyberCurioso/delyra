@@ -11,7 +11,7 @@ export const remote = Boolean(process.env.E2E_CALENDAR_URL);
 export const PASSWORD = "frase larga de prueba e2e 2026";
 
 /** Crea la invitación en la D1 local con el mismo script que usa el administrador. */
-export function createInvitation(email: string): string {
+function createInvitation(email: string): string {
   const output = execFileSync(
     process.execPath,
     [path.join("scripts", "create-invitation.mjs"), "--local", "--email", email],
@@ -23,7 +23,7 @@ export function createInvitation(email: string): string {
 }
 
 /** Con la site key de prueba, Turnstile se resuelve solo; hay que esperar a que dé el token. */
-export async function waitForTurnstile(page: Page) {
+async function waitForTurnstile(page: Page) {
   await expect(page.locator('input[name="cf-turnstile-response"]')).toHaveValue(/.+/, {
     timeout: 20_000,
   });

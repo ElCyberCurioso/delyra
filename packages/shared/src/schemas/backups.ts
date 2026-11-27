@@ -24,7 +24,6 @@ export const BACKUP_FORMAT_VERSION = 1;
 export const BACKUP_KINDS = ["manual", "auto", "pre_restore"] as const;
 export type BackupKind = (typeof BACKUP_KINDS)[number];
 export const BACKUP_STATUSES = ["running", "ready", "failed"] as const;
-export type BackupStatus = (typeof BACKUP_STATUSES)[number];
 export const BACKUP_FREQUENCIES = ["off", "daily", "weekly", "monthly"] as const;
 export type BackupFrequency = (typeof BACKUP_FREQUENCIES)[number];
 export const RESTORE_MODES = ["merge", "replace"] as const;
@@ -44,7 +43,6 @@ export const RESTORE_STATUSES = [
   "undone",
   "expired",
 ] as const;
-export type RestoreStatus = (typeof RESTORE_STATUSES)[number];
 
 /** Límites de una copia (F6-09): lo que se rechaza sin llegar a tocar datos. */
 export const BACKUP_LIMITS = {
@@ -290,11 +288,10 @@ export const backupFileSchema = z.object({
   }),
   data: z.unknown(),
 });
-export type BackupFile = z.infer<typeof backupFileSchema>;
 
 // ── API ──────────────────────────────────────────────────────────────────────
 
-export const backupCountsSchema = z.object({
+const backupCountsSchema = z.object({
   calendars: z.number(),
   events: z.number(),
   boards: z.number(),
@@ -303,7 +300,7 @@ export const backupCountsSchema = z.object({
 });
 export type BackupCounts = z.infer<typeof backupCountsSchema>;
 
-export const userBackupSchema = z.object({
+const userBackupSchema = z.object({
   id: z.string(),
   kind: z.enum(BACKUP_KINDS),
   status: z.enum(BACKUP_STATUSES),
@@ -322,7 +319,7 @@ export const backupSettingsSchema = z.object({
 });
 export type BackupSettings = z.infer<typeof backupSettingsSchema>;
 
-export const restoreSchema = z.object({
+const restoreSchema = z.object({
   id: z.string(),
   status: z.enum(RESTORE_STATUSES),
   mode: z.enum(RESTORE_MODES).nullable(),
@@ -356,13 +353,13 @@ export const startRestoreRequestSchema = z.object({ mode: z.enum(RESTORE_MODES) 
 
 // ── Backups del sistema (panel de admin, F6-06) ──────────────────────────────
 
-export const systemBackupObjectSchema = z.object({
+const systemBackupObjectSchema = z.object({
   key: z.string(),
   tier: z.enum(["daily", "weekly", "monthly"]),
   sizeBytes: z.number(),
   uploadedAt: z.string(),
 });
-export const systemBackupRunSchema = z.object({
+const systemBackupRunSchema = z.object({
   id: z.string(),
   trigger: z.enum(["schedule", "manual"]),
   status: z.enum(["running", "succeeded", "failed"]),
@@ -376,5 +373,3 @@ export const systemBackupsResponseSchema = z.object({
   runs: z.array(systemBackupRunSchema),
   objects: z.array(systemBackupObjectSchema),
 });
-export type SystemBackupObject = z.infer<typeof systemBackupObjectSchema>;
-export type SystemBackupRunInfo = z.infer<typeof systemBackupRunSchema>;

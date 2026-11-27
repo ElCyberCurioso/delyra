@@ -18,8 +18,9 @@ import {
   DialogHeader,
   DialogTitle,
   errorMessage,
+  formatDateTime,
+  formatSize,
   Input,
-  intlLocale,
   toast,
 } from "@delyra/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -212,20 +213,6 @@ function describeActivity(kind: string, d: Record<string, unknown>): string {
       return kind;
   }
 }
-
-const formatDateTime = (iso: string, timeZone: string) =>
-  new Intl.DateTimeFormat(intlLocale(), {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone,
-  }).format(new Date(iso));
-
-const formatSize = (bytes: number) =>
-  bytes < 1024
-    ? `${String(bytes)} B`
-    : bytes < 1024 * 1024
-      ? `${(bytes / 1024).toFixed(0)} KB`
-      : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
 function Section({ title, children, id }: { title: string; children: ReactNode; id?: string }) {
   const headingId = useId();

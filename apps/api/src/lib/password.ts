@@ -11,8 +11,6 @@ import { constantTimeEqual, fromBase64Url, randomBytes, toBase64Url } from "./cr
  */
 
 export const PASSWORD_PARAMS = { ln: 15, r: 8, p: 3, keyLength: 32, saltLength: 16 } as const;
-export const PASSWORD_MIN_LENGTH = 12;
-export const PASSWORD_MAX_LENGTH = 128;
 
 const MAX_MEMORY = 64 * 1024 * 1024;
 

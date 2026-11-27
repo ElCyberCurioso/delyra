@@ -7,18 +7,16 @@ import {
   type SubscriptionInfo,
 } from "@delyra/shared";
 import {
-  AppShell,
   Button,
   errorMessage,
   Field,
+  formatDate,
+  formatShortDateTime,
   FormError,
-  RequireSession,
   intlLocale,
   SelectField,
   toast,
   translateServer,
-  useAccountPreferences,
-  useLogout,
 } from "@delyra/ui";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
@@ -35,6 +33,7 @@ import {
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { CALENDARS_KEY, EVENTS_KEY, useCalendars, useInvalidateEvents } from "../calendar/api";
 import { CalendarColorPicker } from "../calendar/calendar-list";
+import { CalendarLayout } from "../layout";
 import { Section } from "../settings/section";
 import { GoogleSync } from "./google-sync";
 import { importMessages } from "./messages";
@@ -65,13 +64,6 @@ function googleMessage(code: string): string | null {
   const messages: Readonly<Record<string, string>> = importMessages().google;
   return messages[code] ?? null;
 }
-
-const formatDate = (iso: string) =>
-  new Intl.DateTimeFormat(intlLocale(), { dateStyle: "medium" }).format(new Date(iso));
-const formatDateTime = (iso: string) =>
-  new Intl.DateTimeFormat(intlLocale(), { dateStyle: "short", timeStyle: "short" }).format(
-    new Date(iso),
-  );
 
 function period(calendar: ImportCalendarPreview): string | null {
   if (!calendar.firstStart || !calendar.lastStart) return null;
@@ -218,7 +210,7 @@ function SubscriptionRow({ subscription }: { subscription: SubscriptionInfo }) {
             ? translateServer(subscription.error ?? "")
             : `${t.counts.events(subscription.events)}${
                 subscription.lastSyncedAt
-                  ? t.subscriptions.updated(formatDateTime(subscription.lastSyncedAt))
+                  ? t.subscriptions.updated(formatShortDateTime(subscription.lastSyncedAt))
                   : ""
               }`}
         </p>
@@ -349,7 +341,7 @@ function RecentImports({ onOpen }: { onOpen: (id: string) => void }) {
                 {item.source === "google" ? t.google : (item.filename ?? t.file)}
               </span>
               <span className="text-muted-foreground">
-                {t.status[item.status]} · {formatDateTime(item.createdAt)}
+                {t.status[item.status]} · {formatShortDateTime(item.createdAt)}
               </span>
             </button>
           </li>
@@ -705,8 +697,6 @@ function ImportWizard({ id, onBack }: { id: string; onBack: () => void }) {
 
 export function ImportPage() {
   const router = useRouter();
-  const logout = useLogout();
-  const preferences = useAccountPreferences();
   const { searchStr } = useLocation();
   const params = new URLSearchParams(searchStr);
   const importId = params.get("import");
@@ -722,43 +712,34 @@ export function ImportPage() {
   }, [google, router]);
 
   return (
-    <RequireSession navigate={(path) => router.history.replace(path)}>
-      {(session) => (
-        <AppShell
-          app="calendar"
-          user={session.user}
-          onSignOut={() => logout.mutate()}
-          {...preferences}
-        >
-          <div className="mx-auto grid max-w-3xl gap-6">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">
-                {importMessages().page.title}
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">{importMessages().page.intro}</p>
-            </div>
-            {google && googleMessage(google) ? (
-              <p
-                role="alert"
-                className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm"
-              >
-                {googleMessage(google)}
-              </p>
-            ) : null}
-            {importId ? (
-              <ImportWizard key={importId} id={importId} onBack={() => open(null)} />
-            ) : (
-              <>
-                <FileImport onStarted={open} />
-                <GoogleConnect />
-                <GoogleSync />
-                <Subscriptions />
-                <RecentImports onOpen={open} />
-              </>
-            )}
+    <CalendarLayout>
+      {() => (
+        <div className="mx-auto grid max-w-3xl gap-6">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">{importMessages().page.title}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{importMessages().page.intro}</p>
           </div>
-        </AppShell>
+          {google && googleMessage(google) ? (
+            <p
+              role="alert"
+              className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm"
+            >
+              {googleMessage(google)}
+            </p>
+          ) : null}
+          {importId ? (
+            <ImportWizard key={importId} id={importId} onBack={() => open(null)} />
+          ) : (
+            <>
+              <FileImport onStarted={open} />
+              <GoogleConnect />
+              <GoogleSync />
+              <Subscriptions />
+              <RecentImports onOpen={open} />
+            </>
+          )}
+        </div>
       )}
-    </RequireSession>
+    </CalendarLayout>
   );
 }

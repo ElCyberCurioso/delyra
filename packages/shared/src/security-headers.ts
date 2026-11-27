@@ -3,13 +3,13 @@
  * generador del fichero `_headers` de las dos SPA, para que no diverjan.
  */
 
-export const CSP_REPORT_PATH = "/api/csp-report";
-export const CSP_REPORT_GROUP = "csp-endpoint";
+const CSP_REPORT_PATH = "/api/csp-report";
+const CSP_REPORT_GROUP = "csp-endpoint";
 
 /** Dos años. En `.app` el navegador ya fuerza HTTPS por la precarga del TLD. */
-export const HSTS_VALUE = "max-age=63072000; includeSubDomains";
+const HSTS_VALUE = "max-age=63072000; includeSubDomains";
 
-export const PERMISSIONS_POLICY = [
+const PERMISSIONS_POLICY = [
   "accelerometer=()",
   "autoplay=()",
   "browsing-topics=()",
@@ -28,7 +28,7 @@ export const PERMISSIONS_POLICY = [
 ].join(", ");
 
 /** Origen del widget anti-bots (Turnstile): script e iframe del desafío. */
-export const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
+const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
 
 /**
  * CSP de las SPA en modo bloqueo (F7-08). Tras meses en modo informe (F0-12), las únicas
@@ -60,17 +60,14 @@ export const SPA_CSP = [
  * La API solo devuelve JSON y adjuntos para descargar: nada se puede cargar, enmarcar ni
  * ejecutar desde sus respuestas (`sandbox` cubre un adjunto abierto directamente, F4-06).
  */
-export const API_CSP =
+const API_CSP =
   "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; sandbox";
 
 /**
  * Las SPA pueden usar el micrófono propio (dictado del alta rápida); ningún iframe ni otro
  * origen, y la API sigue sin él.
  */
-export const SPA_PERMISSIONS_POLICY = PERMISSIONS_POLICY.replace(
-  "microphone=()",
-  "microphone=(self)",
-);
+const SPA_PERMISSIONS_POLICY = PERMISSIONS_POLICY.replace("microphone=()", "microphone=(self)");
 
 const COMMON_HEADERS: Readonly<Record<string, string>> = {
   "Strict-Transport-Security": HSTS_VALUE,

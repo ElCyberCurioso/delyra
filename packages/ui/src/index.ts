@@ -68,6 +68,10 @@ export {
 export {
   browserLocale,
   defineMessages,
+  formatDate,
+  formatDateTime,
+  formatShortDateTime,
+  formatSize,
   getLocale,
   intlLocale,
   LOCALE_NAMES,

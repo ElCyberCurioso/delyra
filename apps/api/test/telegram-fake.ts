@@ -6,9 +6,9 @@ import { TelegramError } from "../src/lib/telegram";
 /** Telegram simulado para los tests (F3-11). */
 
 /** El del binding de prueba (vitest.config.ts). */
-export const WEBHOOK_SECRET = env.TELEGRAM_WEBHOOK_SECRET ?? "";
+const WEBHOOK_SECRET = env.TELEGRAM_WEBHOOK_SECRET ?? "";
 
-export interface TelegramCall {
+interface TelegramCall {
   method: string;
   body: Record<string, unknown>;
 }

@@ -1,16 +1,16 @@
-import { idSchema, startImportRequestSchema } from "@delyra/shared";
+import { startImportRequestSchema } from "@delyra/shared";
 import { type Context, Hono } from "hono";
 import { createDb } from "../db/client";
 import type { ImportRow } from "../db/schema";
 import { AppError } from "../lib/errors";
-import { invalidField, readBody } from "../lib/http";
+import { idParam, invalidField, readBody, readUpload } from "../lib/http";
 import { looksLikeIcs } from "../lib/ics";
 import { IMPORT_LIMITS } from "../lib/import-model";
 import { safeErrorMessage } from "../lib/logger";
 import { currentAuth, requireActiveSession } from "../middleware/session";
 import { calendarRepository } from "../repositories/calendars";
 import { importRepository } from "../repositories/imports";
-import { peekStream, sanitizeFilename } from "../services/attachments";
+import { isZipHead, peekStream, sanitizeFilename } from "../services/attachments";
 import {
   deleteImportData,
   importDto,
@@ -30,12 +30,6 @@ const DAY_MS = 86_400_000;
 
 function repo(c: Context<AppEnv>) {
   return importRepository(createDb(c.env.DB), currentAuth(c).user.id);
-}
-
-function idParam(c: Context<AppEnv>): string {
-  const id = idSchema.safeParse(c.req.param("id"));
-  if (!id.success) throw new AppError(404);
-  return id.data;
 }
 
 async function load(c: Context<AppEnv>): Promise<ImportRow> {
@@ -95,25 +89,15 @@ export const importRoutes = new Hono<AppEnv>()
   // Cuerpo binario en streaming, como los adjuntos (F4-06): `X-Filename` + `Content-Length`.
   .post("/", async (c) => {
     await assertCanStartImport(c);
-    const length = Number(c.req.header("content-length"));
-    if (!Number.isInteger(length) || length <= 0) {
-      throw new AppError(411, { detail: "Falta el tamaño del fichero" });
-    }
-    if (length > IMPORT_LIMITS.uploadBytes) {
-      throw new AppError(413, { detail: "El fichero supera los 25 MB" });
-    }
-    let rawName: string;
-    try {
-      rawName = decodeURIComponent(c.req.header("x-filename") ?? "");
-    } catch {
-      throw invalidField("filename", "Nombre de fichero no válido");
-    }
-    const body = c.req.raw.body as ReadableStream<Uint8Array> | null;
-    if (!body) throw new AppError(400, { detail: "Falta el fichero" });
+    const { length, rawName, body } = readUpload(
+      c,
+      IMPORT_LIMITS.uploadBytes,
+      "El fichero supera los 25 MB",
+    );
 
     // El tipo se decide por el contenido: un zip (`PK\x03\x04`) o un calendario de texto.
     const { head, stream } = await peekStream(body);
-    const isZip = head[0] === 0x50 && head[1] === 0x4b && head[2] === 0x03 && head[3] === 0x04;
+    const isZip = isZipHead(head);
     const isIcs = !isZip && looksLikeIcs(new TextDecoder().decode(head));
     if (!isZip && !isIcs) {
       await stream.cancel();

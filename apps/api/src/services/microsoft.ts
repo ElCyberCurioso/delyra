@@ -13,10 +13,10 @@ import { decryptField, encryptField, type Keyring } from "../lib/field-crypto";
  * - Los enlaces de paginación (`@odata.nextLink`) solo se siguen si son de `graph.microsoft.com`.
  */
 
-export const MICROSOFT_SCOPES = "offline_access User.Read Calendars.Read";
+const MICROSOFT_SCOPES = "offline_access User.Read Calendars.Read";
 export const MICROSOFT_OAUTH_COOKIE = "__Secure-delyra-microsoft";
 export const MICROSOFT_OAUTH_TTL_MS = 10 * 60_000;
-export const GRAPH = "https://graph.microsoft.com/v1.0";
+const GRAPH = "https://graph.microsoft.com/v1.0";
 const STATE_AAD = "microsoft-oauth-state";
 /** Como mucho tantos eventos por volcado (unas semanas de calendario). */
 const MAX_EVENTS = 1000;
@@ -123,7 +123,7 @@ export async function microsoftAuthorizeUrl(
   return url.href;
 }
 
-export class MicrosoftAuthError extends Error {
+class MicrosoftAuthError extends Error {
   override name = "MicrosoftAuthError";
 }
 
@@ -363,7 +363,7 @@ function graphInstant(time: GraphTime | undefined): number | null {
 
 const TEAMS_HOSTS = new Set(["teams.microsoft.com", "teams.live.com"]);
 
-export function teamsJoinUrl(raw: string | null | undefined): string | null {
+function teamsJoinUrl(raw: string | null | undefined): string | null {
   if (!raw || raw.length > 2048) return null;
   try {
     const url = new URL(raw);

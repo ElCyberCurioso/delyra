@@ -15,6 +15,7 @@ import {
   DialogTitle,
   errorMessage,
   Field,
+  formatDateTime,
   FormError,
   toast,
 } from "@delyra/ui";
@@ -23,11 +24,11 @@ import { CloudIcon, FingerprintIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { formValues } from "../auth/form";
 import { createPasskeyCredential, passkeyErrorKind, passkeysSupported } from "../auth/passkeys";
-import { describeUserAgent, formatDateTime } from "./format";
+import { describeUserAgent } from "./format";
 import { settingsMessages } from "./messages";
 import { ReauthForm } from "./reauth-form";
 
-export const PASSKEYS_QUERY_KEY = ["account", "passkeys"] as const;
+const PASSKEYS_QUERY_KEY = ["account", "passkeys"] as const;
 
 /** Alta en dos pasos: reautenticación (contraseña y código) y creación en el dispositivo. */
 function AddPasskeyDialog({ onClose }: { onClose: () => void }) {

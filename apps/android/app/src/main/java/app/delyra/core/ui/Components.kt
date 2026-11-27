@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,7 +40,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -72,8 +72,6 @@ fun parseHexColor(hex: String?, fallback: Color = Color(0xFF007145)): Color {
     if (hex == null || !Regex("^#[0-9a-fA-F]{6}$").matches(hex)) return fallback
     return Color(0xFF000000 or hex.substring(1).toLong(16))
 }
-
-fun Color.toHex(): String = String.format("#%06x", toArgb() and 0xFFFFFF)
 
 private fun channel(c: Float): Double = if (c <= 0.03928f) c / 12.92 else Math.pow((c + 0.055) / 1.055, 2.4)
 
@@ -246,6 +244,14 @@ fun TextInputDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
+}
+
+/** Mosaico a todo el ancho con su contenido en columna: el bloque de las pantallas de ajustes. */
+@Composable
+fun TileColumn(content: @Composable ColumnScope.() -> Unit) {
+    Tile(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
+    }
 }
 
 /** Mosaico (tile) de la web: tarjeta con esquinas de 20 dp y borde fino. */

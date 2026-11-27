@@ -20,6 +20,7 @@ import { unzipCalendars } from "../lib/unzip";
 import { calendarRepository } from "../repositories/calendars";
 import { eventRepository } from "../repositories/events";
 import type { ImportRepository } from "../repositories/imports";
+import { deletePrefix } from "./attachments";
 import { type ApplyCounts, applyImportedEvents, emptyCounts } from "./import-apply";
 
 /**
@@ -36,15 +37,15 @@ import { type ApplyCounts, applyImportedEvents, emptyCounts } from "./import-app
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
 /** El bucket borra los datos a los 7 días; una vista previa vale 6. */
-export const IMPORT_READY_TTL_MS = 6 * DAY_MS;
+const IMPORT_READY_TTL_MS = 6 * DAY_MS;
 /** Un análisis o importación sin avances en este tiempo se da por interrumpido. */
-export const IMPORT_STALE_MS = 2 * HOUR_MS;
+const IMPORT_STALE_MS = 2 * HOUR_MS;
 /** Importaciones que se pueden empezar al día. */
 export const IMPORTS_PER_DAY = 20;
 
 // ── Claves en R2 ─────────────────────────────────────────────────────────────
 
-export const importPrefix = (ownerId: string, id: string) => `imports/${ownerId}/${id}/`;
+const importPrefix = (ownerId: string, id: string) => `imports/${ownerId}/${id}/`;
 export const sourceKey = (ownerId: string, id: string) => `${importPrefix(ownerId, id)}source`;
 const icsKey = (ownerId: string, id: string, n: number) =>
   `${importPrefix(ownerId, id)}ics/${String(n)}.ics`;
@@ -52,13 +53,7 @@ const chunkKey = (ownerId: string, id: string, key: string, index: number) =>
   `${importPrefix(ownerId, id)}cal-${key}/${String(index)}.json`;
 
 export async function deleteImportData(bucket: R2Bucket, ownerId: string, id: string) {
-  let cursor: string | undefined;
-  do {
-    const listing = await bucket.list({ prefix: importPrefix(ownerId, id), cursor, limit: 1000 });
-    const keys = listing.objects.map((o) => o.key);
-    if (keys.length > 0) await bucket.delete(keys);
-    cursor = listing.truncated ? listing.cursor : undefined;
-  } while (cursor);
+  await deletePrefix(bucket, importPrefix(ownerId, id));
 }
 
 // ── Vista previa y opciones guardadas ────────────────────────────────────────
@@ -141,7 +136,7 @@ export async function refreshStatus(
 }
 
 /** Mensaje para el usuario: los errores de formato y de límites se explican; el resto no. */
-export function userMessage(error: unknown): string {
+function userMessage(error: unknown): string {
   if (error instanceof ImportFormatError || error instanceof ImportLimitError) {
     return error.message;
   }
@@ -220,7 +215,7 @@ export async function writeChunks(
   return chunks;
 }
 
-export async function readChunk(
+async function readChunk(
   bucket: R2Bucket,
   row: Pick<ImportRow, "ownerId" | "id">,
   key: string,

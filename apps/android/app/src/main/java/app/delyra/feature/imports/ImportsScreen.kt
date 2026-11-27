@@ -84,7 +84,7 @@ import app.delyra.core.ui.ColorDot
 import app.delyra.core.ui.ConfirmDialog
 import app.delyra.core.ui.ErrorText
 import app.delyra.core.ui.LocalAppGraph
-import app.delyra.core.ui.Tile
+import app.delyra.core.ui.TileColumn
 import app.delyra.core.ui.appViewModel
 import app.delyra.core.ui.message
 import app.delyra.core.ui.openInBrowser
@@ -310,13 +310,6 @@ fun ImportsScreen(onBack: () -> Unit, onOpenImport: (String) -> Unit) {
             item(span = { GridItemSpan(maxLineSpan) }) { SubscriptionsTile(vm) }
             if (vm.imports.isNotEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { RecentImportsTile(vm.imports, onOpenImport) }
         }
-    }
-}
-
-@Composable
-private fun TileColumn(content: @Composable () -> Unit) {
-    Tile(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { content() }
     }
 }
 

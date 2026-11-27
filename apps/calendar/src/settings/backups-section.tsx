@@ -23,6 +23,8 @@ import {
   DialogHeader,
   DialogTitle,
   errorMessage,
+  formatDateTime,
+  formatSize,
   FormError,
   SelectField,
   toast,
@@ -39,20 +41,12 @@ import {
   UploadIcon,
 } from "lucide-react";
 import { useState } from "react";
-import { formatDateTime } from "./format";
 import { settingsMessages } from "./messages";
 import { Section } from "./section";
 
 /** Copias de seguridad en Ajustes (F6-05): crear, descargar, restaurar y deshacer. */
 
 const BACKUPS_KEY = ["account", "backups"] as const;
-
-function formatSize(bytes: number | null): string {
-  if (bytes === null) return "";
-  if (bytes < 1024) return `${String(bytes)} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
 
 function describeCounts(counts: BackupCounts | null): string {
   if (!counts) return "";
@@ -422,7 +416,7 @@ export function BackupsSection({ session }: { session: ActiveSession }) {
                         ? backup.error
                           ? translateServer(backup.error)
                           : t.backupFailed
-                        : `${formatSize(backup.sizeBytes)} · ${describeCounts(backup.counts)}`}
+                        : `${backup.sizeBytes === null ? "" : formatSize(backup.sizeBytes)} · ${describeCounts(backup.counts)}`}
                   </p>
                 </div>
                 {backup.status === "ready" ? (

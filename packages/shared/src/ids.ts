@@ -8,8 +8,6 @@ export function newId(): string {
 
 export const idSchema = z.uuid({ version: "v7", error: "Identificador no válido" });
 
-export type Id = z.infer<typeof idSchema>;
-
 /** Instante de creación codificado en los 48 bits altos de un UUIDv7. */
 export function idTimestamp(id: string): Date {
   const parsed = idSchema.parse(id);

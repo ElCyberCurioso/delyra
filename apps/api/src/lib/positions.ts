@@ -14,7 +14,7 @@ export function keyAt(sorted: readonly string[], index: number): string {
   return generateKeyBetween(sorted[i - 1] ?? null, sorted[i] ?? null);
 }
 
-export function needsRebalance(key: string): boolean {
+function needsRebalance(key: string): boolean {
   return key.length > MAX_KEY_LENGTH;
 }
 

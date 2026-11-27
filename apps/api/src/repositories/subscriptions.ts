@@ -69,8 +69,6 @@ export function subscriptionRepository(db: Database, ownerId: string) {
   };
 }
 
-export type SubscriptionRepository = ReturnType<typeof subscriptionRepository>;
-
 /** Suscripciones de cualquier usuario que toca sincronizar (planificador, F5-06). */
 export async function dueSubscriptions(
   db: Database,

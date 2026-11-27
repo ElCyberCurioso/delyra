@@ -38,11 +38,11 @@ import {
  *   las excepciones y las ocurrencias canceladas (que llegan como `status: cancelled`).
  */
 
-export const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
-export const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
-export const GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke";
-export const GOOGLE_API = "https://www.googleapis.com/calendar/v3";
-export const GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
+const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
+const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+const GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke";
+const GOOGLE_API = "https://www.googleapis.com/calendar/v3";
+const GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
 export const OAUTH_COOKIE = "__Secure-delyra-google";
 export const OAUTH_TTL_MS = 10 * 60_000;
 
@@ -143,7 +143,7 @@ export async function authorizeUrl(config: GoogleConfig, state: OAuthState): Pro
   return url.href;
 }
 
-export class GoogleAuthError extends Error {
+class GoogleAuthError extends Error {
   override name = "GoogleAuthError";
 }
 
@@ -263,8 +263,7 @@ export async function revokeGoogleToken(
   }
 }
 
-export const tokenAad = (ownerId: string, importId: string) =>
-  `google-token:${ownerId}:${importId}`;
+const tokenAad = (ownerId: string, importId: string) => `google-token:${ownerId}:${importId}`;
 
 export async function sealToken(
   token: string,
@@ -500,7 +499,7 @@ function googleTime(time: GoogleTime | undefined, fallbackTz: string) {
 }
 
 /** `EXDATE;TZID=Europe/Madrid:20261129T100000,20261206T100000` → instantes. */
-export function parseExdateLine(line: string, allDay: boolean, tz: string): number[] {
+function parseExdateLine(line: string, allDay: boolean, tz: string): number[] {
   const colon = line.indexOf(":");
   if (colon < 0) return [];
   const params = line.slice(0, colon).split(";").slice(1);
@@ -526,7 +525,7 @@ export function parseExdateLine(line: string, allDay: boolean, tz: string): numb
 }
 
 /** Convierte una página de `events.list` (las canceladas se devuelven aparte). */
-export function convertGoogleEvents(
+function convertGoogleEvents(
   items: readonly GoogleEvent[],
   meta: CalendarMeta,
   defaultTimeZone: string,

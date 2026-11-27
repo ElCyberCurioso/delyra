@@ -75,7 +75,7 @@ import app.delyra.core.ui.ConfirmDialog
 import app.delyra.core.ui.EmailField
 import app.delyra.core.ui.ErrorText
 import app.delyra.core.ui.LocalAppGraph
-import app.delyra.core.ui.Tile
+import app.delyra.core.ui.TileColumn
 import app.delyra.core.ui.appViewModel
 import app.delyra.core.ui.copy
 import app.delyra.core.ui.message
@@ -220,13 +220,6 @@ fun AdminScreen(onBack: () -> Unit) {
             item(span = { GridItemSpan(maxLineSpan) }) { InvitationsTile(vm) }
             item(span = { GridItemSpan(maxLineSpan) }) { UsersTile(vm) }
         }
-    }
-}
-
-@Composable
-private fun TileColumn(content: @Composable () -> Unit) {
-    Tile(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { content() }
     }
 }
 

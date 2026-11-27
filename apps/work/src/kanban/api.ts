@@ -21,7 +21,7 @@ import { type QueryClient, useQuery } from "@tanstack/react-query";
 
 export const BOARDS_KEY = ["boards"] as const;
 export const boardKey = (id: string) => ["board", id] as const;
-export const cardKey = (id: string) => ["card", id] as const;
+const cardKey = (id: string) => ["card", id] as const;
 export const archivedKey = (id: string) => ["board", id, "archived"] as const;
 export const membersKey = (id: string) => ["board", id, "members"] as const;
 export const INVITATIONS_KEY = ["board-invitations"] as const;

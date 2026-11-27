@@ -1,6 +1,7 @@
 import { MICROSOFT_CONNECTION_STATUSES, SUBSCRIPTION_STATUSES } from "@delyra/shared";
 import { sql } from "drizzle-orm";
 import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { quoted } from "./check";
 import { users } from "./identity";
 import { boardColumns, boards, cards, labels } from "./kanban";
 
@@ -8,8 +9,6 @@ import { boardColumns, boards, cards, labels } from "./kanban";
  * Reuniones de Teams en un tablero (docs/plan-teams.md, ADR-0015): conexión con Microsoft 365,
  * tableros que reciben las reuniones y qué tarjeta corresponde a cada evento.
  */
-
-const quoted = (values: readonly string[]) => sql.raw(values.map((v) => `'${v}'`).join(", "));
 
 export const microsoftConnections = sqliteTable(
   "microsoft_connections",

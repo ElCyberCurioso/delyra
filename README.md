@@ -4,8 +4,8 @@ Calendario (`delyra.app`) y kanban (`work.delyra.app`) multiusuario sobre Cloudf
 sesión común, 2FA obligatorio (con llaves de acceso como alternativa al código), alertas por
 Telegram, sincronización con Google Calendar, reuniones de Teams en los tableros y backups.
 
-El plan de trabajo completo está en `docs/plan-de-trabajo.md` y las decisiones de arquitectura en
-[`docs/decisiones/`](docs/decisiones/).
+Las decisiones de arquitectura están en [`docs/decisiones/`](docs/decisiones/) y los planes de las
+fases más recientes en `docs/plan-android.md` y `docs/plan-teams.md`.
 
 ## Arquitectura
 

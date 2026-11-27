@@ -7,7 +7,7 @@ import { calendarMessages } from "./messages";
 export type RepeatPreset =
   "none" | "daily" | "weekdays" | "weekly" | "monthly" | "yearly" | "custom";
 
-export type RepeatEnd =
+type RepeatEnd =
   { kind: "never" } | { kind: "until"; date: string } | { kind: "count"; count: number };
 
 export interface RepeatState {

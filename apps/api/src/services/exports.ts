@@ -1,5 +1,6 @@
 import { type BackupDataV1, fromFloating, toFloating } from "@delyra/shared";
 import type { Calendar, EventRow, Reminder } from "../db/schema";
+import { parseExdates } from "../lib/recurrence";
 
 /**
  * Exportaciones sueltas (F6-02): un calendario en ICS (RFC 5545) y un tablero en CSV o JSON.
@@ -67,15 +68,6 @@ function exportRrule(rrule: string, allDay: boolean, tz: string): string {
         : `UNTIL=${basic(fromFloating(floating, tz), true, true)}`;
     })
     .join(";");
-}
-
-function parseExdates(value: string): number[] {
-  try {
-    const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.filter((v): v is number => typeof v === "number") : [];
-  } catch {
-    return [];
-  }
 }
 
 export function calendarToIcs(
@@ -156,7 +148,7 @@ export function csvCell(value: string | number | boolean | null | undefined): st
   return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
-export function toCsv(rows: readonly (readonly (string | number | boolean | null)[])[]): string {
+function toCsv(rows: readonly (readonly (string | number | boolean | null)[])[]): string {
   // BOM: Excel reconoce así el UTF-8 (acentos).
   return String.fromCharCode(0xfeff) + rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
 }

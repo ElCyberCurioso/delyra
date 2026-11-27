@@ -24,9 +24,7 @@ export const COLOR_PALETTE = [
   { key: "graphite", hex: "#374151" },
 ] as const;
 
-export type PaletteKey = (typeof COLOR_PALETTE)[number]["key"];
-
-export const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 
 /** Luminancia relativa (WCAG) de un color `#rrggbb`. */
 export function relativeLuminance(hex: string): number {

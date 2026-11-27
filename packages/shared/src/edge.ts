@@ -3,7 +3,7 @@
  * Worker `api` por Service Binding, conservando la URL, el método, las cabeceras y la
  * cookie; todo lo demás lo sirve Static Assets (con fallback a `index.html`).
  */
-export interface FetcherLike {
+interface FetcherLike {
   fetch(request: Request): Promise<Response>;
 }
 
