@@ -15,7 +15,7 @@ import { workMessages } from "./messages";
 
 /** Lógica del tablero sin React: orden, movimientos optimistas, filtros y fechas (F4-08, F4-10). */
 
-export const byPosition = <T extends { position: string }>(a: T, b: T) =>
+const byPosition = <T extends { position: string }>(a: T, b: T) =>
   a.position < b.position ? -1 : a.position > b.position ? 1 : 0;
 
 export function sortedColumns(board: BoardDetail): BoardColumn[] {
@@ -101,7 +101,7 @@ export function moveColumnLocally(board: BoardDetail, columnId: string, index: n
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-export function localDate(ms: number, timeZone: string): string {
+function localDate(ms: number, timeZone: string): string {
   const w = instantToWall(ms, timeZone);
   return `${String(w.year)}-${pad(w.month)}-${pad(w.day)}`;
 }
@@ -113,7 +113,7 @@ export interface DueInfo {
 }
 
 /** Día local de la fecha límite (las de todo el día ya son un día). */
-export function dueDate(due: DueInfo, timeZone: string): string {
+function dueDate(due: DueInfo, timeZone: string): string {
   return due.allDay ? due.at : localDate(Date.parse(due.at), timeZone);
 }
 

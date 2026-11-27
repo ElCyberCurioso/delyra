@@ -54,7 +54,7 @@ export function useOccurrences(range: Range | null) {
   });
 }
 
-export const DUE_CARDS_KEY = ["due-cards"] as const;
+const DUE_CARDS_KEY = ["due-cards"] as const;
 
 /** Capa «Tareas» (F4-11): tarjetas del kanban con fecha límite en el rango visible. */
 export function useDueCards(range: Range | null, enabled: boolean) {

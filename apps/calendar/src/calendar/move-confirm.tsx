@@ -1,4 +1,4 @@
-import { dateOnlyToUtc, utcToDateOnly } from "@delyra/shared";
+import { dateOnlyToUtc } from "@delyra/shared";
 import {
   Button,
   Dialog,
@@ -126,9 +126,4 @@ export function useMoveConfirm(timeZone: string) {
     </Dialog>
   );
   return { confirm, dialog };
-}
-
-/** Fin exclusivo de un día completo a partir de su inicio (FullCalendar no siempre lo da). */
-export function nextDay(date: string): string {
-  return utcToDateOnly(dateOnlyToUtc(date) + DAY_MS);
 }

@@ -9,7 +9,6 @@ import {
 import {
   type ActiveSession,
   apiFetch,
-  AppShell,
   Button,
   cn,
   Dialog,
@@ -21,20 +20,18 @@ import {
   DialogTitle,
   errorMessage,
   Field,
+  formatDateTime,
   FormError,
   HealthStatus,
-  RequireSession,
   SelectField,
   toast,
-  useAccountPreferences,
-  useLogout,
 } from "@delyra/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useRouter } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { CopyIcon } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { apiFieldErrors, type FieldErrors, formValues } from "../auth/form";
-import { formatDateTime } from "../settings/format";
+import { CalendarLayout } from "../layout";
 import { settingsMessages } from "../settings/messages";
 import { Section } from "../settings/section";
 import { SystemBackupsSection } from "./system-backups";
@@ -412,32 +409,22 @@ function AdminContent({ session }: { session: ActiveSession }) {
 
 /** Panel mínimo de administración (F1-17). A quien no es admin se le muestra un 404. */
 export function AdminPage() {
-  const router = useRouter();
-  const logout = useLogout();
-  const preferences = useAccountPreferences();
   const t = settingsMessages().admin;
   return (
-    <RequireSession navigate={(path) => router.history.replace(path)}>
-      {(session) => (
-        <AppShell
-          app="calendar"
-          user={session.user}
-          onSignOut={() => logout.mutate()}
-          {...preferences}
-        >
-          {session.user.role === "admin" ? (
-            <AdminContent session={session} />
-          ) : (
-            <div className="mx-auto max-w-md py-16 text-center">
-              <h1 className="text-2xl font-semibold tracking-tight">{t.notFound}</h1>
-              <p className="mt-2 text-muted-foreground">{t.notFoundBody}</p>
-              <Button asChild className="mt-6">
-                <Link to="/">{t.home}</Link>
-              </Button>
-            </div>
-          )}
-        </AppShell>
-      )}
-    </RequireSession>
+    <CalendarLayout>
+      {(session) =>
+        session.user.role === "admin" ? (
+          <AdminContent session={session} />
+        ) : (
+          <div className="mx-auto max-w-md py-16 text-center">
+            <h1 className="text-2xl font-semibold tracking-tight">{t.notFound}</h1>
+            <p className="mt-2 text-muted-foreground">{t.notFoundBody}</p>
+            <Button asChild className="mt-6">
+              <Link to="/">{t.home}</Link>
+            </Button>
+          </div>
+        )
+      }
+    </CalendarLayout>
   );
 }

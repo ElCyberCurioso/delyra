@@ -28,7 +28,7 @@ import { workMessages } from "./messages";
  * la que se ha pasado una tarjeta (columnas «depende de otra persona»).
  */
 
-export const KIND_ICONS: Record<CardKind, LucideIcon> = {
+const KIND_ICONS: Record<CardKind, LucideIcon> = {
   task: SquareCheckBigIcon,
   meeting: UsersIcon,
   call: PhoneIcon,

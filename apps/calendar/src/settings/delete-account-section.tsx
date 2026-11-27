@@ -18,7 +18,7 @@ import { Section } from "./section";
 import { settingsMessages } from "./messages";
 
 /** Página pública a la que se vuelve después de eliminar la cuenta. */
-export const ACCOUNT_DELETED_PATH = "/borrar-cuenta?hecho=1";
+const ACCOUNT_DELETED_PATH = "/borrar-cuenta?hecho=1";
 
 /**
  * Eliminar la cuenta (F8-12). Google Play lo exige y es el derecho de supresión: se borra al

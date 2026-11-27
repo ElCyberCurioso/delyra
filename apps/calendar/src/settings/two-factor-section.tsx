@@ -14,6 +14,7 @@ import {
   DialogTitle,
   errorMessage,
   Field,
+  formatDateTime,
   FormError,
   toast,
 } from "@delyra/ui";
@@ -22,13 +23,12 @@ import { KeyRoundIcon, SmartphoneIcon } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { formValues } from "../auth/form";
 import { RecoveryCodeList, SavedCodesConfirmation, TotpQr } from "../auth/totp-parts";
-import { formatDateTime } from "./format";
 import { PasskeysPanel } from "./passkeys-panel";
 import { ReauthForm } from "./reauth-form";
 import { Section } from "./section";
 import { settingsMessages } from "./messages";
 
-export const SECURITY_QUERY_KEY = ["account", "security"] as const;
+const SECURITY_QUERY_KEY = ["account", "security"] as const;
 
 function RegenerateCodesDialog({ onClose }: { onClose: () => void }) {
   const [codes, setCodes] = useState<string[] | null>(null);

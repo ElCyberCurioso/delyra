@@ -9,13 +9,13 @@ import {
   Button,
   errorMessage,
   Field,
+  formatDateTime,
   FormError,
   toast,
 } from "@delyra/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BellOffIcon, ExternalLinkIcon, SendIcon } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
-import { formatDateTime } from "./format";
 import { Section } from "./section";
 import { settingsMessages } from "./messages";
 

@@ -15,7 +15,6 @@ import {
 } from "@delyra/shared";
 import {
   type ActiveSession,
-  AppShell,
   Button,
   cn,
   currentAppOrigins,
@@ -26,12 +25,9 @@ import {
   DialogTitle,
   errorMessage,
   getLocale,
-  RequireSession,
   type Shortcut,
   ShortcutsDialog,
   toast,
-  useAccountPreferences,
-  useLogout,
   useMediaQuery,
   useShortcuts,
 } from "@delyra/ui";
@@ -67,6 +63,7 @@ import {
   useHolidays,
   useOccurrences,
 } from "./api";
+import { CalendarLayout } from "../layout";
 import { CalendarList } from "./calendar-list";
 import { type EditorTarget, EventEditor } from "./event-editor";
 import { calendarMessages } from "./messages";
@@ -753,21 +750,5 @@ function todayFrom(iso: string, timeZone: string): string {
 
 /** Calendario (F2-08): vistas de mes, semana, día, lista y año en la zona del usuario. */
 export function CalendarPage() {
-  const router = useRouter();
-  const logout = useLogout();
-  const preferences = useAccountPreferences();
-  return (
-    <RequireSession navigate={(path) => router.history.replace(path)}>
-      {(session) => (
-        <AppShell
-          app="calendar"
-          user={session.user}
-          onSignOut={() => logout.mutate()}
-          {...preferences}
-        >
-          <Workspace session={session} />
-        </AppShell>
-      )}
-    </RequireSession>
-  );
+  return <CalendarLayout>{(session) => <Workspace session={session} />}</CalendarLayout>;
 }

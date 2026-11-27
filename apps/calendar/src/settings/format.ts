@@ -1,15 +1,6 @@
 import { SUGGESTED_TIME_ZONES } from "@delyra/shared";
-import { getLocale, intlLocale, LOCALE_NAMES } from "@delyra/ui";
+import { getLocale, LOCALE_NAMES } from "@delyra/ui";
 import { settingsMessages } from "./messages";
-
-/** Fecha y hora en la zona del usuario: «21 nov 2026, 18:42». */
-export function formatDateTime(iso: string, timeZone: string): string {
-  return new Intl.DateTimeFormat(intlLocale(), {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone,
-  }).format(new Date(iso));
-}
 
 // El orden importa: Edge y Opera también dicen «Chrome», y Chrome dice «Safari».
 const BROWSERS: readonly [string, string][] = [

@@ -9,8 +9,8 @@ import {
   apiFetch,
   Button,
   errorMessage,
+  formatShortDateTime,
   FormError,
-  intlLocale,
   SelectField,
   toast,
   translateServer,
@@ -43,11 +43,6 @@ function useTeamsInfo(boardId: string) {
     refetchInterval: (query) => (query.state.data?.sync?.status === "pending" ? 2000 : false),
   });
 }
-
-const formatDateTime = (iso: string) =>
-  new Intl.DateTimeFormat(intlLocale(), { dateStyle: "short", timeStyle: "short" }).format(
-    new Date(iso),
-  );
 
 function ConnectButton({ boardId, label }: { boardId: string; label: string }) {
   const [pending, setPending] = useState(false);
@@ -214,7 +209,10 @@ export function TeamsSection({ board }: { board: BoardDetail }) {
             ? t.syncing
             : sync.status === "error"
               ? translateServer(sync.error ?? "")
-              : t.status(sync.cards, sync.lastSyncedAt ? formatDateTime(sync.lastSyncedAt) : null)}
+              : t.status(
+                  sync.cards,
+                  sync.lastSyncedAt ? formatShortDateTime(sync.lastSyncedAt) : null,
+                )}
         </p>
       ) : null}
 

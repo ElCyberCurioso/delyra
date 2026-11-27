@@ -12,6 +12,7 @@ export {
   subscribeLocale,
   type Translation,
 } from "./core";
+export { formatDate, formatDateTime, formatShortDateTime, formatSize } from "./format";
 export { LOCALE_NAMES, type UiMessages } from "./ui-messages";
 
 /** Textos de los componentes comunes en el idioma actual. */
