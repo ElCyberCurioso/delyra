@@ -2,13 +2,14 @@
 
 Resumen operativo del §3 del plan de trabajo.
 
-## Ramas y PR
+## Ramas y despliegue
 
-- _Trunk-based_: `main` siempre desplegable y protegida. No hay staging (ADR-0003): producción se
-  despliega a mano desde `main` con CI en verde (docs/runbooks/despliegue.md).
-- Una rama y un PR por tarea, con el identificador del plan: `feat/F1-08-login-2fa`,
-  `fix/F2-04-dst-semana`.
-- El PR enlaza la tarea y explica cómo probarla (la plantilla incluye la Definition of Done).
+- _Trunk-based_ sin PR: cada cambio se commitea y se sube directamente a `main`
+  (`git push origin main`). No hay staging (ADR-0003).
+- Cada push a `main` pasa el CI completo y, si termina en verde, se despliega solo en producción
+  (docs/runbooks/despliegue.md). Por eso, antes de subir: `pnpm format:check`, `pnpm lint`,
+  `pnpm typecheck` y `pnpm test` en local (y, si se toca la app, su Gradle).
+- `pnpm ci:status --wait` sigue desde la terminal el CI y el despliegue del último commit.
 
 ## Commits
 
@@ -26,7 +27,7 @@ El hook `pre-commit` ejecuta ESLint y Prettier sobre los ficheros preparados (`l
 
 1. Cumple el detalle de la tarea y sus criterios de aceptación.
 2. Tiene tests: unitarios y, si hay endpoints, de integración con autorización (usuario ajeno → 404).
-3. `pnpm lint`, `pnpm typecheck` y `pnpm test` pasan en CI.
+3. `pnpm lint`, `pnpm typecheck` y `pnpm test` pasan en local antes del push y en CI.
 4. Sin secretos en el código ni en los logs; gitleaks y Semgrep sin hallazgos nuevos.
 5. Las migraciones de D1 se aplican desde cero y sobre la versión anterior.
 6. Probada en local (`pnpm dev` y `pnpm e2e`) y, tras desplegar, comprobada en producción.

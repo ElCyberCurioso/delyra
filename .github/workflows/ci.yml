@@ -1,5 +1,7 @@
 # F0-09 · Integración continua: se ejecuta en cada PR y en cada push a main.
 # Las acciones van fijadas por SHA (Renovate las mantiene al día).
+# En un push a main, si todo termina en verde, el workflow Deploy despliega ese commit en
+# producción (deploy.yml, `workflow_run`): el nombre «CI» de aquí es el que escucha.
 name: CI
 
 on:

@@ -1,16 +1,25 @@
 # F0-10 · Despliegue a producción. No hay staging (ADR-0003).
-# - Solo se lanza a mano: Actions → Deploy → Run workflow. Despliega el commit elegido (por
-#   defecto, el último de main); comprueba antes que CI esté en verde para ese commit y, si aún se
-#   está ejecutando, espera a que termine.
-# - El Environment `production` puede exigir además aprobación (revisores obligatorios, P-04).
+# - Automático: cada push a main se despliega en cuanto su CI termina en verde (`workflow_run`).
+#   Solo se despliega el último commit de main: si mientras tanto llegó otro, este se salta y el
+#   nuevo, que lo incluye, se despliega con su propio CI. Un CI en rojo no despliega nada.
+# - También se puede lanzar a mano para volver a desplegar (Actions → Deploy → Run workflow, o
+#   `gh workflow run deploy.yml`); exige igualmente CI en verde para ese commit.
+# - Grupo de concurrencia propio y sin cancelar: un push nuevo nunca corta un despliegue a medias
+#   (el CI de main sí se cancela al llegar otro push, y entonces ese commit no se despliega).
+# - Sin revisores obligatorios en el Environment `production`: bloquearían el automático.
 # - Empieza con scripts/check-deploy-config.mjs, que falla con un mensaje claro si falta algo.
 # - Orden: migraciones → api → SPA (las SPA enlazan el api por Service Binding). Las migraciones
 #   deben ser compatibles con la versión anterior del código (expand/contract).
 # - Termina con los e2e de humo (@smoke, solo lectura) contra producción. Si fallan, revierte con
 #   `wrangler rollback` (docs/runbooks/despliegue.md).
+# - `pnpm ci:status` enseña desde la terminal cómo van el CI y el despliegue de un commit.
 name: Deploy
 
 on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -22,8 +31,48 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  decide:
+    name: Qué se despliega
+    # Solo el CI de un push a main de este repositorio (nunca el de un PR, aunque su rama se
+    # llame main) y en verde. A mano, siempre.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.decide.outputs.sha }}
+      deploy: ${{ steps.decide.outputs.deploy }}
+    steps:
+      - name: ¿Sigue siendo el último commit de main?
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          CI_SHA: ${{ github.event.workflow_run.head_sha }}
+          DISPATCH_SHA: ${{ github.sha }}
+        run: |
+          if [ "${EVENT}" = "workflow_dispatch" ]; then
+            echo "sha=${DISPATCH_SHA}" >> "$GITHUB_OUTPUT"
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          head=$(gh api "repos/${REPO}/commits/main" --jq .sha)
+          echo "sha=${CI_SHA}" >> "$GITHUB_OUTPUT"
+          if [ "${head}" = "${CI_SHA}" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Despliegue saltado::main ya está en ${head}; se desplegará con su propio CI (incluye ${CI_SHA})."
+          fi
+
   production:
     name: Producción
+    needs: decide
+    if: needs.decide.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:
@@ -35,14 +84,16 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.decide.outputs.sha }}
           persist-credentials: false
 
-      # Si el CI de este commit aún está en marcha (Deploy lanzado justo después de fusionar), se
-      # espera a que termine: hasta 20 min, o 2 min si todavía no ha aparecido ninguna ejecución.
+      # A mano justo después de un push, el CI de este commit puede seguir en marcha: se espera a
+      # que termine (hasta 20 min, o 2 min si todavía no ha aparecido ninguna ejecución). En el
+      # automático ya ha terminado en verde y el paso pasa a la primera.
       - name: Exigir CI en verde para este commit
         env:
           GH_TOKEN: ${{ github.token }}
-          SHA: ${{ github.sha }}
+          SHA: ${{ needs.decide.outputs.sha }}
           REPO: ${{ github.repository }}
         run: |
           start=$SECONDS

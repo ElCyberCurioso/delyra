@@ -78,16 +78,17 @@ También puedes arrancar solo una app (`pnpm dev:calendar`, `pnpm dev:work`) o s
 | `pnpm db:migrate:prod`  | Aplica las migraciones a la D1 de producción                       |
 | `pnpm invite`           | Crea una invitación en D1 (`--local` para la local)                |
 | `pnpm telegram:setup`   | Configura el bot de Telegram de producción (secretos y webhook)    |
+| `pnpm ci:status`        | Estado del CI y del despliegue de un commit (`--wait` espera)      |
 
 ## Entornos
 
-| Entorno    | Calendario              | Trabajo                   | Cómo se despliega                                         |
-| ---------- | ----------------------- | ------------------------- | --------------------------------------------------------- |
-| local      | `http://localhost:5173` | `http://localhost:5174`   | `pnpm dev`                                                |
-| producción | `https://delyra.app`    | `https://work.delyra.app` | Manual (Actions → Deploy → Run workflow), con CI en verde |
+| Entorno    | Calendario              | Trabajo                   | Cómo se despliega                                  |
+| ---------- | ----------------------- | ------------------------- | -------------------------------------------------- |
+| local      | `http://localhost:5173` | `http://localhost:5174`   | `pnpm dev`                                         |
+| producción | `https://delyra.app`    | `https://work.delyra.app` | Automático tras cada push a `main` con CI en verde |
 
 No hay entorno de staging (ADR-0003): lo que se valida en local y en CI se despliega directamente
-en producción, a mano y con CI en verde (docs/runbooks/despliegue.md). Las URL exactas de cada
+en producción, solo y en cuanto el CI de `main` termina en verde (docs/runbooks/despliegue.md). Las URL exactas de cada
 entorno están en `packages/shared/src/app-origins.json`.
 
 ## Documentación

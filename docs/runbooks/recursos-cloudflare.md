@@ -62,8 +62,8 @@ repositorio o en el Environment `production`:
 | `CLOUDFLARE_API_TOKEN`  | Token de CI (P-05) |
 | `CLOUDFLARE_ACCOUNT_ID` | Account ID (P-05)  |
 
-Conviene que el Environment `production` tenga **revisores obligatorios** (P-04). El despliegue solo
-se lanza a mano (_Actions → Deploy → Run workflow_, docs/runbooks/despliegue.md).
+El Environment `production` **no** debe tener revisores obligatorios: el despliegue es automático
+tras cada CI en verde de `main` y se quedaría esperando la aprobación (docs/runbooks/despliegue.md).
 
 El workflow empieza con `scripts/check-deploy-config.mjs`, que falla con la lista de lo que falta
 (secretos, identificadores de relleno o dominios que no coinciden) sin imprimir ningún valor. Puedes

@@ -24,6 +24,7 @@
     "db:migrate:prod": "pnpm --filter @delyra/api db:migrate:prod",
     "invite": "node scripts/create-invitation.mjs",
     "telegram:setup": "node scripts/telegram-setup.mjs",
+    "ci:status": "node scripts/ci-status.mjs",
     "prepare": "husky"
   },
   "devDependencies": {

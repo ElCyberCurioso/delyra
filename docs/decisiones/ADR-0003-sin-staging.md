@@ -17,17 +17,19 @@ de lo que aporta.
 
 Solo hay dos entornos:
 
-| Entorno    | Dónde                                             | Cómo                                                |
-| ---------- | ------------------------------------------------- | --------------------------------------------------- |
-| Local      | `http://localhost:5173` y `http://localhost:5174` | `pnpm dev`, con D1/R2/Queues de Miniflare           |
-| Producción | `https://delyra.app` y `https://work.delyra.app`  | Workflow `Deploy`, lanzado a mano (con CI en verde) |
+| Entorno    | Dónde                                             | Cómo                                               |
+| ---------- | ------------------------------------------------- | -------------------------------------------------- |
+| Local      | `http://localhost:5173` y `http://localhost:5174` | `pnpm dev`, con D1/R2/Queues de Miniflare          |
+| Producción | `https://delyra.app` y `https://work.delyra.app`  | Workflow `Deploy`, tras cada CI en verde de `main` |
 
 - Cada `wrangler.jsonc` tiene el entorno local en el nivel superior, con nombres terminados en
   `-local`, y un único entorno remoto, `production`. Un `wrangler deploy` sin `--env production`
   (o un build sin `CLOUDFLARE_ENV=production`) nunca sobrescribe los Workers de producción.
 - `packages/shared/src/app-origins.json` solo tiene `production` y `development`.
-- El despliegue es manual (_Actions → Deploy → Run workflow_) y exige que CI esté en verde para el
-  commit que se despliega. El Environment `production` puede pedir además aprobación (P-04).
+- El despliegue es automático: cada push a `main` se despliega cuando su CI termina en verde
+  (`workflow_run`), y solo el último commit de `main`. Se puede volver a lanzar a mano. Hasta el
+  2026-11-28 era manual (_Actions → Deploy → Run workflow_) y el Environment `production` podía
+  pedir aprobación (P-04); ahora no lleva revisores, porque bloquearían el automático.
 
 ## Cómo se compensa la falta de staging
 
