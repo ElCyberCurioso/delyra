@@ -24,6 +24,7 @@ class AppPreferences(context: Context) {
         val showHolidays = booleanPreferencesKey("show_holidays")
         val showTasks = booleanPreferencesKey("show_tasks")
         val lastUser = stringPreferencesKey("last_user")
+        val addAnotherCard = booleanPreferencesKey("add_another_card")
     }
 
     suspend fun environment(): Environment = Environment.parse(store.data.first()[Keys.environment])
@@ -50,6 +51,13 @@ class AppPreferences(context: Context) {
 
     suspend fun setCalendarView(value: String) {
         store.edit { it[Keys.calendarView] = value }
+    }
+
+    /** Casilla «Añadir otra» del alta de tarjetas: el formulario sigue abierto tras añadir. */
+    val addAnotherCard: Flow<Boolean> = store.data.map { it[Keys.addAnotherCard] ?: false }
+
+    suspend fun setAddAnotherCard(value: Boolean) {
+        store.edit { it[Keys.addAnotherCard] = value }
     }
 
     val layers: Flow<Pair<Boolean, Boolean>> =

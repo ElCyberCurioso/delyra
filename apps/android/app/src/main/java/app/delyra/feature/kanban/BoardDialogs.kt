@@ -10,12 +10,14 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -38,6 +40,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -58,7 +62,11 @@ import app.delyra.core.ui.parseHexColor
 @Composable
 fun BoardDialogsHost(vm: BoardViewModel, dialogs: BoardDialogs, onMessage: (String) -> Unit) {
     dialogs.addCardTo?.let { columnId ->
-        AddCardDialog(onDismiss = { dialogs.addCardTo = null }) { title, kind -> vm.addCard(columnId, title, kind) }
+        AddCardDialog(
+            addAnother = vm.addAnother,
+            onAddAnotherChange = vm::chooseAddAnother,
+            onDismiss = { dialogs.addCardTo = null },
+        ) { title, kind -> vm.addCard(columnId, title, kind) }
     }
     if (dialogs.newColumn) ColumnDialog(null, onDismiss = { dialogs.newColumn = false }) { n, w, d, g -> vm.addColumn(n, w, d, g) }
     dialogs.editColumn?.let { column ->
@@ -102,16 +110,43 @@ fun BoardDialogsHost(vm: BoardViewModel, dialogs: BoardDialogs, onMessage: (Stri
     }
 }
 
+/**
+ * Alta de una tarjeta. Por defecto se cierra al añadirla; con «Añadir otra» marcada sigue abierta,
+ * vacía y con el foco en el título para meter varias seguidas (como en la web).
+ */
 @Composable
-private fun AddCardDialog(onDismiss: () -> Unit, onAdd: (String, String) -> Unit) {
+private fun AddCardDialog(
+    addAnother: Boolean,
+    onAddAnotherChange: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+    onAdd: (String, String) -> Unit,
+) {
     var title by rememberSaveable { mutableStateOf("") }
     var kind by rememberSaveable { mutableStateOf("task") }
+    var added by rememberSaveable { mutableStateOf<String?>(null) }
+    val focus = remember { FocusRequester() }
+    val add: () -> Unit = {
+        onAdd(title.trim(), kind)
+        if (addAnother) {
+            added = title.trim()
+            title = ""
+            focus.requestFocus()
+        } else {
+            onDismiss()
+        }
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.board_add_card)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(title, { title = it.take(300) }, label = { Text(stringResource(R.string.event_title)) }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    title,
+                    { title = it.take(300) },
+                    label = { Text(stringResource(R.string.event_title)) },
+                    supportingText = added?.let { name -> @Composable { Text(stringResource(R.string.board_card_added, name)) } },
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     CARD_KINDS.forEach { option ->
                         FilterChip(
@@ -122,9 +157,16 @@ private fun AddCardDialog(onDismiss: () -> Unit, onAdd: (String, String) -> Unit
                         )
                     }
                 }
+                Row(
+                    Modifier.fillMaxWidth().toggleable(value = addAnother, role = Role.Checkbox, onValueChange = onAddAnotherChange),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(checked = addAnother, onCheckedChange = null)
+                    Text(stringResource(R.string.board_add_another), Modifier.padding(start = 8.dp))
+                }
             }
         },
-        confirmButton = { TextButton(onClick = { onAdd(title.trim(), kind); onDismiss() }, enabled = title.isNotBlank()) { Text(stringResource(R.string.action_add)) } },
+        confirmButton = { TextButton(onClick = add, enabled = title.isNotBlank()) { Text(stringResource(R.string.action_add)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }

@@ -1,5 +1,6 @@
 package app.delyra.feature.kanban
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -12,6 +13,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -50,6 +53,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -65,7 +69,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -106,6 +112,12 @@ fun CardScreen(cardId: String, onBack: () -> Unit) {
         if (vm.gone) android.widget.Toast.makeText(context, goneText, android.widget.Toast.LENGTH_LONG).show()
         if (vm.deleted || vm.gone) onBack()
     }
+    // Salir (flecha o gesto de atrás) con cambios sin guardar pregunta antes.
+    var confirmLeave by remember { mutableStateOf(false) }
+    BackHandler(enabled = vm.dirty) { confirmLeave = true }
+    if (confirmLeave) {
+        UnsavedCardDialog(vm, onDismiss = { confirmLeave = false }, onLeave = { confirmLeave = false; onBack() })
+    }
     // Con el tablero detrás (y su canal cerrado), la tarjeta escucha los cambios de las demás personas.
     LifecycleStartEffect(cardId) {
         vm.startLive()
@@ -116,15 +128,20 @@ fun CardScreen(cardId: String, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) } },
+                navigationIcon = {
+                    IconButton(onClick = { if (vm.dirty) confirmLeave = true else onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
+                    }
+                },
                 title = { Text(vm.board?.board?.name.orEmpty(), maxLines = 1) },
             )
         },
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = { OfflineBanner() },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
-            CardDetailBody(vm, Modifier.widthIn(max = 760.dp))
+        // Sin contar dos veces la barra de navegación en el `imePadding` del cuerpo.
+        Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding), contentAlignment = Alignment.TopCenter) {
+            CardDetailBody(vm, Modifier.widthIn(max = 760.dp).fillMaxHeight())
         }
     }
 }
@@ -133,6 +150,14 @@ fun CardScreen(cardId: String, onBack: () -> Unit) {
 fun CardMessages(vm: CardViewModel, snackbar: SnackbarHostState) {
     val text = vm.message?.message()
     val tooLarge = stringResource(R.string.card_attachment_too_large)
+    val saved = stringResource(R.string.card_saved)
+    LaunchedEffect(vm.savedNotice) {
+        if (vm.savedNotice) {
+            // Se apaga después: cambiar la clave antes cancelaría este mismo aviso.
+            snackbar.showSnackbar(saved)
+            vm.savedNotice = false
+        }
+    }
     LaunchedEffect(vm.message) {
         if (text != null) {
             snackbar.showSnackbar(text)
@@ -157,15 +182,21 @@ fun CardPane(cardId: String, onClose: () -> Unit, modifier: Modifier = Modifier)
         if (vm.gone) android.widget.Toast.makeText(context, goneText, android.widget.Toast.LENGTH_LONG).show()
         if (vm.deleted || vm.gone) onClose()
     }
+    var confirmClose by remember { mutableStateOf(false) }
+    if (confirmClose) {
+        UnsavedCardDialog(vm, onDismiss = { confirmClose = false }, onLeave = { confirmClose = false; onClose() })
+    }
     val snackbar = remember { SnackbarHostState() }
     CardMessages(vm, snackbar)
     Box(modifier) {
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.card_title), style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
-                IconButton(onClick = onClose) { Icon(Icons.Outlined.Close, stringResource(R.string.action_close)) }
+                IconButton(onClick = { if (vm.dirty) confirmClose = true else onClose() }) {
+                    Icon(Icons.Outlined.Close, stringResource(R.string.action_close))
+                }
             }
-            CardDetailBody(vm, Modifier.fillMaxWidth())
+            CardDetailBody(vm, Modifier.fillMaxWidth().weight(1f))
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
     }
@@ -178,25 +209,29 @@ private fun CardDetailBody(vm: CardViewModel, modifier: Modifier) {
         card == null && vm.loadError != null -> ErrorState(vm.loadError!!, onRetry = vm::load)
         card == null -> LoadingBox()
         // `imePadding` antes del desplazamiento: así la zona visible se acorta con el teclado y el
-        // campo con el foco (p. ej. «Nuevo elemento» de la checklist) sube por encima de él.
-        else -> Column(
-            modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            if (vm.busy || vm.uploading) LinearProgressIndicator(Modifier.fillMaxWidth()) else Spacer(Modifier.height(4.dp))
-            CardHeader(vm, card)
-            CardProperties(vm, card)
-            HorizontalDivider()
-            DescriptionSection(vm, card)
-            HorizontalDivider()
-            ChecklistSection(vm, card)
-            HorizontalDivider()
-            AttachmentsSection(vm, card)
-            HorizontalDivider()
-            CommentsSection(vm, card)
-            HorizontalDivider()
-            ActivitySection(card)
-            if (vm.canWrite) CardFooter(vm, card)
+        // campo con el foco (p. ej. «Nuevo elemento» de la checklist) sube por encima de él, y la
+        // barra de «Guardar cambios» queda justo encima del teclado.
+        else -> Column(modifier.fillMaxWidth().imePadding()) {
+            Column(
+                Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                if (vm.busy || vm.uploading) LinearProgressIndicator(Modifier.fillMaxWidth()) else Spacer(Modifier.height(4.dp))
+                CardHeader(vm, card)
+                CardProperties(vm, card)
+                HorizontalDivider()
+                DescriptionSection(vm, card)
+                HorizontalDivider()
+                ChecklistSection(vm, card)
+                HorizontalDivider()
+                AttachmentsSection(vm, card)
+                HorizontalDivider()
+                CommentsSection(vm, card)
+                HorizontalDivider()
+                ActivitySection(card)
+                if (vm.canWrite) CardFooter(vm, card)
+            }
+            if (vm.dirty) SaveBar(vm)
         }
     }
 }
@@ -204,10 +239,11 @@ private fun CardDetailBody(vm: CardViewModel, modifier: Modifier) {
 @Composable
 private fun CardHeader(vm: CardViewModel, card: CardDetail) {
     var editing by rememberSaveable { mutableStateOf(false) }
+    val draft = vm.draft
     Row(verticalAlignment = Alignment.Top) {
-        card.color?.let { ColorDot(parseHexColor(it), 14.dp, Modifier.padding(top = 8.dp, end = 10.dp)) }
+        draft.color(card)?.let { ColorDot(parseHexColor(it), 14.dp, Modifier.padding(top = 8.dp, end = 10.dp)) }
         Text(
-            card.title,
+            draft.title(card),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.weight(1f).semantics { heading() }.then(if (vm.canWrite) Modifier.clickable { editing = true } else Modifier),
         )
@@ -218,9 +254,10 @@ private fun CardHeader(vm: CardViewModel, card: CardDetail) {
         TextInputDialog(
             title = stringResource(R.string.card_rename),
             label = stringResource(R.string.event_title),
-            initial = card.title,
+            initial = draft.title(card),
+            confirmLabel = stringResource(R.string.action_ok),
             singleLine = false,
-            onConfirm = vm::setTitle,
+            onConfirm = { title -> vm.edit { it.copy(title = title) } },
             onDismiss = { editing = false },
         )
     }
@@ -239,25 +276,34 @@ private fun CardProperties(vm: CardViewModel, card: CardDetail) {
     var editAssignee by remember { mutableStateOf(false) }
     var delegateTo by remember { mutableStateOf<String?>(null) }
     val enabled = vm.canWrite
+    val draft = vm.draft
+    val due = draft.due(card)
+    val color = draft.color(card)
+    val assignee = draft.assignee(card)
+    val labelIds = draft.labelIds(card)
 
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Picker(stringResource(R.string.card_column), column?.name.orEmpty(), enabled, columns.map { it.id to it.name }) { id ->
             val target = columns.first { it.id == id }
             if (target.delegated) delegateTo = id else vm.move(id)
         }
-        Picker(stringResource(R.string.card_kind), kindLabel(card.kind), enabled, CARD_KINDS.map { it to it }, label = { kindLabel(it) }) { vm.setKind(it) }
-        Picker(stringResource(R.string.card_priority), priorityLabel(card.priority), enabled, CARD_PRIORITIES.map { it to it }, label = { priorityLabel(it) }) { vm.setPriority(it) }
+        Picker(stringResource(R.string.card_kind), kindLabel(draft.kind(card)), enabled, CARD_KINDS.map { it to it }, label = { kindLabel(it) }) { kind ->
+            vm.edit { it.copy(kind = kind) }
+        }
+        Picker(stringResource(R.string.card_priority), priorityLabel(draft.priority(card)), enabled, CARD_PRIORITIES.map { it to it }, label = { priorityLabel(it) }) { priority ->
+            vm.edit { it.copy(priority = priority) }
+        }
         AssistChip(
             onClick = { editDue = true },
             enabled = enabled,
-            label = { Text(card.due?.let { dueLabel(it, vm.zone, locale) } ?: stringResource(R.string.card_no_due)) },
+            label = { Text(due?.let { dueLabel(it, vm.zone, locale) } ?: stringResource(R.string.card_no_due)) },
             leadingIcon = { Icon(Icons.Outlined.Event, null, Modifier.size(18.dp)) },
         )
         AssistChip(
             onClick = { pickColor = true },
             enabled = enabled,
             label = { Text(stringResource(R.string.card_color)) },
-            leadingIcon = { card.color?.let { ColorDot(parseHexColor(it), 14.dp) } ?: Icon(Icons.Outlined.Palette, null, Modifier.size(18.dp)) },
+            leadingIcon = { color?.let { ColorDot(parseHexColor(it), 14.dp) } ?: Icon(Icons.Outlined.Palette, null, Modifier.size(18.dp)) },
         )
         AssistChip(
             onClick = { pickLabels = true },
@@ -265,34 +311,35 @@ private fun CardProperties(vm: CardViewModel, card: CardDetail) {
             label = { Text(stringResource(R.string.card_labels)) },
             leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Label, null, Modifier.size(18.dp)) },
         )
-        if (column?.delegated == true || card.assignee != null) {
+        if (column?.delegated == true || assignee != null) {
             AssistChip(
                 onClick = { editAssignee = true },
                 enabled = enabled,
-                label = { Text(card.assignee?.let { stringResource(R.string.card_assignee_to, it) } ?: stringResource(R.string.card_assignee)) },
+                label = { Text(assignee?.let { stringResource(R.string.card_assignee_to, it) } ?: stringResource(R.string.card_assignee)) },
                 leadingIcon = { Icon(AssigneeIcon, null, Modifier.size(18.dp)) },
             )
         }
     }
-    val cardLabels = labels.filter { it.id in card.labelIds }
+    val cardLabels = labels.filter { it.id in labelIds }
     if (cardLabels.isNotEmpty()) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             cardLabels.forEach { LabelPill(it.name, it.color) }
         }
     }
-    if (card.due != null) RemindersRow(vm, card)
+    // Los avisos le llegan a quien creó el tablero: solo esa persona los ve y los elige.
+    if (due != null && vm.isOwner) RemindersRow(vm, card, due.allDay)
 
     if (pickColor) {
         AlertDialog(
             onDismissRequest = { pickColor = false },
             title = { Text(stringResource(R.string.card_color)) },
-            text = { ColorPicker(card.color, onSelect = { vm.setColor(it); pickColor = false }) },
-            confirmButton = { TextButton(onClick = { vm.setColor(null); pickColor = false }) { Text(stringResource(R.string.card_no_color)) } },
+            text = { ColorPicker(color, onSelect = { picked -> vm.edit { it.copy(color = Chosen(picked)) }; pickColor = false }) },
+            confirmButton = { TextButton(onClick = { vm.edit { it.copy(color = Chosen(null)) }; pickColor = false }) { Text(stringResource(R.string.card_no_color)) } },
             dismissButton = { TextButton(onClick = { pickColor = false }) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
     if (pickLabels) {
-        var selected by remember { mutableStateOf(card.labelIds.toSet()) }
+        var selected by remember { mutableStateOf(labelIds) }
         AlertDialog(
             onDismissRequest = { pickLabels = false },
             title = { Text(stringResource(R.string.card_labels)) },
@@ -308,18 +355,19 @@ private fun CardProperties(vm: CardViewModel, card: CardDetail) {
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = { vm.setLabels(selected.toList()); pickLabels = false }) { Text(stringResource(R.string.action_save)) } },
+            confirmButton = { TextButton(onClick = { vm.edit { it.copy(labelIds = selected) }; pickLabels = false }) { Text(stringResource(R.string.action_ok)) } },
             dismissButton = { TextButton(onClick = { pickLabels = false }) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
-    if (editDue) DueDialog(card.due, vm.zone.id, onDismiss = { editDue = false }, onSave = vm::setDue, zone = vm.zone)
+    if (editDue) DueDialog(due, vm.zone.id, onDismiss = { editDue = false }, onSave = { value -> vm.edit { it.copy(due = Chosen(value)) } }, zone = vm.zone)
     if (editAssignee) {
         TextInputDialog(
             title = stringResource(R.string.card_assignee),
             label = stringResource(R.string.card_assignee_hint),
-            initial = card.assignee.orEmpty(),
+            initial = assignee.orEmpty(),
+            confirmLabel = stringResource(R.string.action_ok),
             maxLength = 80,
-            onConfirm = { vm.setAssignee(it) },
+            onConfirm = { name -> vm.edit { it.copy(assignee = Chosen(name)) } },
             onDismiss = { editAssignee = false },
         )
     }
@@ -327,7 +375,7 @@ private fun CardProperties(vm: CardViewModel, card: CardDetail) {
         TextInputDialog(
             title = stringResource(R.string.card_delegate_title),
             label = stringResource(R.string.card_assignee_hint),
-            initial = card.assignee.orEmpty(),
+            initial = assignee.orEmpty(),
             confirmLabel = stringResource(R.string.card_move),
             maxLength = 80,
             onConfirm = { vm.move(id, it) },
@@ -371,18 +419,17 @@ fun LabelPill(name: String, color: String) {
 }
 
 @Composable
-private fun RemindersRow(vm: CardViewModel, card: CardDetail) {
+private fun RemindersRow(vm: CardViewModel, card: CardDetail, allDay: Boolean) {
     var open by remember { mutableStateOf(false) }
-    val allDay = card.due?.allDay == true
-    val offsets = card.reminders.map { it.offsetMinutes }
+    val offsets = vm.draft.reminders(card)
     val options = (if (allDay) ALL_DAY_REMINDERS else TIMED_REMINDERS).filter { it !in offsets }
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
-        card.reminders.forEach { reminder ->
+        offsets.forEach { offset ->
             InputChip(
                 selected = false,
                 enabled = vm.canWrite,
-                onClick = { vm.setReminders(offsets - reminder.offsetMinutes) },
-                label = { Text(reminderLabel(reminder.offsetMinutes, allDay)) },
+                onClick = { vm.edit { it.copy(reminders = offsets - offset) } },
+                label = { Text(reminderLabel(offset, allDay)) },
                 leadingIcon = { Icon(Icons.Outlined.NotificationsNone, null) },
                 trailingIcon = { Icon(Icons.Outlined.Close, stringResource(R.string.event_remove_reminder)) },
             )
@@ -392,7 +439,7 @@ private fun RemindersRow(vm: CardViewModel, card: CardDetail) {
                 TextButton(onClick = { open = true }) { Text(stringResource(R.string.event_add_reminder)) }
                 DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
                     options.forEach { offset ->
-                        DropdownMenuItem(text = { Text(reminderLabel(offset, allDay)) }, onClick = { open = false; vm.setReminders(offsets + offset) })
+                        DropdownMenuItem(text = { Text(reminderLabel(offset, allDay)) }, onClick = { open = false; vm.edit { it.copy(reminders = offsets + offset) } })
                     }
                 }
             }
@@ -440,7 +487,7 @@ private fun DueDialog(due: DueInfo?, tz: String, zone: java.time.ZoneId, onDismi
                 }
                 onSave(value)
                 onDismiss()
-            }) { Text(stringResource(R.string.action_save)) }
+            }) { Text(stringResource(R.string.action_ok)) }
         },
         dismissButton = {
             Row {
@@ -452,6 +499,46 @@ private fun DueDialog(due: DueInfo?, tz: String, zone: java.time.ZoneId, onDismi
     if (pickDate) DatePick(date, onDismiss = { pickDate = false }) { date = it }
 }
 
+/** Barra de «Guardar cambios», debajo del contenido mientras haya algo sin guardar. */
+@Composable
+private fun SaveBar(vm: CardViewModel) {
+    Surface(tonalElevation = 3.dp, shadowElevation = 3.dp) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                stringResource(R.string.card_unsaved),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite },
+            )
+            TextButton(onClick = vm::discard, enabled = !vm.saving) { Text(stringResource(R.string.card_discard)) }
+            Button(onClick = { vm.save() }, enabled = !vm.saving) { Text(stringResource(R.string.card_save_changes)) }
+        }
+    }
+}
+
+/** Salir de una tarjeta con cambios sin guardar: guardarlos, descartarlos o seguir editando. */
+@Composable
+fun UnsavedCardDialog(vm: CardViewModel, onDismiss: () -> Unit, onLeave: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.card_leave_title)) },
+        text = { Text(stringResource(R.string.card_leave_body)) },
+        confirmButton = {
+            Button(onClick = { vm.save(onSaved = onLeave) }, enabled = !vm.saving) { Text(stringResource(R.string.card_save_and_leave)) }
+        },
+        dismissButton = {
+            Row {
+                TextButton(onClick = { vm.discard(); onLeave() }) { Text(stringResource(R.string.card_discard)) }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.card_keep_editing)) }
+            }
+        },
+    )
+}
+
 @Composable
 private fun SectionTitle(text: String) {
     Text(text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, modifier = Modifier.semantics { heading() })
@@ -460,27 +547,26 @@ private fun SectionTitle(text: String) {
 @Composable
 private fun DescriptionSection(vm: CardViewModel, card: CardDetail) {
     var editing by rememberSaveable { mutableStateOf(false) }
-    var draft by rememberSaveable(card.description) { mutableStateOf(card.description) }
+    val text = vm.draft.description(card)
+    // Se guarda con «Guardar cambios», junto con lo demás; al guardar o descartar se cierra el editor.
+    LaunchedEffect(vm.settled) { if (vm.draft.description == null) editing = false }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.weight(1f)) { SectionTitle(stringResource(R.string.card_description)) }
         if (vm.canWrite && !editing) IconButton(onClick = { editing = true }) { Icon(Icons.Outlined.Edit, stringResource(R.string.action_edit)) }
     }
     if (editing) {
         OutlinedTextField(
-            value = draft,
-            onValueChange = { draft = it.take(20_000) },
+            value = text,
+            onValueChange = { value -> vm.edit { it.copy(description = value.take(20_000)) } },
             minLines = 4,
             supportingText = { Text(stringResource(R.string.card_markdown_hint)) },
             modifier = Modifier.fillMaxWidth(),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { vm.setDescription(draft); editing = false }) { Text(stringResource(R.string.action_save)) }
-            TextButton(onClick = { draft = card.description; editing = false }) { Text(stringResource(R.string.action_cancel)) }
-        }
-    } else if (card.description.isBlank()) {
+        TextButton(onClick = { vm.edit { it.copy(description = null) }; editing = false }) { Text(stringResource(R.string.action_cancel)) }
+    } else if (text.isBlank()) {
         Text(stringResource(R.string.card_no_description), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
     } else {
-        MarkdownText(card.description)
+        MarkdownText(text)
     }
 }
 

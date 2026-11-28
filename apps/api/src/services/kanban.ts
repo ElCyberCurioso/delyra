@@ -430,6 +430,11 @@ export interface CardPatch {
   reminders?: ReminderInput[];
 }
 
+/**
+ * Guarda de una vez lo que llegue (el detalle de la tarjeta lo manda todo junto con su botón
+ * «Guardar»). Deja una fila de actividad por cada campo que cambia de verdad y ninguna, ni
+ * escritura, por lo que llega con el mismo valor que ya tenía.
+ */
 export async function updateCard(repo: KanbanRepository, cardId: string, patch: CardPatch) {
   const card = await requireCard(repo, cardId);
   const set: Partial<CardRow> = {};
@@ -447,7 +452,7 @@ export async function updateCard(repo: KanbanRepository, cardId: string, patch: 
     set.priority = patch.priority;
     changes.push(["priority", { to: patch.priority }]);
   }
-  if (patch.color !== undefined && patch.color?.toLowerCase() !== card.color) {
+  if (patch.color !== undefined && (patch.color?.toLowerCase() ?? null) !== card.color) {
     set.color = patch.color?.toLowerCase() ?? null;
   }
   if (patch.kind !== undefined && patch.kind !== card.kind) {
@@ -489,13 +494,22 @@ export async function updateCard(repo: KanbanRepository, cardId: string, patch: 
 
   if (patch.labelIds !== undefined) {
     // Solo etiquetas de este mismo tablero (y, por tanto, del usuario).
-    const allowed = new Set((await repo.labelsOf(card.boardId)).map((l) => l.id));
+    const [boardLabels, current] = await Promise.all([
+      repo.labelsOf(card.boardId),
+      repo.labelIdsOfCard(card.id),
+    ]);
+    const allowed = new Set(boardLabels.map((l) => l.id));
     const ids = [...new Set(patch.labelIds)];
     if (!ids.every((id) => allowed.has(id))) throw invalidField("labelIds", "Etiqueta no válida");
-    statements.push(
-      db.delete(cardLabels).where(eq(cardLabels.cardId, card.id)),
-      ...ids.map((labelId) => db.insert(cardLabels).values({ cardId: card.id, labelId })),
-    );
+    // Las mismas en otro orden no son un cambio.
+    const same = ids.length === current.length && current.every((id) => ids.includes(id));
+    if (!same) {
+      statements.push(
+        db.delete(cardLabels).where(eq(cardLabels.cardId, card.id)),
+        ...ids.map((labelId) => db.insert(cardLabels).values({ cardId: card.id, labelId })),
+        repo.activity(card.id, "labels", { to: ids }),
+      );
+    }
   }
   await runBatch(repo, statements);
 

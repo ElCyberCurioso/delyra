@@ -204,6 +204,63 @@ describe("detalle de tarjeta (F4-05, F4-07)", () => {
     );
   });
 
+  it("al guardar varios campos a la vez deja una fila por cambio real y ninguna si nada cambia", async () => {
+    const { client } = await registerUser();
+    const detail = await newBoard(client);
+    const card = await newCard(client, detail.columns[0]?.id ?? "", "Factura");
+    const [first, second] = detail.labels.map((l) => l.id);
+    const patch = async (body: Record<string, unknown>) => {
+      const response = await client.request("PATCH", `/api/cards/${card.id}`, body);
+      return (await json<{ card: CardDetail }>(response, 200)).card;
+    };
+    const kinds = (c: CardDetail) => c.activity.map((a) => a.kind).sort();
+
+    // Lo que manda el botón «Guardar» del detalle: todos los cambios juntos.
+    const saved = await patch({
+      title: "Pagar factura",
+      priority: "high",
+      kind: "call",
+      assignee: "Gestoría",
+      color: "#2F80ED",
+      labelIds: [first, second],
+      due: { allDay: false, at: "2027-05-10T15:00:00Z", tz: "Europe/Madrid" },
+    });
+    expect(kinds(saved)).toEqual(
+      ["assigned", "created", "due", "kind", "labels", "priority", "renamed"].sort(),
+    );
+
+    // Los mismos valores otra vez (etiquetas en otro orden, color en mayúsculas, la fecha con
+    // otra forma del mismo instante): ni una fila más.
+    const again = await patch({
+      title: "Pagar factura",
+      priority: "high",
+      kind: "call",
+      assignee: "Gestoría",
+      color: "#2f80ed",
+      labelIds: [second, first],
+      due: { allDay: false, at: "2027-05-10T17:00:00+02:00", tz: "Europe/Madrid" },
+      description: "",
+    });
+    expect(again.activity).toHaveLength(saved.activity.length);
+
+    // Solo cambia la fecha: una sola fila «due».
+    const moved = await patch({
+      title: "Pagar factura",
+      priority: "high",
+      due: { allDay: false, at: "2027-05-11T09:30:00Z", tz: "Europe/Madrid" },
+    });
+    expect(moved.activity).toHaveLength(saved.activity.length + 1);
+    expect(moved.activity[0]).toMatchObject({ kind: "due" });
+
+    // Sin color que quitar tampoco se toca la tarjeta.
+    const plain = await newCard(client, detail.columns[0]?.id ?? "", "Sin color");
+    const { card: untouched } = await json<{ card: CardDetail }>(
+      await client.request("PATCH", `/api/cards/${plain.id}`, { color: null, labelIds: [] }),
+      200,
+    );
+    expect(untouched.activity.map((a) => a.kind)).toEqual(["created"]);
+  });
+
   it("cada tarjeta puede tener su color (cualquier #rrggbb) o ninguno", async () => {
     const { client } = await registerUser();
     const detail = await newBoard(client);

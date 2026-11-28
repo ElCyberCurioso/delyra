@@ -695,6 +695,25 @@ function CardView({ card, labels, timeZone, now, overlay = false }: CardViewProp
   );
 }
 
+/** Casilla «Añadir otra» del alta de tarjetas: se recuerda en este navegador. */
+const ADD_ANOTHER_KEY = "delyra.work.addAnother";
+
+function savedAddAnother(): boolean {
+  try {
+    return localStorage.getItem(ADD_ANOTHER_KEY) === "on";
+  } catch {
+    return false;
+  }
+}
+
+function saveAddAnother(value: boolean) {
+  try {
+    localStorage.setItem(ADD_ANOTHER_KEY, value ? "on" : "off");
+  } catch {
+    // Sin almacenamiento (modo privado estricto): vale para esta vez.
+  }
+}
+
 function AddCard({
   columnName,
   onAdd,
@@ -706,7 +725,15 @@ function AddCard({
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState<CardKind>("task");
   const [busy, setBusy] = useState(false);
+  // Marcada, el formulario sigue abierto (y vacío) para meter varias seguidas.
+  const [addAnother, setAddAnother] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
   const t = workMessages().canvas;
+  const start = () => {
+    // Se lee al abrir: la casilla es la misma en todas las columnas.
+    setAddAnother(savedAddAnother());
+    setOpen(true);
+  };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!title.trim()) return;
@@ -714,6 +741,14 @@ function AddCard({
     try {
       await onAdd(title.trim(), kind);
       setTitle("");
+      if (addAnother) {
+        input.current?.focus();
+      } else {
+        setKind("task");
+        setOpen(false);
+      }
+    } catch {
+      // El aviso ya lo da la mutación; lo escrito se queda para reintentar.
     } finally {
       setBusy(false);
     }
@@ -725,7 +760,7 @@ function AddCard({
           variant="ghost"
           size="sm"
           className="w-full justify-start rounded-xl text-muted-foreground hover:bg-card"
-          onClick={() => setOpen(true)}
+          onClick={start}
         >
           <PlusIcon aria-hidden="true" />
           {t.addCard}
@@ -737,6 +772,7 @@ function AddCard({
   return (
     <form onSubmit={(e) => void submit(e)} className="grid gap-2 p-2 pt-0">
       <Input
+        ref={input}
         aria-label={t.newCardTitle(columnName)}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
@@ -754,13 +790,25 @@ function AddCard({
         options={kindOptions()}
         className="[&_select]:h-9"
       />
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" size="sm" disabled={busy || !title.trim()}>
           {t.add}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
           {t.cancel}
         </Button>
+        <label className="ml-auto flex items-center gap-1.5 text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            className="pointer-coarse:size-5"
+            checked={addAnother}
+            onChange={(e) => {
+              setAddAnother(e.target.checked);
+              saveAddAnother(e.target.checked);
+            }}
+          />
+          {t.addAnother}
+        </label>
       </div>
     </form>
   );

@@ -1,7 +1,10 @@
-import type { BoardDetail, CardSummary } from "@delyra/shared";
+import type { BoardDetail, CardDetail, CardSummary } from "@delyra/shared";
 import { describe, expect, it } from "vitest";
 import {
+  cardEdits,
   cardIdsByColumn,
+  cardPatch,
+  draftAfterSave,
   dueLabel,
   dueThisWeek,
   fromLocalInput,
@@ -199,5 +202,80 @@ describe("Markdown saneado (F4-09)", () => {
     expect(renderMarkdown("ver https://delyra.app")).toContain(
       'href="https://delyra.app" target="_blank" rel="noopener noreferrer nofollow"',
     );
+  });
+});
+
+describe("borrador del detalle de tarjeta", () => {
+  const saved: CardDetail = {
+    ...card("k", "todo", "a0", {
+      title: "Factura",
+      labelIds: ["l1", "l2"],
+      color: "#2f80ed",
+      due: { allDay: false, at: "2027-05-10T15:00:00.000Z", tz: TZ },
+    }),
+    boardId: "b",
+    description: "",
+    checklistItems: [],
+    commentList: [],
+    attachmentList: [],
+    activity: [],
+    reminders: [{ id: "r", offsetMinutes: 60, nextFireAt: null }],
+  };
+  const patch = (draft: Parameters<typeof cardPatch>[1], reminders = true) =>
+    cardPatch(saved, draft, { timeZone: TZ, reminders });
+
+  it("sin cambios de verdad no manda nada", () => {
+    expect(patch({})).toEqual({});
+    expect(
+      patch({
+        title: "  Factura ",
+        labelIds: ["l2", "l1"],
+        color: "#2F80ED",
+        assignee: "  ",
+        // El mismo instante escrito de otra forma.
+        due: { allDay: false, at: "2027-05-10T17:00:00+02:00" },
+        reminder: "60",
+      }),
+    ).toEqual({});
+  });
+
+  it("manda solo lo que cambia, con la fecha de una vez", () => {
+    expect(
+      patch({
+        title: " Pagar factura ",
+        priority: "high",
+        assignee: " Gestoría ",
+        labelIds: ["l1"],
+        due: { allDay: false, at: "2027-05-12T15:30:00.000Z" },
+      }),
+    ).toEqual({
+      title: "Pagar factura",
+      priority: "high",
+      assignee: "Gestoría",
+      labelIds: ["l1"],
+      due: { allDay: false, at: "2027-05-12T15:30:00.000Z", tz: TZ },
+    });
+    expect(patch({ due: null, reminder: "" })).toEqual({ due: null });
+  });
+
+  it("los avisos: solo quien creó el tablero, y el de por defecto con la primera fecha", () => {
+    expect(patch({ reminder: "" })).toEqual({ reminders: [] });
+    expect(patch({ reminder: "15" }, false)).toEqual({});
+    const undated = { ...saved, due: null, reminders: [] };
+    const first = { due: { allDay: true, at: "2027-05-12" } };
+    // Sin tocar el aviso se ve el que pondrá la API y no hace falta mandarlo.
+    expect(cardEdits(undated, first).reminder).toBe("-540");
+    expect(cardPatch(undated, first, { timeZone: TZ, reminders: true })).toEqual({
+      due: { allDay: true, at: "2027-05-12", tz: TZ },
+    });
+    expect(
+      cardPatch(undated, { ...first, reminder: "" }, { timeZone: TZ, reminders: true }),
+    ).toMatchObject({ reminders: [] });
+  });
+
+  it("tras guardar queda solo lo que se tocó mientras tanto", () => {
+    const sent = { title: "Uno", priority: "high" as const };
+    expect(draftAfterSave(sent, sent)).toEqual({});
+    expect(draftAfterSave({ ...sent, title: "Dos" }, sent)).toEqual({ title: "Dos" });
   });
 });
