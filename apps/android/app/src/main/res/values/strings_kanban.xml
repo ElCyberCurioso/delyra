@@ -56,6 +56,8 @@
     <string name="board_export_csv">Exportar (CSV)</string>
     <string name="board_settings">Ajustes del tablero</string>
     <string name="board_add_card">Añadir tarjeta</string>
+    <string name="board_add_another">Añadir otra</string>
+    <string name="board_card_added">Añadida: «%1$s»</string>
     <string name="board_empty_title">Este tablero no tiene columnas</string>
     <string name="board_empty_body">Crea la primera para empezar a añadir tarjetas.</string>
     <string name="board_column_empty">No hay tarjetas en esta columna.</string>
@@ -117,6 +119,14 @@
     <string name="card_description">Descripción</string>
     <string name="card_no_description">Sin descripción.</string>
     <string name="card_markdown_hint">Admite Markdown: **negrita**, *cursiva*, listas y enlaces.</string>
+    <string name="card_save_changes">Guardar cambios</string>
+    <string name="card_unsaved">Cambios sin guardar</string>
+    <string name="card_saved">Cambios guardados</string>
+    <string name="card_discard">Descartar</string>
+    <string name="card_leave_title">¿Salir sin guardar?</string>
+    <string name="card_leave_body">Hay cambios en esta tarjeta que aún no has guardado.</string>
+    <string name="card_keep_editing">Seguir editando</string>
+    <string name="card_save_and_leave">Guardar y salir</string>
     <string name="card_checklist">Checklist</string>
     <string name="card_checklist_add">Nuevo elemento</string>
     <string name="card_attachments">Adjuntos</string>

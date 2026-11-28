@@ -56,6 +56,8 @@
     <string name="board_export_csv">Export (CSV)</string>
     <string name="board_settings">Board settings</string>
     <string name="board_add_card">Add card</string>
+    <string name="board_add_another">Add another</string>
+    <string name="board_card_added">Added: “%1$s”</string>
     <string name="board_empty_title">This board has no columns</string>
     <string name="board_empty_body">Create the first one to start adding cards.</string>
     <string name="board_column_empty">No cards in this column.</string>
@@ -117,6 +119,14 @@
     <string name="card_description">Description</string>
     <string name="card_no_description">No description.</string>
     <string name="card_markdown_hint">Supports Markdown: **bold**, *italic*, lists and links.</string>
+    <string name="card_save_changes">Save changes</string>
+    <string name="card_unsaved">Unsaved changes</string>
+    <string name="card_saved">Changes saved</string>
+    <string name="card_discard">Discard</string>
+    <string name="card_leave_title">Leave without saving?</string>
+    <string name="card_leave_body">This card has changes you haven\'t saved yet.</string>
+    <string name="card_keep_editing">Keep editing</string>
+    <string name="card_save_and_leave">Save and leave</string>
     <string name="card_checklist">Checklist</string>
     <string name="card_checklist_add">New item</string>
     <string name="card_attachments">Attachments</string>

@@ -2,6 +2,8 @@ import {
   type BoardColumn,
   type BoardDetail,
   type BoardTemplate,
+  type CardDetail,
+  type CardKind,
   type CardPriority,
   type CardSummary,
   dateOnlyToUtc,
@@ -218,3 +220,110 @@ export const priorityLabel = (priority: CardPriority): string =>
 
 /** Nombre y descripción de una plantilla de tablero en el idioma actual. */
 export const templateLabel = (template: BoardTemplate) => workMessages().templates[template];
+
+// ── Borrador del detalle de tarjeta ──────────────────────────────────────────
+
+/**
+ * Lo que el detalle de una tarjeta guarda con su botón «Guardar cambios». Lo demás (mover,
+ * checklist, comentarios, adjuntos, archivar) es de un solo gesto y va al momento.
+ */
+export interface CardEdits {
+  title: string;
+  description: string;
+  kind: CardKind;
+  priority: CardPriority;
+  color: string | null;
+  /** Texto del campo: vacío = nadie. */
+  assignee: string;
+  labelIds: string[];
+  due: { allDay: boolean; at: string } | null;
+  /** Minutos del aviso por Telegram, en texto; vacío = sin aviso. */
+  reminder: string;
+}
+
+/** Solo los campos que se han tocado (los demás se ven tal y como están guardados). */
+export type CardDraft = Partial<CardEdits>;
+
+/** El aviso que pone la API al dar fecha a una tarjeta sin elegir ninguno. */
+export const defaultReminder = (allDay: boolean) => (allDay ? "-540" : "60");
+
+/** El aviso guardado o, si aún no tiene fecha, el que pondría la API con la fecha nueva. */
+function savedReminder(card: CardDetail, allDay: boolean): string {
+  if (!card.due) return defaultReminder(allDay);
+  const first = card.reminders[0];
+  return first ? String(first.offsetMinutes) : "";
+}
+
+/** Lo que se ve en el detalle: lo guardado con el borrador encima. */
+export function cardEdits(card: CardDetail, draft: CardDraft): CardEdits {
+  const due =
+    draft.due !== undefined
+      ? draft.due
+      : card.due
+        ? { allDay: card.due.allDay, at: card.due.at }
+        : null;
+  return {
+    title: draft.title ?? card.title,
+    description: draft.description ?? card.description,
+    kind: draft.kind ?? card.kind,
+    priority: draft.priority ?? card.priority,
+    color: draft.color !== undefined ? draft.color : card.color,
+    assignee: draft.assignee ?? card.assignee ?? "",
+    labelIds: draft.labelIds ?? card.labelIds,
+    due,
+    reminder: draft.reminder ?? savedReminder(card, due?.allDay ?? false),
+  };
+}
+
+const sameSet = (a: readonly string[], b: readonly string[]) =>
+  a.length === b.length && a.every((id) => b.includes(id));
+
+function sameDue(a: CardEdits["due"], b: DueInfo | null) {
+  if (a === null || b === null) return a === b;
+  if (a.allDay !== b.allDay) return false;
+  return a.allDay ? a.at === b.at : Date.parse(a.at) === Date.parse(b.at);
+}
+
+/**
+ * Lo que manda el botón «Guardar cambios»: solo lo que cambia de verdad. Elegir una fecha
+ * tocando el día, el mes y la hora deja un único `due` (y una sola fila en la actividad).
+ * Los avisos solo los elige quien creó el tablero (`reminders`).
+ */
+export function cardPatch(
+  card: CardDetail,
+  draft: CardDraft,
+  options: { timeZone: string; reminders: boolean },
+): Record<string, unknown> {
+  const next = cardEdits(card, draft);
+  const patch: Record<string, unknown> = {};
+  const title = next.title.trim();
+  if (title !== card.title) patch.title = title;
+  if (next.description !== card.description) patch.description = next.description;
+  if (next.kind !== card.kind) patch.kind = next.kind;
+  if (next.priority !== card.priority) patch.priority = next.priority;
+  if ((next.color?.toLowerCase() ?? null) !== (card.color?.toLowerCase() ?? null)) {
+    patch.color = next.color;
+  }
+  const assignee = next.assignee.trim();
+  if (assignee !== (card.assignee ?? "")) patch.assignee = assignee === "" ? null : assignee;
+  if (!sameSet(next.labelIds, card.labelIds)) patch.labelIds = next.labelIds;
+  if (!sameDue(next.due, card.due)) {
+    patch.due = next.due ? { ...next.due, tz: options.timeZone } : null;
+  }
+  if (
+    options.reminders &&
+    next.due !== null &&
+    next.reminder !== savedReminder(card, next.due.allDay)
+  ) {
+    patch.reminders =
+      next.reminder === "" ? [] : [{ offsetMinutes: Number(next.reminder), channel: "telegram" }];
+  }
+  return patch;
+}
+
+/** Tras guardar, el borrador conserva solo lo que se tocó mientras se guardaba. */
+export function draftAfterSave(current: CardDraft, sent: CardDraft): CardDraft {
+  return Object.fromEntries(
+    Object.entries(current).filter(([key, value]) => sent[key as keyof CardDraft] !== value),
+  );
+}

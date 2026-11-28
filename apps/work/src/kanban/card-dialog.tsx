@@ -15,6 +15,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   errorMessage,
@@ -24,6 +25,7 @@ import {
   toast,
 } from "@delyra/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useBlocker } from "@tanstack/react-router";
 import {
   ArchiveIcon,
   ArchiveRestoreIcon,
@@ -35,7 +37,7 @@ import {
   Trash2Icon,
   XIcon,
 } from "lucide-react";
-import { type FormEvent, type ReactNode, useId, useRef, useState } from "react";
+import { type FormEvent, type ReactNode, useCallback, useId, useRef, useState } from "react";
 import {
   addChecklistItem,
   addComment,
@@ -57,7 +59,11 @@ import {
   useCard,
 } from "./api";
 import {
+  type CardDraft,
+  cardEdits,
   cardIdsByColumn,
+  cardPatch,
+  draftAfterSave,
   fromLocalInput,
   isOverdue,
   priorityLabel,
@@ -85,6 +91,8 @@ export function CardDialog({ cardId, board, timeZone, now, onClose }: CardDialog
       <DialogContent className="sm:max-w-[min(48rem,calc(100%-2rem))]">
         {card.data?.boardId === board.board.id ? (
           <CardBody
+            // Otra tarjeta, otro borrador.
+            key={card.data.id}
             card={card.data}
             board={board}
             timeZone={timeZone}
@@ -130,21 +138,18 @@ const str = (value: unknown) => (typeof value === "string" ? value : "");
 const PRIORITIES = new Set<string>(CARD_PRIORITIES);
 const CARD_KIND_SET = new Set<string>(CARD_KINDS);
 
-/** A quién se le ha pasado la tarjeta: se guarda al salir del campo o con Intro (vacío = nadie). */
+/** A quién se le ha pasado la tarjeta (vacío = nadie). Intro guarda los cambios. */
 function AssigneeField({
   value,
-  onSave,
+  onChange,
+  onSubmit,
 }: {
-  value: string | null;
-  onSave: (assignee: string | null) => void;
+  value: string;
+  onChange: (assignee: string) => void;
+  onSubmit: () => void;
 }) {
-  const [draft, setDraft] = useState(value ?? "");
   const id = useId();
   const t = workMessages().card;
-  const commit = () => {
-    const next = draft.trim();
-    if (next !== (value ?? "")) onSave(next === "" ? null : next);
-  };
   return (
     <div className="grid gap-1.5">
       <label htmlFor={id} className="text-sm font-medium">
@@ -152,15 +157,14 @@ function AssigneeField({
       </label>
       <input
         id={id}
-        value={draft}
+        value={value}
         maxLength={KANBAN_LIMITS.assignee}
         placeholder={t.assigneePlaceholder}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
+        onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
-            commit();
+            onSubmit();
           }
         }}
         className="h-10 rounded-md border bg-background px-2 text-base sm:h-9 sm:text-sm"
@@ -254,10 +258,53 @@ function CardBody({
   const isOwner = role === "owner";
   const shared = board.board.members > 0 || !isOwner;
 
+  // Lo que se edita en el detalle no se sube solo: va al borrador y lo manda «Guardar cambios».
+  const [draft, setDraft] = useState<CardDraft>({});
+  const edit = (change: CardDraft) => setDraft((current) => ({ ...current, ...change }));
+  const values = cardEdits(card, draft);
+  const patch = cardPatch(card, draft, { timeZone, reminders: isOwner });
+  const dirty = !readOnly && Object.keys(patch).length > 0;
+  const titleMissing = values.title.trim() === "";
+  const [editingDescription, setEditingDescription] = useState(false);
+
   const save = useMutation({
-    mutationFn: (body: Record<string, unknown>) => updateCard(card.id, body),
-    onSuccess: (updated) => applyCard(queryClient, updated),
+    mutationFn: (v: { patch: Record<string, unknown>; sent: CardDraft }) =>
+      updateCard(card.id, v.patch),
+    onSuccess: (updated, { sent }) => {
+      applyCard(queryClient, updated);
+      setDraft((current) => draftAfterSave(current, sent));
+      if (sent.description !== undefined) setEditingDescription(false);
+      toast.success(workMessages().card.saved);
+    },
     onError: (error) => toast.error(errorMessage(error)),
+  });
+  const canSave = dirty && !titleMissing && !save.isPending;
+  /** Manda el borrador; `true` si quedó guardado (el error ya lo avisa la mutación). */
+  const submit = async () => {
+    if (!canSave) return false;
+    try {
+      await save.mutateAsync({ patch, sent: draft });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // Cerrar la tarjeta (Esc, la X, «Atrás» del navegador…) con cambios sin guardar pregunta antes;
+  // recargar o cerrar la pestaña, el aviso propio del navegador.
+  const skipGuard = useRef(false);
+  const shouldBlockFn = useCallback(
+    ({ current, next }: Record<"current" | "next", { pathname: string; search: unknown }>) =>
+      !skipGuard.current &&
+      ((next.search as { tarjeta?: string }).tarjeta !== card.id ||
+        next.pathname !== current.pathname),
+    [card.id],
+  );
+  const leave = useBlocker({
+    shouldBlockFn,
+    disabled: !dirty,
+    enableBeforeUnload: dirty,
+    withResolver: true,
   });
   const run = useMutation({
     mutationFn: (action: () => Promise<CardDetail>) => action(),
@@ -291,6 +338,8 @@ function CardBody({
   const remove = useMutation({
     mutationFn: () => deleteCard(card.id),
     onSuccess: () => {
+      // Borrada: no queda nada que guardar.
+      skipGuard.current = true;
       onClose();
       void queryClient.invalidateQueries({ queryKey: boardKey(board.board.id) });
       void queryClient.invalidateQueries({ queryKey: archivedKey(board.board.id) });
@@ -300,24 +349,23 @@ function CardBody({
     onError: (error) => toast.error(errorMessage(error)),
   });
 
-  const saveTitle = (input: HTMLTextAreaElement) => {
-    const next = input.value.trim();
-    if (next && next !== card.title) save.mutate({ title: next });
-    else input.value = card.title;
-  };
-
+  const due = values.due;
+  // «Vencida» según lo guardado: la fecha del borrador aún no cuenta.
   const overdue = isOverdue(card, now, timeZone);
-  const reminderOptions = card.due?.allDay ? allDayReminders() : timedReminders();
+  const reminderOptions = due?.allDay ? allDayReminders() : timedReminders();
   const siblings = cardIdsByColumn(board)[card.columnId] ?? [];
   const index = siblings.indexOf(card.id);
   const t = workMessages().card;
-  const currentReminder = card.reminders[0] ? String(card.reminders[0].offsetMinutes) : "";
+  const currentReminder = values.reminder;
 
-  const setDue = (due: { allDay: boolean; at: string } | null) =>
-    save.mutate({ due: due ? { ...due, tz: timeZone } : null });
+  const setDue = (next: { allDay: boolean; at: string } | null) => edit({ due: next });
   // Sin fecha todavía, la casilla solo elige qué selector se muestra.
   const [allDayDraft, setAllDayDraft] = useState(false);
-  const allDay = card.due ? card.due.allDay : allDayDraft;
+  const allDay = due ? due.allDay : allDayDraft;
+  const discard = () => {
+    setDraft({});
+    setEditingDescription(false);
+  };
 
   const askColumn = askAssignee ? columns.find((c) => c.id === askAssignee) : null;
 
@@ -342,24 +390,28 @@ function CardBody({
           {t.title}
         </label>
         <textarea
-          // Sin controlar: se rehace si el título cambia en el servidor.
-          key={card.title}
           id={`${ids.column}-title`}
-          defaultValue={card.title}
+          value={values.title}
           readOnly={readOnly}
-          onBlur={(e) => {
-            if (!readOnly) saveTitle(e.currentTarget);
-          }}
+          onChange={(e) => edit({ title: e.target.value })}
           onKeyDown={(e) => {
+            // Un título es una línea: Intro guarda los cambios.
             if (e.key === "Enter") {
               e.preventDefault();
-              e.currentTarget.blur();
+              void submit();
             }
           }}
+          aria-invalid={titleMissing || undefined}
+          aria-describedby={titleMissing ? `${ids.column}-title-error` : undefined}
           maxLength={KANBAN_LIMITS.cardTitle}
           rows={1}
-          className="field-sizing-content w-full resize-none rounded-md border border-transparent bg-transparent px-1 text-lg font-semibold hover:border-input focus-visible:border-ring focus-visible:outline-none"
+          className="field-sizing-content w-full resize-none rounded-md border border-transparent bg-transparent px-1 text-lg font-semibold hover:border-input focus-visible:border-ring focus-visible:outline-none aria-invalid:border-destructive"
         />
+        {titleMissing ? (
+          <p id={`${ids.column}-title-error`} className="px-1 text-sm text-destructive">
+            {t.titleRequired}
+          </p>
+        ) : null}
         <DialogDescription>
           {t.inColumn(columns.find((c) => c.id === card.columnId)?.name ?? "")}
           {card.completedAt ? t.completedOn(formatDateTime(card.completedAt, timeZone)) : ""}
@@ -429,8 +481,8 @@ function CardBody({
               </label>
               <select
                 id={ids.kind}
-                value={card.kind}
-                onChange={(e) => save.mutate({ kind: e.target.value })}
+                value={values.kind}
+                onChange={(e) => edit({ kind: e.target.value as CardKind })}
                 className="h-10 rounded-md border bg-background px-2 text-base sm:h-9 sm:text-sm"
               >
                 {kindOptions().map((option) => (
@@ -441,9 +493,9 @@ function CardBody({
               </select>
             </div>
             <AssigneeField
-              key={card.assignee ?? ""}
-              value={card.assignee}
-              onSave={(assignee) => save.mutate({ assignee })}
+              value={values.assignee}
+              onChange={(assignee) => edit({ assignee })}
+              onSubmit={() => void submit()}
             />
             <div className="grid gap-1.5">
               <label htmlFor={ids.priority} className="text-sm font-medium">
@@ -451,8 +503,8 @@ function CardBody({
               </label>
               <select
                 id={ids.priority}
-                value={card.priority}
-                onChange={(e) => save.mutate({ priority: e.target.value })}
+                value={values.priority}
+                onChange={(e) => edit({ priority: e.target.value as CardPriority })}
                 className="h-10 rounded-md border bg-background px-2 text-base sm:h-9 sm:text-sm"
               >
                 {CARD_PRIORITIES.map((p) => (
@@ -464,9 +516,9 @@ function CardBody({
             </div>
             <ColorPicker
               legend={t.color}
-              value={card.color}
+              value={values.color}
               allowNone
-              onChange={(color) => save.mutate({ color })}
+              onChange={(color) => edit({ color })}
             />
             <fieldset className="grid gap-1.5">
               <legend className="mb-1 text-sm font-medium">{t.labels}</legend>
@@ -478,12 +530,12 @@ function CardBody({
                     <input
                       type="checkbox"
                       className="pointer-coarse:size-5"
-                      checked={card.labelIds.includes(label.id)}
+                      checked={values.labelIds.includes(label.id)}
                       onChange={(e) =>
-                        save.mutate({
+                        edit({
                           labelIds: e.target.checked
-                            ? [...card.labelIds, label.id]
-                            : card.labelIds.filter((id) => id !== label.id),
+                            ? [...values.labelIds, label.id]
+                            : values.labelIds.filter((id) => id !== label.id),
                         })
                       }
                     />
@@ -505,13 +557,11 @@ function CardBody({
                   className="pointer-coarse:size-5"
                   checked={allDay}
                   onChange={(e) => {
-                    if (!card.due) {
+                    if (!due) {
                       setAllDayDraft(e.target.checked);
                       return;
                     }
-                    const date = card.due.allDay
-                      ? card.due.at
-                      : toLocalInput(card.due.at, timeZone).slice(0, 10);
+                    const date = due.allDay ? due.at : toLocalInput(due.at, timeZone).slice(0, 10);
                     setDue(
                       e.target.checked
                         ? { allDay: true, at: date }
@@ -528,7 +578,7 @@ function CardBody({
                 <Input
                   id={ids.due}
                   type="date"
-                  value={card.due?.at ?? ""}
+                  value={due?.at ?? ""}
                   onChange={(e) => {
                     if (e.target.value) setDue({ allDay: true, at: e.target.value });
                   }}
@@ -537,15 +587,16 @@ function CardBody({
                 <Input
                   id={ids.due}
                   type="datetime-local"
-                  value={card.due ? toLocalInput(card.due.at, timeZone) : ""}
+                  value={due ? toLocalInput(due.at, timeZone) : ""}
                   onChange={(e) => {
+                    // Cada parte que se toca (día, mes, hora…) cambia el borrador, no la tarjeta.
                     const at = fromLocalInput(e.target.value, timeZone);
                     if (at) setDue({ allDay: false, at });
                   }}
                 />
               )}
               {overdue ? <p className="text-sm font-medium text-destructive">{t.overdue}</p> : null}
-              {card.due ? (
+              {due ? (
                 <>
                   {/* Los avisos le llegan a quien creó el tablero: solo esa persona los elige. */}
                   {isOwner ? (
@@ -556,14 +607,7 @@ function CardBody({
                       <select
                         id={ids.reminder}
                         value={currentReminder}
-                        onChange={(e) =>
-                          save.mutate({
-                            reminders:
-                              e.target.value === ""
-                                ? []
-                                : [{ offsetMinutes: Number(e.target.value), channel: "telegram" }],
-                          })
-                        }
+                        onChange={(e) => edit({ reminder: e.target.value })}
                         className="h-10 rounded-md border bg-background px-2 text-base sm:h-9 sm:text-sm"
                       >
                         {reminderOptions.some((o) => o.value === currentReminder) ? null : (
@@ -595,9 +639,15 @@ function CardBody({
         </aside>
         <div className="grid min-w-0 content-start gap-5 md:col-start-1 md:row-span-2 md:row-start-1">
           <Description
-            card={card}
+            value={values.description}
             readOnly={readOnly}
-            onSave={(description) => save.mutate({ description })}
+            editing={editingDescription}
+            onEdit={() => setEditingDescription(true)}
+            onChange={(description) => edit({ description })}
+            onCancel={() => {
+              setDraft(({ description: _, ...rest }) => rest);
+              setEditingDescription(false);
+            }}
           />
           <Checklist card={card} readOnly={readOnly} run={(action) => run.mutate(action)} />
           <Attachments
@@ -667,28 +717,83 @@ function CardBody({
           </div>
         )}
       </div>
+      {readOnly ? null : (
+        // Pegada abajo del diálogo mientras se desplaza, a todo lo ancho (los márgenes y el
+        // `bottom` negativos se comen el relleno del diálogo, que el `sticky` respeta).
+        <div className="sticky -bottom-5 z-10 -mx-5 -mb-5 flex flex-wrap items-center justify-end gap-2 border-t bg-card px-5 py-3 sm:-bottom-7 sm:-mx-7 sm:-mb-7 sm:px-7">
+          <p role="status" className="mr-auto text-sm text-muted-foreground max-sm:sr-only">
+            {dirty ? t.unsaved : ""}
+          </p>
+          {dirty ? (
+            <Button variant="ghost" onClick={discard} disabled={save.isPending}>
+              {t.discard}
+            </Button>
+          ) : null}
+          <Button onClick={() => void submit()} disabled={!canSave}>
+            {save.isPending ? (
+              <LoaderCircleIcon aria-hidden="true" className="animate-spin" />
+            ) : null}
+            {save.isPending ? t.saving : t.saveChanges}
+          </Button>
+        </div>
+      )}
+      <Dialog
+        open={leave.status === "blocked"}
+        onOpenChange={(open) => {
+          if (!open) leave.reset?.();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t.leaveTitle}</DialogTitle>
+            <DialogDescription>{t.leaveBody}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:flex-wrap">
+            <Button variant="ghost" onClick={() => leave.reset?.()}>
+              {t.keepEditing}
+            </Button>
+            <Button variant="outline" onClick={() => leave.proceed?.()}>
+              {t.discardAndClose}
+            </Button>
+            <Button
+              disabled={!canSave}
+              onClick={() => {
+                const { proceed, reset } = leave;
+                void submit().then((saved) => (saved ? proceed?.() : reset?.()));
+              }}
+            >
+              {t.saveAndClose}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 function Description({
-  card,
+  value: text,
   readOnly,
-  onSave,
+  editing,
+  onEdit,
+  onChange,
+  onCancel,
 }: {
-  card: CardDetail;
+  /** La descripción que se ve: la guardada o la del borrador. */
+  value: string;
   readOnly: boolean;
-  onSave: (text: string) => void;
+  editing: boolean;
+  onEdit: () => void;
+  onChange: (text: string) => void;
+  /** Deshace lo escrito y cierra el editor. */
+  onCancel: () => void;
 }) {
-  const [editing, setEditing] = useState(false);
   const [tab, setTab] = useState<"write" | "preview">("write");
-  const [text, setText] = useState(card.description);
   const id = useId();
   const t = workMessages().card;
   const startEditing = () => {
-    setText(card.description);
     setTab("write");
-    setEditing(true);
+    onEdit();
   };
   return (
     <Section title={t.description}>
@@ -720,7 +825,7 @@ function Description({
               role="tabpanel"
               aria-label={t.markdown}
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={(e) => onChange(e.target.value)}
               maxLength={KANBAN_LIMITS.description}
               rows={8}
               className="w-full rounded-md border bg-background p-2 font-mono text-base sm:text-sm"
@@ -732,16 +837,8 @@ function Description({
             </div>
           )}
           <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={() => {
-                onSave(text);
-                setEditing(false);
-              }}
-            >
-              {t.save}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+            {/* Se guarda con «Guardar cambios», junto con lo demás. */}
+            <Button size="sm" variant="ghost" onClick={onCancel}>
               {t.cancel}
             </Button>
             <span className="ml-auto self-center text-xs text-muted-foreground">
@@ -749,9 +846,9 @@ function Description({
             </span>
           </div>
         </div>
-      ) : card.description ? (
+      ) : text ? (
         <div className="grid gap-2">
-          <Markdown source={card.description} className="markdown text-sm" />
+          <Markdown source={text} className="markdown text-sm" />
           {readOnly ? null : (
             <Button
               size="sm"

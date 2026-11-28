@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.FileProvider
@@ -16,7 +17,6 @@ import app.delyra.core.model.CardAttachment
 import app.delyra.core.model.CardDetail
 import app.delyra.core.model.CardResponse
 import app.delyra.core.model.CommentRequest
-import app.delyra.core.model.DueInfo
 import app.delyra.core.model.TextRequest
 import app.delyra.core.network.ApiError
 import app.delyra.core.network.ApiException
@@ -27,9 +27,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -177,31 +174,56 @@ class CardViewModel(private val graph: AppGraph, val cardId: String) : ViewModel
         }
     }
 
-    private fun patch(vararg fields: Pair<String, JsonElement>) = run { api.updateCard(cardId, JsonObject(fields.toMap())) }
+    // ── Borrador: lo que se edita en el detalle y manda «Guardar cambios» ──
 
-    fun setTitle(title: String) = patch("title" to JsonPrimitive(title.trim()))
-    fun setDescription(text: String) = patch("description" to JsonPrimitive(text))
-    fun setPriority(priority: String) = patch("priority" to JsonPrimitive(priority))
-    fun setKind(kind: String) = patch("kind" to JsonPrimitive(kind))
-    fun setColor(color: String?) = patch("color" to (color?.let(::JsonPrimitive) ?: JsonNull))
-    fun setAssignee(name: String?) = patch("assignee" to JsonPrimitive(name?.trim().orEmpty()))
-    fun setLabels(ids: List<String>) = patch("labelIds" to JsonArray(ids.map(::JsonPrimitive)))
+    /** Los avisos por Telegram le llegan a quien creó el tablero: solo esa persona los elige. */
+    val isOwner: Boolean get() = board?.board?.isOwner == true
 
-    fun setDue(due: DueInfo?) {
-        val value = due?.let {
-            buildJsonObject {
-                put("allDay", JsonPrimitive(it.allDay))
-                put("at", JsonPrimitive(it.at))
-                put("tz", JsonPrimitive(it.tz))
-            }
-        } ?: JsonNull
-        // Sin fecha no hay alertas: la API las quita, y la vista también.
-        patch("due" to value)
+    var draft by mutableStateOf(CardDraft())
+        private set
+    var saving by mutableStateOf(false)
+        private set
+    /** Borradores guardados o descartados (el editor de la descripción se cierra con ellos). */
+    var settled by mutableIntStateOf(0)
+        private set
+    var savedNotice by mutableStateOf(false)
+
+    /** Hay cambios sin guardar (comparados con la tarjeta: volver al valor de antes no cuenta). */
+    val dirty: Boolean get() = canWrite && card?.let { draft.patch(it, isOwner).isNotEmpty() } == true
+
+    fun edit(change: (CardDraft) -> CardDraft) {
+        draft = change(draft)
     }
 
-    fun setReminders(offsets: List<Int>) = patch(
-        "reminders" to JsonArray(offsets.distinct().map { JsonObject(mapOf("offsetMinutes" to JsonPrimitive(it), "channel" to JsonPrimitive("telegram"))) }),
-    )
+    fun discard() {
+        draft = CardDraft()
+        settled++
+    }
+
+    /** Manda de una vez todo lo cambiado (una fila de actividad por campo) y llama a [onSaved]. */
+    fun save(onSaved: () -> Unit = {}) {
+        val current = card ?: return
+        val body = draft.patch(current, isOwner)
+        if (saving || body.isEmpty() || draft.title(current).isBlank()) return
+        val sent = draft
+        mutations++
+        saving = true
+        busy = true
+        viewModelScope.launch {
+            apiCall { api.updateCard(cardId, body) }
+                .onSuccess {
+                    card = it.card
+                    draft = draft.afterSave(sent)
+                    settled++
+                    savedNotice = true
+                    graph.changes.boardsChanged()
+                    onSaved()
+                }
+                .onFailure { message = it.apiError }
+            saving = false
+            busy = false
+        }
+    }
 
     fun move(columnId: String, assignee: String? = null) {
         val target = board?.cards?.count { it.columnId == columnId && it.id != cardId } ?: 0

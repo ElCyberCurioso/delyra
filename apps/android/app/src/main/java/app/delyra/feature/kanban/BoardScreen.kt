@@ -2,6 +2,7 @@ package app.delyra.feature.kanban
 
 import android.content.ClipData
 import android.content.ClipDescription
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -118,7 +119,20 @@ fun BoardScreen(boardId: String, onBack: () -> Unit, onOpenCard: (String) -> Uni
     var searching by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val open: (String) -> Unit = { id -> if (layout.isExpanded) openCard = id else onOpenCard(id) }
+    // Panel de la tarjeta (pantallas anchas): cambiar de tarjeta o salir del tablero con cambios
+    // sin guardar en ella pregunta antes, como al salir de la tarjeta a pantalla completa.
+    val paneVm = openCard?.takeIf { layout.isExpanded }?.let { id -> appViewModel(key = "card:$id") { CardViewModel(it, id) } }
+    var afterLeave by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val guarded: (() -> Unit) -> Unit = { action -> if (paneVm?.dirty == true) afterLeave = action else action() }
+    val open: (String) -> Unit = { id ->
+        if (!layout.isExpanded) onOpenCard(id) else if (id != openCard) guarded { openCard = id }
+    }
+    val back = { guarded(onBack) }
+    BackHandler(enabled = paneVm?.dirty == true) { back() }
+    val pendingLeave = afterLeave
+    if (pendingLeave != null && paneVm != null) {
+        UnsavedCardDialog(paneVm, onDismiss = { afterLeave = null }, onLeave = { afterLeave = null; pendingLeave() })
+    }
 
     LifecycleStartEffect(boardId) {
         vm.startLive()
@@ -148,7 +162,7 @@ fun BoardScreen(boardId: String, onBack: () -> Unit, onOpenCard: (String) -> Uni
     }
 
     Scaffold(
-        topBar = { BoardTopBar(vm, dialogs, onBack, searching = searching, onSearch = { searching = !searching; if (!searching) vm.query = "" }) },
+        topBar = { BoardTopBar(vm, dialogs, back, searching = searching, onSearch = { searching = !searching; if (!searching) vm.query = "" }) },
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = { OfflineBanner() },
     ) { padding ->

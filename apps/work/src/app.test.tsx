@@ -2,7 +2,7 @@ import type { BoardDetail, CardDetail } from "@delyra/shared";
 import { ThemeProvider } from "@delyra/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse, ws } from "msw";
 import { setupServer } from "msw/node";
@@ -459,5 +459,134 @@ describe("Tipos de tarjeta y tareas que dependen de otra persona", () => {
     await waitFor(() =>
       expect(moves).toEqual([{ columnId: "c4", index: 10_000, assignee: "Laura (gestoría)" }]),
     );
+  });
+});
+
+describe("Detalle de tarjeta: los cambios se guardan con el botón", () => {
+  /** PATCH recibidos; la respuesta es la tarjeta con lo que llegó encima. */
+  function recordPatches() {
+    const patches: Record<string, unknown>[] = [];
+    server.use(
+      http.patch("/api/cards/k1", async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        patches.push(body);
+        return HttpResponse.json({ card: { ...card, ...body } });
+      }),
+    );
+    return patches;
+  }
+
+  it("elegir fecha, hora y prioridad no sube nada hasta «Guardar cambios», que lo manda de una vez", async () => {
+    const patches = recordPatches();
+    const user = userEvent.setup();
+    renderAt("/tableros/b1?tarjeta=k1");
+    const dialog = await screen.findByRole("dialog");
+    const save = await within(dialog).findByRole("button", { name: "Guardar cambios" });
+    expect(save).toBeDisabled();
+
+    // Como en el navegador: cada parte que se toca (día, hora, minutos) da un valor completo.
+    const due = within(dialog).getByLabelText("Fecha límite", { selector: "input" });
+    fireEvent.change(due, { target: { value: "2027-05-10T09:00" } });
+    fireEvent.change(due, { target: { value: "2027-05-12T09:00" } });
+    fireEvent.change(due, { target: { value: "2027-05-12T17:30" } });
+    await user.selectOptions(within(dialog).getByLabelText("Prioridad"), "low");
+    expect(within(dialog).getByRole("status")).toHaveTextContent("Cambios sin guardar");
+    expect(patches).toEqual([]);
+
+    await user.click(save);
+    await waitFor(() => expect(patches).toHaveLength(1));
+    // Solo lo que cambió, y una sola fecha (17:30 en Madrid son las 15:30 UTC).
+    expect(patches[0]).toEqual({
+      priority: "low",
+      due: { allDay: false, at: "2027-05-12T15:30:00.000Z", tz: "Europe/Madrid" },
+    });
+    await waitFor(() => expect(save).toBeDisabled());
+    expect(within(dialog).getByRole("status")).toHaveTextContent("");
+  });
+
+  it("cerrar con cambios sin guardar pregunta antes y no los pierde sin avisar", async () => {
+    const patches = recordPatches();
+    const user = userEvent.setup();
+    const router = renderAt("/tableros/b1?tarjeta=k1");
+    const dialog = await screen.findByRole("dialog");
+    await user.selectOptions(await within(dialog).findByLabelText("Prioridad"), "low");
+
+    // Esc: se queda abierta, con el cambio, si se sigue editando.
+    await user.keyboard("{Escape}");
+    let ask = await screen.findByRole("dialog", { name: "¿Salir sin guardar?" });
+    await user.click(within(ask).getByRole("button", { name: "Seguir editando" }));
+    await waitFor(() => expect(ask).not.toBeInTheDocument());
+    expect(router.state.location.search).toEqual({ tarjeta: "k1" });
+    expect(within(dialog).getByLabelText("Prioridad")).toHaveValue("low");
+
+    // La X: «Guardar y cerrar» lo manda y cierra.
+    await user.click(within(dialog).getByRole("button", { name: "Cerrar" }));
+    ask = await screen.findByRole("dialog", { name: "¿Salir sin guardar?" });
+    await user.click(within(ask).getByRole("button", { name: "Guardar y cerrar" }));
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
+    expect(patches).toEqual([{ priority: "low" }]);
+  });
+
+  it("«Descartar cambios» cierra sin mandar nada", async () => {
+    const patches = recordPatches();
+    const user = userEvent.setup();
+    const router = renderAt("/tableros/b1?tarjeta=k1");
+    const dialog = await screen.findByRole("dialog");
+    await user.click(await within(dialog).findByRole("checkbox", { name: "Recados" }));
+    await user.keyboard("{Escape}");
+    const ask = await screen.findByRole("dialog", { name: "¿Salir sin guardar?" });
+    await user.click(within(ask).getByRole("button", { name: "Descartar cambios" }));
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
+    expect(patches).toEqual([]);
+  });
+});
+
+describe("Alta de tarjetas", () => {
+  it("se cierra al añadir; con «Añadir otra» se queda abierta y vacía, y se recuerda", async () => {
+    localStorage.removeItem("delyra.work.addAnother");
+    const created: { columnId: string; title: string }[] = [];
+    server.use(
+      http.post("/api/columns/:id/cards", async ({ request, params }) => {
+        const body = (await request.json()) as { title: string };
+        const columnId = String(params.id);
+        created.push({ columnId, title: body.title });
+        return HttpResponse.json(
+          { card: { ...card, id: `n${String(created.length)}`, title: body.title, columnId } },
+          { status: 201 },
+        );
+      }),
+    );
+    const user = userEvent.setup();
+    renderAt("/tableros/b1");
+    const [todo] = await screen.findAllByTestId("column");
+    if (!todo) throw new Error("Sin columnas");
+    const title = /Título de la nueva tarjeta en Por hacer/;
+
+    // Por defecto, tras añadir se cierra.
+    await user.click(within(todo).getByRole("button", { name: /Añadir tarjeta/ }));
+    await user.type(within(todo).getByLabelText(title), "Leche{Enter}");
+    await waitFor(() => expect(within(todo).queryByLabelText(title)).not.toBeInTheDocument());
+    expect(created).toEqual([{ columnId: "c1", title: "Leche" }]);
+
+    // «Añadir otra»: sigue abierto, vacío y con el foco para la siguiente.
+    await user.click(within(todo).getByRole("button", { name: /Añadir tarjeta/ }));
+    const another = within(todo).getByRole("checkbox", { name: "Añadir otra" });
+    expect(another).not.toBeChecked();
+    await user.click(another);
+    const input = within(todo).getByLabelText(title);
+    await user.type(input, "Huevos{Enter}");
+    await waitFor(() => expect(created).toHaveLength(2));
+    await waitFor(() => expect(input).toHaveValue(""));
+    expect(input).toHaveFocus();
+    await user.type(input, "Pan{Enter}");
+    await waitFor(() => expect(created.map((c) => c.title)).toEqual(["Leche", "Huevos", "Pan"]));
+    expect(within(todo).getByLabelText(title)).toBeInTheDocument();
+
+    // Se recuerda en este navegador: al volver a abrir sigue marcada.
+    expect(localStorage.getItem("delyra.work.addAnother")).toBe("on");
+    await user.click(within(todo).getByRole("button", { name: "Cancelar" }));
+    await user.click(within(todo).getByRole("button", { name: /Añadir tarjeta/ }));
+    expect(within(todo).getByRole("checkbox", { name: "Añadir otra" })).toBeChecked();
+    localStorage.removeItem("delyra.work.addAnother");
   });
 });

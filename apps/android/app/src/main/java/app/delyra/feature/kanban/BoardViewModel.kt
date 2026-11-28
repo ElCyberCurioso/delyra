@@ -67,6 +67,9 @@ class BoardViewModel(private val graph: AppGraph, val boardId: String) : ViewMod
         private set
     var members by mutableStateOf<BoardMembers?>(null)
         private set
+    /** «Añadir otra»: el alta de tarjetas sigue abierta (y vacía) tras añadir. Se recuerda. */
+    var addAnother by mutableStateOf(false)
+        private set
 
     val canWrite: Boolean get() = detail?.board?.canWrite == true
     val isOwner: Boolean get() = detail?.board?.isOwner == true
@@ -94,6 +97,12 @@ class BoardViewModel(private val graph: AppGraph, val boardId: String) : ViewMod
     init {
         load()
         viewModelScope.launch { graph.changes.boards.drop(1).collect { scheduleReload() } }
+        viewModelScope.launch { graph.preferences.addAnotherCard.collect { addAnother = it } }
+    }
+
+    fun chooseAddAnother(value: Boolean) {
+        addAnother = value
+        viewModelScope.launch { graph.preferences.setAddAnotherCard(value) }
     }
 
     /**

@@ -263,6 +263,15 @@ export function kanbanRepository(
       return map;
     },
 
+    async labelIdsOfCard(cardId: string) {
+      const rows = await db
+        .select({ labelId: cardLabels.labelId })
+        .from(cardLabels)
+        .innerJoin(cards, eq(cards.id, cardLabels.cardId))
+        .where(and(eq(cards.ownerId, ownerId), eq(cardLabels.cardId, cardId)));
+      return rows.map((r) => r.labelId);
+    },
+
     // ── Checklist, comentarios, adjuntos y actividad ─────────────────────────
 
     checklistOf(cardId: string) {
